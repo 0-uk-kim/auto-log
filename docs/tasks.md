@@ -12,7 +12,7 @@
 | 1 | ✅ | 의존성 추가 (`libs.versions.toml`) | CameraX, Media3(ExoPlayer+Transformer), Navigation Compose, Room, Hilt, WorkManager, Coil 빌드 통과 |
 | 2 | ✅ | 패키지 구조 + DI 골격 | `camera/ list/ preview/ vlog/ data/` 레이어, `@HiltAndroidApp` |
 | 3 | ✅ | 테마·디자인 토큰, Manifest 권한 선언 | 세로 고정 Activity, CAMERA/RECORD_AUDIO 선언 |
-| 4 |  | Navigation 그래프 뼈대 | 빈 화면 4개(카메라/목록/미리보기/브이로그) 라우팅 이동 확인 |
+| 4 | ✅ | Navigation 그래프 뼈대 | 빈 화면 4개(카메라/목록/미리보기/브이로그) 라우팅 이동 확인 |
 
 ## P1. 카메라 (메인)
 

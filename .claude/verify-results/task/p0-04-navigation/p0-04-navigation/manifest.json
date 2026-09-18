@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "slug": "p0-04-navigation",
+  "service": "autolog",
+  "feature": "p0",
+  "created": "2026-09-19T00:52:07+09:00",
+  "device": "emupool-api36-1 (Android 16, 1080x2400)",
+  "branch": "task/p0-04-navigation",
+  "commit": "6603ac5",
+  "items": [
+    {
+      "kind": "video",
+      "file": "raw-nav.mp4",
+      "caption": "라우팅 이동 — 카메라 → 목록 → 미리보기 → 목록 → 브이로그 → 카메라 → 미리보기(직전 촬영본)\n- 시스템 뒤로가기와 화면 내 뒤로 버튼 모두 이전 목적지로 복귀\n- 마지막 구간은 카메라 좌측 하단 진입이라 시작 위치가 직전 촬영본",
+      "compare": false,
+      "duration": 24.18,
+      "gif": "nav-flow.gif",
+      "gif_width": 400,
+      "gif_height": 889,
+      "gif_duration": 24.18
+    },
+    {
+      "kind": "image",
+      "file": "destinations.png",
+      "caption": "목적지 4개와 각 화면이 받은 라우트 인자\n- date는 카메라가 넘긴 오늘 날짜, clipIndex는 목록에서 탭한 0번째\n- 화면별 ViewModel이 NavBackStackEntry 범위에서 주입됨",
+      "compare": false,
+      "panels": 4,
+      "width": 1600,
+      "height": 1621,
+      "text_px": 26,
+      "text_lines": 12
+    }
+  ]
+}
