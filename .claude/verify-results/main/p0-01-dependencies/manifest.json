@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "p0-01-dependencies",
+  "service": "autolog",
+  "feature": "p0",
+  "created": "2026-09-19T00:03:36+09:00",
+  "device": "emupool-api36-1 (Android 16, 1080x2400)",
+  "branch": "main",
+  "commit": "50b15f4",
+  "items": [
+    {
+      "kind": "video",
+      "file": "launch.mp4",
+      "caption": "P0#1 의존성 추가 후 앱 콜드 런치 — 에뮬레이터(API 36)에서 정상 기동",
+      "compare": false,
+      "duration": 2.68,
+      "gif": "launch.gif",
+      "gif_width": 400,
+      "gif_height": 889,
+      "gif_duration": 2.68
+    }
+  ]
+}
