@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "slug": "p0-03-theme-permissions",
+  "service": "autolog",
+  "feature": "p0",
+  "created": "2026-09-19T00:31:29+09:00",
+  "device": "emupool-api36-1 (Android 16, 1080x2400)",
+  "branch": "task/p0-03-theme-permissions",
+  "commit": "df46302",
+  "items": [
+    {
+      "kind": "video",
+      "file": "launch.mp4",
+      "caption": "콜드 런치 — AutoLog 테마(다크 스킴)로 기동, 크래시 없음\n- 런치 윈도우 배경이 스킴 background와 같아 흰 화면 깜빡임 없음",
+      "compare": false,
+      "duration": 4.09,
+      "gif": "launch.gif",
+      "gif_width": 400,
+      "gif_height": 889,
+      "gif_duration": 4.09
+    },
+    {
+      "kind": "image",
+      "file": "theme-tokens.png",
+      "caption": "테마·디자인 토큰 교체 — 템플릿 보라 → 코럴 스킴, 라이트/다크\n- 다이내믹 컬러 비활성: 기기 배경화면과 무관하게 같은 색이 나온다\n- 선언 권한 목록은 PackageManager가 돌려준 실제 병합 결과",
+      "compare": true,
+      "panels": 3,
+      "width": 1600,
+      "height": 1221,
+      "text_px": 16,
+      "text_lines": 17
+    },
+    {
+      "kind": "image",
+      "file": "orientation.png",
+      "caption": "세로 고정 — user_rotation=1로 디스플레이를 가로로 강제한 상태\n- 설정 앱은 가로로 회전, AutoLog는 세로 유지(dumpsys 창 회전 ROTATION_0)",
+      "compare": true,
+      "width": 1600,
+      "height": 656,
+      "text_px": 22,
+      "text_lines": 18
+    }
+  ]
+}
