@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">AutoLog</string>
+
+    <string name="camera_permission_denied">촬영하려면 카메라와 마이크 권한이 필요합니다.\n브이로그에는 원본 소리가 그대로 들어갑니다.</string>
+    <string name="camera_permission_permanently_denied">권한이 차단되어 있어 촬영할 수 없습니다.\n설정 &gt; 권한에서 카메라와 마이크를 허용해 주세요.</string>
+    <string name="camera_permission_action_request">권한 허용</string>
+    <string name="camera_permission_action_settings">설정 열기</string>
 </resources>
