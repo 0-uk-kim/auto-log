@@ -41,3 +41,6 @@ release/
 # OS
 .DS_Store
 Thumbs.db
+
+# verify-media 작업 락
+.claude/verify-results/**/.manifest.lock

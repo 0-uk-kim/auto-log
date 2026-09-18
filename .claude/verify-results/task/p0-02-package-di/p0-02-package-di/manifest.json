@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "slug": "p0-02-package-di",
+  "service": "autolog",
+  "feature": "p0",
+  "created": "2026-09-19T00:17:49+09:00",
+  "device": "emupool-api36-1 (Android 16, 1080x2400)",
+  "branch": "task/p0-02-package-di",
+  "commit": "1ed7ab0",
+  "items": [
+    {
+      "kind": "video",
+      "file": "launch.mp4",
+      "caption": "P0#2 앱 콜드 런치 — @HiltAndroidApp 적용 후 4개 feature ViewModel이 Hilt 그래프에서 해석됨",
+      "compare": false,
+      "duration": 2.63,
+      "gif": "launch.gif",
+      "gif_width": 400,
+      "gif_height": 889,
+      "gif_duration": 2.6
+    },
+    {
+      "kind": "image",
+      "file": "di-skeleton.png",
+      "caption": "camera/list/preview/vlog ViewModel 주입 결과 화면",
+      "compare": false,
+      "width": 1080,
+      "height": 2400,
+      "text_px": 27,
+      "text_lines": 6
+    }
+  ]
+}
