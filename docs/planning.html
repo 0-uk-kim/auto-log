@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>오토로그 기획 문서</title>
+<style>
+  :root {
+    --bg: #FFFFFF;
+    --surface: #F8FAFC;
+    --border: #E2E8F0;
+    --border-strong: #CBD5E1;
+    --text: #1E293B;
+    --text-body: #475569;
+    --text-muted: #94A3B8;
+    --blue: #3B82F6;
+    --green: #10B981;
+    --amber: #F59E0B;
+    --red: #EF4444;
+    --purple: #8B5CF6;
+    --cyan: #06B6D4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text-body);
+    font-family: 'Segoe UI', 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 1180px; margin: 0 auto; padding: 32px 24px 96px; }
+  .layout { display: grid; grid-template-columns: minmax(0,1fr) 240px; gap: 40px; align-items: start; }
+
+  /* hero */
+  .hero {
+    background: linear-gradient(135deg, #0A1628 0%, #1A365D 100%);
+    border-radius: 12px; padding: 36px 40px; margin-bottom: 28px;
+    color: #fff; position: relative; overflow: hidden;
+  }
+  .hero .emoji {
+    position: absolute; right: 40px; top: 50%; transform: translateY(-50%);
+    font-size: 100px; opacity: 0.08; line-height: 1;
+  }
+  .hero h1 { font-size: 36px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.5px; }
+  .hero .sub { font-size: 14px; color: rgba(255,255,255,0.5); margin-bottom: 12px; }
+  .hero .desc { font-size: 15px; line-height: 1.7; color: rgba(255,255,255,0.9); margin-top: 4px; position: relative; }
+  .hero .desc strong { color: #fff; }
+  .hero .desc .accent { color: #63B3ED; font-weight: 700; }
+
+  /* toc */
+  .toc {
+    position: sticky; top: 24px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px 20px; font-size: 13px;
+  }
+  .toc .label {
+    font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--text-muted); font-weight: 700; margin-bottom: 10px;
+  }
+  .toc ol { margin: 0; padding-left: 18px; }
+  .toc li { margin-bottom: 7px; }
+  .toc a { color: var(--text-body); text-decoration: none; }
+  .toc a:hover { color: var(--blue); }
+
+  h2 {
+    font-size: 24px; color: var(--text); font-weight: 700;
+    margin: 48px 0 8px; padding-bottom: 10px; border-bottom: 2px solid var(--border);
+    letter-spacing: -0.3px;
+  }
+  h2:first-of-type { margin-top: 8px; }
+  h3 { font-size: 17px; color: var(--text); font-weight: 700; margin: 28px 0 6px; }
+  p { margin: 10px 0; }
+  ul { padding-left: 20px; margin: 8px 0; }
+  li { margin-bottom: 5px; }
+  code {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 6px; font-size: 13px;
+    font-family: 'SF Mono', Menlo, Consolas, monospace; color: #0F172A;
+  }
+  svg { display: block; width: 100%; max-width: 900px; margin: 18px 0; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 14px; margin: 16px 0; }
+  thead tr { background-color: #E2E8F0; }
+  th {
+    padding: 10px 14px; text-align: left; color: var(--text);
+    font-weight: 700; border-bottom: 2px solid var(--border-strong);
+  }
+  td { padding: 10px 14px; vertical-align: top; border-bottom: 1px solid var(--border); }
+  tbody tr:nth-child(odd) { background: var(--surface); }
+
+  .tag {
+    display: inline-block; font-size: 12px; font-weight: 700;
+    padding: 2px 9px; border-radius: 20px; white-space: nowrap;
+  }
+  .t-blue { background: #DBEAFE; color: #1D4ED8; }
+  .t-green { background: #D1FAE5; color: #047857; }
+  .t-amber { background: #FEF3C7; color: #B45309; }
+  .t-gray { background: #E2E8F0; color: #475569; }
+
+  .callout {
+    border-left: 4px solid var(--amber); background: #FFFBEB;
+    border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 18px 0; font-size: 14px;
+  }
+  .callout strong { color: #92400E; }
+  .callout.info { border-left-color: var(--blue); background: #EFF6FF; }
+  .callout.info strong { color: #1D4ED8; }
+
+  footer {
+    margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--border);
+    font-size: 13px; color: var(--text-muted);
+  }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: minmax(0,1fr); }
+    .toc { position: static; order: -1; }
+    .hero { padding: 28px 24px; }
+    .hero h1 { font-size: 28px; }
+    .hero .emoji { font-size: 70px; right: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="hero">
+    <div class="emoji">🎬</div>
+    <h1>오토로그 (AutoLog)</h1>
+    <div class="sub">Android · 자동 브이로그 생성 앱 · 기획 문서</div>
+    <div class="desc">
+      하루 동안 촬영한 짧은 영상들을 <strong>정렬된 순서대로 이어붙여</strong> 한 편의 브이로그로 만들어 주는 앱.<br>
+      <span class="accent">촬영 → 목록 정리 → 편집 → 브이로그 생성 → 공유</span> 의 흐름을 하나의 앱에서 끝낸다.
+    </div>
+  </div>
+
+  <div class="layout">
+  <main>
+
+    <h2 id="s1">1. 개요</h2>
+    <p>
+      브이로그를 만들려면 보통 촬영 앱과 편집 앱을 오가며 클립을 모으고, 순서를 맞추고, 내보내는 과정을 거쳐야 한다.
+      오토로그는 이 과정을 <strong>촬영한 날짜 단위로 자동 묶어</strong> 압축한다.
+      사용자는 그날 찍은 클립의 순서만 확인하면 브이로그 한 편이 나온다.
+    </p>
+
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 190" role="img" aria-label="핵심 가치 3가지">
+      <defs>
+        <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#1E293B" flood-opacity="0.1"/></filter>
+      </defs>
+      <rect width="900" height="190" fill="#F8FAFC" rx="10"/>
+
+      <rect x="30" y="34" width="262" height="122" rx="10" fill="white" filter="url(#shadow)"/>
+      <path d="M40,34 Q30,34 30,44 L30,66 L292,66 L292,44 Q292,34 282,34 Z" fill="#3B82F6"/>
+      <text x="48" y="55" fill="white" font-size="13" font-weight="bold" font-family="sans-serif">날짜가 곧 프로젝트</text>
+      <text x="48" y="92" fill="#475569" font-size="12.5" font-family="sans-serif">촬영된 영상은 촬영 날짜로</text>
+      <text x="48" y="112" fill="#475569" font-size="12.5" font-family="sans-serif">자동 묶인다. 사용자가 클립을</text>
+      <text x="48" y="132" fill="#475569" font-size="12.5" font-family="sans-serif">모으는 수고가 없다.</text>
+
+      <rect x="319" y="34" width="262" height="122" rx="10" fill="white" filter="url(#shadow)"/>
+      <path d="M329,34 Q319,34 319,44 L319,66 L581,66 L581,44 Q581,34 571,34 Z" fill="#10B981"/>
+      <text x="337" y="55" fill="white" font-size="13" font-weight="bold" font-family="sans-serif">촬영 흐름을 끊지 않는다</text>
+      <text x="337" y="92" fill="#475569" font-size="12.5" font-family="sans-serif">촬영 후에도 카메라 화면을</text>
+      <text x="337" y="112" fill="#475569" font-size="12.5" font-family="sans-serif">유지한다. 방금 찍은 영상 확인도</text>
+      <text x="337" y="132" fill="#475569" font-size="12.5" font-family="sans-serif">목록 이동도 탭 한 번이다.</text>
+
+      <rect x="608" y="34" width="262" height="122" rx="10" fill="white" filter="url(#shadow)"/>
+      <path d="M618,34 Q608,34 608,44 L608,66 L870,66 L870,44 Q870,34 860,34 Z" fill="#8B5CF6"/>
+      <text x="626" y="55" fill="white" font-size="13" font-weight="bold" font-family="sans-serif">결과물까지 앱 안에서</text>
+      <text x="626" y="92" fill="#475569" font-size="12.5" font-family="sans-serif">이어붙이기·미리보기·SNS</text>
+      <text x="626" y="112" fill="#475569" font-size="12.5" font-family="sans-serif">공유·갤러리 저장까지 다른</text>
+      <text x="626" y="132" fill="#475569" font-size="12.5" font-family="sans-serif">앱 없이 끝낸다.</text>
+    </svg>
+
+    <h2 id="s2">2. 사용자 플로우</h2>
+    <p>
+      메인 진입점은 <strong>카메라 화면</strong>이며, 여기서 나가는 통로는 둘이다.
+      <strong>좌측 하단</strong>은 방금 촬영한 영상의 미리보기 재생 화면으로, <strong>우측 하단</strong>은 날짜별 영상 목록으로 이어진다.
+      목록에서 하루치 클립의 순서를 정리한 뒤 브이로그를 생성하고 공유하는 것이 1차 개발의 전체 흐름이다.
+    </p>
+
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 410" role="img" aria-label="사용자 플로우 다이어그램">
+      <defs>
+        <filter id="shadow2"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#1E293B" flood-opacity="0.1"/></filter>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#94A3B8"/>
+        </marker>
+        <marker id="arrowlight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#CBD5E1"/>
+        </marker>
+      </defs>
+      <rect width="900" height="410" fill="#F8FAFC" rx="10"/>
+
+      <!-- 카메라 -->
+      <rect x="40" y="180" width="170" height="86" rx="10" fill="white" filter="url(#shadow2)"/>
+      <path d="M50,180 Q40,180 40,190 L40,210 L210,210 L210,190 Q210,180 200,180 Z" fill="#3B82F6"/>
+      <text x="56" y="200" fill="white" font-size="12.5" font-weight="bold" font-family="sans-serif">① 카메라 (메인)</text>
+      <text x="56" y="230" fill="#475569" font-size="11.5" font-family="sans-serif">동영상 촬영</text>
+      <text x="56" y="249" fill="#94A3B8" font-size="11" font-family="sans-serif">촬영 후 카메라 유지</text>
+
+      <!-- 영상 목록 -->
+      <rect x="290" y="180" width="170" height="86" rx="10" fill="white" filter="url(#shadow2)"/>
+      <path d="M300,180 Q290,180 290,190 L290,210 L460,210 L460,190 Q460,180 450,180 Z" fill="#10B981"/>
+      <text x="306" y="200" fill="white" font-size="12.5" font-weight="bold" font-family="sans-serif">② 영상 목록</text>
+      <text x="306" y="230" fill="#475569" font-size="11.5" font-family="sans-serif">날짜별 클립 · 순서 변경</text>
+      <text x="306" y="249" fill="#94A3B8" font-size="11" font-family="sans-serif">클립 탭 → 미리보기</text>
+
+      <!-- 달력 -->
+      <rect x="290" y="320" width="170" height="60" rx="10" fill="white" filter="url(#shadow2)"/>
+      <text x="306" y="345" fill="#1E293B" font-size="12.5" font-weight="bold" font-family="sans-serif">📅 날짜 선택 (달력)</text>
+      <text x="306" y="365" fill="#94A3B8" font-size="11" font-family="sans-serif">영상 유무 · 생성 유무 구분</text>
+
+      <!-- 클립 미리보기 -->
+      <rect x="540" y="30" width="170" height="80" rx="10" fill="white" filter="url(#shadow2)"/>
+      <path d="M550,30 Q540,30 540,40 L540,60 L710,60 L710,40 Q710,30 700,30 Z" fill="#06B6D4"/>
+      <text x="556" y="50" fill="white" font-size="12.5" font-weight="bold" font-family="sans-serif">③ 미리보기 재생</text>
+      <text x="556" y="80" fill="#475569" font-size="11.5" font-family="sans-serif">선택한 영상 재생</text>
+      <text x="556" y="99" fill="#94A3B8" font-size="11" font-family="sans-serif">좌우 스와이프로 클립 이동</text>
+
+      <!-- 클립 편집 (2·3차) -->
+      <rect x="540" y="130" width="170" height="80" rx="10" fill="white" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="5 4"/>
+      <path d="M550,130 Q540,130 540,140 L540,160 L710,160 L710,140 Q710,130 700,130 Z" fill="#F59E0B" opacity="0.55"/>
+      <text x="556" y="150" fill="white" font-size="12.5" font-weight="bold" font-family="sans-serif">클립 편집</text>
+      <rect x="663" y="137" width="38" height="17" rx="8" fill="white" opacity="0.9"/>
+      <text x="670" y="149.5" fill="#B45309" font-size="10.5" font-weight="bold" font-family="sans-serif">2·3차</text>
+      <text x="556" y="180" fill="#94A3B8" font-size="11.5" font-family="sans-serif">자막(2차) · 자르기(3차)</text>
+      <text x="556" y="199" fill="#94A3B8" font-size="11" font-family="sans-serif">앞/뒤 3초 이어보기</text>
+
+      <!-- 브이로그 생성 -->
+      <rect x="540" y="230" width="170" height="80" rx="10" fill="white" filter="url(#shadow2)"/>
+      <path d="M550,230 Q540,230 540,240 L540,260 L710,260 L710,240 Q710,230 700,230 Z" fill="#8B5CF6"/>
+      <text x="556" y="250" fill="white" font-size="12.5" font-weight="bold" font-family="sans-serif">④ 브이로그 생성</text>
+      <text x="556" y="280" fill="#475569" font-size="11.5" font-family="sans-serif">FAB · 순서대로 병합</text>
+      <text x="556" y="299" fill="#94A3B8" font-size="11" font-family="sans-serif">결과물 미리보기</text>
+
+      <!-- 공유 -->
+      <rect x="740" y="230" width="130" height="80" rx="10" fill="white" filter="url(#shadow2)"/>
+      <path d="M750,230 Q740,230 740,240 L740,260 L870,260 L870,240 Q870,230 860,230 Z" fill="#EF4444"/>
+      <text x="756" y="250" fill="white" font-size="12.5" font-weight="bold" font-family="sans-serif">⑤ 공유 / 저장</text>
+      <text x="756" y="280" fill="#475569" font-size="11.5" font-family="sans-serif">SNS 공유</text>
+      <text x="756" y="299" fill="#475569" font-size="11.5" font-family="sans-serif">갤러리 저장</text>
+
+      <!-- 화살표 -->
+      <path d="M125,180 L125,70 L535,70" stroke="#94A3B8" stroke-width="1.6" fill="none" marker-end="url(#arrow)"/>
+      <path d="M210,223 L285,223" stroke="#94A3B8" stroke-width="1.6" fill="none" marker-end="url(#arrow)"/>
+      <path d="M462,200 L535,96" stroke="#94A3B8" stroke-width="1.6" fill="none" marker-end="url(#arrow)"/>
+      <path d="M625,110 L625,126" stroke="#CBD5E1" stroke-width="1.6" fill="none" stroke-dasharray="5 4" marker-end="url(#arrowlight)"/>
+      <path d="M462,242 L535,270" stroke="#94A3B8" stroke-width="1.6" fill="none" marker-end="url(#arrow)"/>
+      <path d="M710,270 L735,270" stroke="#94A3B8" stroke-width="1.6" fill="none" marker-end="url(#arrow)"/>
+      <path d="M375,266 L375,316" stroke="#94A3B8" stroke-width="1.6" fill="none" marker-end="url(#arrow)"/>
+
+      <text x="140" y="60" fill="#94A3B8" font-size="10.5" font-family="sans-serif">좌측 하단 · 직전 촬영본 (있을 때만)</text>
+      <text x="214" y="216" fill="#94A3B8" font-size="10.5" font-family="sans-serif">우측 하단</text>
+      <text x="466" y="176" fill="#94A3B8" font-size="10.5" font-family="sans-serif">클립 탭</text>
+      <text x="632" y="123" fill="#94A3B8" font-size="10.5" font-family="sans-serif">2차~</text>
+      <text x="470" y="272" fill="#94A3B8" font-size="10.5" font-family="sans-serif">FAB</text>
+      <text x="386" y="300" fill="#94A3B8" font-size="10.5" font-family="sans-serif">다른 날짜 조회</text>
+    </svg>
+
+    <div class="callout">
+      <strong>1차 개발 범위</strong> — 점선으로 표시한 <strong>클립 편집</strong>은 2·3차 대상이다.
+      1차에서 영상 목록의 클립을 누르면 <strong>미리보기(재생)</strong>까지만 제공하고, <strong>촬영 후 즉시 편집</strong>도 제공하지 않는다.
+    </div>
+
+    <h2 id="s3">3. 기능 명세</h2>
+
+    <h3>3-1. 동영상 촬영 <span class="tag t-blue">메인</span></h3>
+    <ul>
+      <li>앱의 기본 진입 화면이자 핵심 기능.</li>
+      <li>촬영이 끝나도 화면을 벗어나지 않고 <strong>카메라 상태를 유지</strong>한다 (기본 동작).</li>
+      <li>1차는 <strong>세로(9:16) 촬영으로 고정</strong>한다. 가로 촬영 지원은 후속 과제다.</li>
+      <li><strong>좌측 하단</strong> — 방금 촬영된 영상의 썸네일. 누르면 <strong>미리보기 재생 화면</strong>으로 이동한다. 직전 촬영본이 있을 때만 노출한다.</li>
+      <li><strong>우측 하단</strong> — 촬영된 영상 목록 보기. 누르면 날짜별 영상 목록으로 이동한다.</li>
+    </ul>
+
+    <h3>3-2. 촬영 후 즉시 편집 <span class="tag t-gray">1차 제외</span></h3>
+    <ul>
+      <li>방금 촬영한 영상을 바로 손볼 수 있게 하는 기능. 좌측 하단 → 미리보기 재생 화면에서 편집으로 이어진다.</li>
+      <li>편집 기능 자체가 2·3차 개발 대상이므로 <strong>1차 개발에서 제외</strong>한다.</li>
+      <li>1차에서 좌측 하단은 <strong>미리보기 재생까지만</strong> 담당한다.</li>
+    </ul>
+
+    <h3>3-3. 영상 목록 (날짜별)</h3>
+    <ul>
+      <li>특정 날짜에 촬영된 영상을 한 화면에 모아 보여준다. 예) 9월 14일 촬영분.</li>
+      <li>드래그 등으로 <strong>영상 순서를 변경</strong>할 수 있다. 이 순서가 브이로그의 재생 순서가 된다.</li>
+      <li>각 영상을 탭하면 <strong>미리보기</strong>로 해당 클립을 재생한다. 순서를 정하기 전에 내용을 확인하는 용도이며, 1차 개발에 포함된다.</li>
+      <li>미리보기에서 <strong>좌우 스와이프</strong>로 목록 순서를 따라 이전/다음 클립으로 이동한다.</li>
+      <li>편집 화면 진입은 미리보기에서 이어지며, 편집 기능이 들어오는 2차부터 열린다.</li>
+      <li><strong>이어보기</strong> — 편집 결과를 확인할 목적으로 앞/뒤 클립의 <code>3초</code>를 함께 재생한다. <span class="tag t-gray">3차</span></li>
+      <li>각 영상의 <strong>편집 여부</strong>를 목록에서 구분할 수 있게 표시한다.</li>
+    </ul>
+
+    <h3>3-4. 조회 날짜 선택</h3>
+    <ul>
+      <li>영상 목록 화면에서 달력을 띄워 다른 날짜로 이동한다. 예) 7월 3일 목록으로.</li>
+      <li>달력에서 <strong>영상이 존재하는 날짜</strong>를 시각적으로 구분한다.</li>
+      <li><strong>브이로그 생성 여부</strong>도 날짜별로 구분한다.</li>
+    </ul>
+
+    <h3>3-5. 브이로그 생성</h3>
+    <ul>
+      <li>영상 목록 화면 우측 <strong>FAB</strong>으로 실행한다.</li>
+      <li>목록에 보이는 순서 그대로 영상을 이어붙인다.</li>
+      <li>생성 결과를 미리보기로 확인할 수 있다.</li>
+    </ul>
+
+    <h3>3-6. 공유</h3>
+    <ul>
+      <li>완성된 브이로그를 인스타그램, 네이버 블로그 등 SNS로 공유한다.</li>
+      <li>갤러리에 저장해 개인 소장할 수 있다.</li>
+    </ul>
+
+    <h2 id="s4">4. 화면 구성</h2>
+
+    <table>
+      <thead>
+        <tr><th style="width:150px">화면</th><th style="width:130px">진입 경로</th><th>주요 요소</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>카메라</strong><br><span class="tag t-blue">메인</span></td>
+          <td>앱 실행</td>
+          <td>촬영 버튼 / <strong>좌측 하단</strong> 직전 촬영본 썸네일 → 미리보기 / <strong>우측 하단</strong> 영상 목록 진입</td>
+        </tr>
+        <tr>
+          <td><strong>영상 목록</strong></td>
+          <td>카메라 → 우측 하단</td>
+          <td>선택된 날짜의 클립 리스트 · 순서 변경(드래그) · 편집 여부 표시 · 달력 진입 · 브이로그 생성 FAB</td>
+        </tr>
+        <tr>
+          <td><strong>달력</strong></td>
+          <td>영상 목록 내</td>
+          <td>영상 존재 날짜 표시 · 브이로그 생성 여부 표시 · 날짜 선택 시 해당 목록으로 이동</td>
+        </tr>
+        <tr>
+          <td><strong>미리보기 재생</strong></td>
+          <td>카메라 → 좌측 하단<br>영상 목록의 클립 탭</td>
+          <td>선택한 클립 재생 · (2차부터) 편집 화면 진입</td>
+        </tr>
+        <tr>
+          <td><strong>클립 편집</strong><br><span class="tag t-gray">1차 제외</span></td>
+          <td>미리보기 재생 화면</td>
+          <td>자막 추가(2차) · 구간 자르기(3차) · 앞/뒤 3초 이어보기</td>
+        </tr>
+        <tr>
+          <td><strong>브이로그 미리보기</strong></td>
+          <td>생성 FAB</td>
+          <td>병합 결과 재생 · SNS 공유 · 갤러리 저장</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="s5">5. 개발 단계</h2>
+    <p>편집 관련 기능을 뒤로 미루고, <strong>촬영 → 날짜별 묶기 → 이어붙이기 → 공유</strong>라는 핵심 흐름을 먼저 완성한다.</p>
+
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 220" role="img" aria-label="개발 단계 로드맵">
+      <defs>
+        <filter id="shadow3"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#1E293B" flood-opacity="0.1"/></filter>
+      </defs>
+      <rect width="900" height="220" fill="#F8FAFC" rx="10"/>
+      <line x1="60" y1="70" x2="840" y2="70" stroke="#CBD5E1" stroke-width="2"/>
+      <circle cx="160" cy="70" r="9" fill="#3B82F6"/>
+      <circle cx="450" cy="70" r="9" fill="#F59E0B"/>
+      <circle cx="740" cy="70" r="9" fill="#8B5CF6"/>
+
+      <rect x="40" y="96" width="240" height="94" rx="10" fill="white" filter="url(#shadow3)"/>
+      <text x="58" y="122" fill="#1E293B" font-size="14" font-weight="bold" font-family="sans-serif">1차 개발</text>
+      <text x="58" y="145" fill="#475569" font-size="12" font-family="sans-serif">촬영 · 날짜별 목록 · 순서 변경</text>
+      <text x="58" y="164" fill="#475569" font-size="12" font-family="sans-serif">미리보기 · 달력 · 생성 · 공유</text>
+      <text x="58" y="182" fill="#94A3B8" font-size="11.5" font-family="sans-serif">자막 · 편집 · 즉시 편집 제외</text>
+
+      <rect x="330" y="96" width="240" height="94" rx="10" fill="white" filter="url(#shadow3)"/>
+      <text x="348" y="122" fill="#1E293B" font-size="14" font-weight="bold" font-family="sans-serif">2차 개발</text>
+      <text x="348" y="145" fill="#475569" font-size="12" font-family="sans-serif">자막 기능 추가</text>
+      <text x="348" y="168" fill="#94A3B8" font-size="11.5" font-family="sans-serif">원하는 구간에 자막 삽입</text>
+
+      <rect x="620" y="96" width="240" height="94" rx="10" fill="white" filter="url(#shadow3)"/>
+      <text x="638" y="122" fill="#1E293B" font-size="14" font-weight="bold" font-family="sans-serif">3차 개발</text>
+      <text x="638" y="145" fill="#475569" font-size="12" font-family="sans-serif">편집 기능 추가</text>
+      <text x="638" y="164" fill="#94A3B8" font-size="11.5" font-family="sans-serif">구간 자르기 · 이어보기</text>
+      <text x="638" y="182" fill="#94A3B8" font-size="11.5" font-family="sans-serif">촬영 후 즉시 편집</text>
+
+      <text x="130" y="48" fill="#3B82F6" font-size="12" font-weight="bold" font-family="sans-serif">MVP</text>
+      <text x="418" y="48" fill="#F59E0B" font-size="12" font-weight="bold" font-family="sans-serif">자막</text>
+      <text x="708" y="48" fill="#8B5CF6" font-size="12" font-weight="bold" font-family="sans-serif">편집</text>
+    </svg>
+
+    <table>
+      <thead>
+        <tr><th style="width:110px">단계</th><th>범위</th><th style="width:230px">포함 기능</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="tag t-blue">1차</span></td>
+          <td>자막과 편집을 제외한 전체 흐름. 찍고, 순서 맞추고, 이어붙여 공유하는 것까지 동작하는 상태.<br>
+              편집 기능이 없으므로 <strong>촬영 후 즉시 편집도 함께 제외</strong>한다.</td>
+          <td>촬영 · 좌측 하단 미리보기 · 우측 하단 목록 진입 · 날짜별 목록 · 순서 변경 · <strong>클립 미리보기</strong> · 달력 · 브이로그 생성 · 결과물 미리보기 · 공유/저장</td>
+        </tr>
+        <tr>
+          <td><span class="tag t-amber">2차</span></td>
+          <td>클립 단위 자막 추가. 이때 미리보기 재생 화면 → 편집 화면 경로가 처음 열린다.</td>
+          <td>편집 화면 진입 · 구간 지정 · 자막 렌더링</td>
+        </tr>
+        <tr>
+          <td><span class="tag t-gray">3차</span></td>
+          <td>클립 트리밍 등 본격 편집과 촬영 후 즉시 편집.</td>
+          <td>구간 자르기 · 앞/뒤 3초 이어보기 · 편집 여부 표시 · 촬영 후 즉시 편집</td>
+        </tr>
+        <tr>
+          <td><span class="tag t-gray">n차</span></td>
+          <td>1차에서 기본값으로 고정한 항목의 사용자 선택권을 여는 후속 과제.</td>
+          <td>해상도·프레임레이트 옵션 · 가로(16:9) 촬영 지원 · 배경음악 삽입</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout info">
+      <strong>1차 개발 시 유의</strong> — 3-3의 "이어보기"와 "편집 유무 상태 체크"는 편집 기능에 종속되므로 3차로 미뤄도 되지만,
+      목록 데이터 모델에는 <code>편집 여부</code> 필드를 처음부터 넣어 두는 편이 나중 마이그레이션 비용을 줄인다.
+    </div>
+
+    <h2 id="s6">6. 확정 정책</h2>
+    <p>원 기획에 명시되지 않았던 항목들을 아래와 같이 확정했다. 일부는 1차 범위를 고정하고 확장은 후속 과제로 넘긴다.</p>
+
+    <table>
+      <thead>
+        <tr><th style="width:150px">항목</th><th style="width:210px">결정</th><th>구현 시 유의</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>미리보기 재생 범위</strong></td>
+          <td><strong>좌우 스와이프</strong>로 이전/다음 클립 이동</td>
+          <td>미리보기는 단일 클립 플레이어가 아니라 목록 순서를 따르는 페이저다. 좌측 하단으로 진입했을 때는 <strong>직전 촬영본</strong>이 시작 위치가 된다.</td>
+        </tr>
+        <tr>
+          <td><strong>영상 저장 위치</strong></td>
+          <td><strong>MediaStore</strong> (공용 갤러리)</td>
+          <td>촬영본이 갤러리에 바로 보인다. 스코프드 스토리지 기준으로 접근하며, 앱 밖에서 삭제·이동될 수 있다는 전제를 둔다.</td>
+        </tr>
+        <tr>
+          <td><strong>날짜 기준</strong></td>
+          <td><strong>촬영 종료 시각</strong>의 날짜</td>
+          <td>자정을 걸친 클립은 종료 시각이 속한 날짜로 묶인다. 정렬 키와 묶음 키 모두 종료 시각을 쓴다.</td>
+        </tr>
+        <tr>
+          <td><strong>클립 길이 제한</strong></td>
+          <td><strong>제한 없음</strong></td>
+          <td>하루치가 길어질 수 있으므로 병합은 백그라운드 작업으로 두고 진행 상태를 노출한다.</td>
+        </tr>
+        <tr>
+          <td><strong>해상도·프레임레이트</strong></td>
+          <td><strong>1080 × 1920 · 30fps</strong><br><strong>세로(9:16) 고정</strong><br><span class="tag t-gray">옵션 제공은 n차</span></td>
+          <td>모든 클립이 같은 규격·같은 방향이므로 병합 시 회전 보정과 레터박스 처리가 필요 없다. 근거는 <a href="#s6">6-1</a> 참고.</td>
+        </tr>
+        <tr>
+          <td><strong>브이로그 재생성</strong></td>
+          <td>기존 결과물 <strong>덮어쓰기</strong></td>
+          <td>재생성 전 <strong>주의 얼럿</strong>을 띄워 사용자 확인을 받는다. 날짜당 브이로그는 항상 1개다.</td>
+        </tr>
+        <tr>
+          <td><strong>순서의 기본값</strong></td>
+          <td>촬영 시각 <strong>오름차순</strong></td>
+          <td>사용자가 순서를 바꾸면 그 순서를 저장하고, 이후 클립이 추가돼도 기존 순서는 유지한다.</td>
+        </tr>
+        <tr>
+          <td><strong>오디오 처리</strong></td>
+          <td><strong>원본 오디오 유지</strong><br><span class="tag t-gray">배경음악은 n차</span></td>
+          <td>병합 시 오디오 트랙을 그대로 이어붙인다.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>6-1. 촬영 기본값</h3>
+    <p>
+      1차는 <strong>세로 촬영으로 고정</strong>한다. 결과물이 인스타그램 등 SNS로 공유되는 것이 전제이므로,
+      기본값은 이들 플랫폼이 그대로 받아주는 9:16 규격을 따른다. 아래는 이 값을 정할 때 참고한 사례다.
+    </p>
+
+    <table>
+      <thead>
+        <tr><th style="width:170px">기준</th><th style="width:180px">규격</th><th>비고</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Instagram Reels</strong></td>
+          <td>1080 × 1920 (9:16)<br>30fps 이상</td>
+          <td>최소 720p, 권장 1080×1920. 9:16은 릴스 탭에서 잘림이나 검은 띠 없이 표시되는 유일한 비율이다.</td>
+        </tr>
+        <tr>
+          <td><strong>TikTok / Shorts</strong></td>
+          <td>1080 × 1920 (9:16)</td>
+          <td>릴스와 사실상 동일한 세로 규격을 공유한다. 가로 영상은 레터박스가 붙고 노출에도 불리하다.</td>
+        </tr>
+        <tr>
+          <td><strong>코덱 · 비트레이트</strong></td>
+          <td>H.264 + AAC<br>5~10Mbps</td>
+          <td>주요 플랫폼이 공통으로 요구하는 조합. 파일은 1GB 이하를 권장한다.</td>
+        </tr>
+        <tr>
+          <td><strong>저장 용량</strong></td>
+          <td>1080p/30 ≈ 4K/30의 1/3~1/4</td>
+          <td>1080p 30fps는 분당 수십~130MB 수준, 4K 30fps는 분당 약 375MB. 하루치 클립을 모두 보관하는 앱에서는 차이가 크다.</td>
+        </tr>
+        <tr>
+          <td><strong>CameraX</strong></td>
+          <td><code>Quality.FHD</code> + FallbackStrategy</td>
+          <td>기기가 FHD를 지원하지 않으면 CameraX가 가장 가까운 화질로 대체하도록 맡길 수 있다.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout info">
+      <strong>1차 기본값</strong> — <strong>1080 × 1920 (9:16 세로 고정) · 30fps · H.264 + AAC</strong>.
+      기기가 지원하지 않으면 CameraX <code>FallbackStrategy</code>로 한 단계 낮은 화질을 쓴다.<br>
+      근거 — ① 공유 대상 플랫폼이 모두 이 규격을 권장하므로 업로드 시 잘림이나 레터박스가 없다.
+      ② 세로 고정이라 클립 방향이 섞이지 않고, 병합 시 회전 보정이 필요 없다.
+      ③ 클립 길이에 제한을 두지 않기로 한 만큼 4K 대신 1080p를 택해 저장 부담을 1/3~1/4로 낮춘다.
+    </div>
+
+    <div class="callout">
+      <strong>세로 고정에 따른 영향</strong> — 네이버 블로그처럼 가로 영상이 자연스러운 곳에서는 좌우에 여백이 생긴다.
+      1차 공유 대상을 <strong>세로 영상을 그대로 받는 SNS(인스타그램 등)</strong> 위주로 보고, 가로(16:9) 촬영 지원은 후속 과제로 둔다.
+    </div>
+
+    <footer>
+      원 기획 문서: Notion &ldquo;오토로그&rdquo; · 이 문서는 해당 기획을 정리·시각화한 것으로,
+      6장 &ldquo;확정 정책&rdquo;은 원문에 없던 항목을 별도로 확정한 내용이다.
+    </footer>
+
+  </main>
+
+  <aside class="toc">
+    <div class="label">목차</div>
+    <ol>
+      <li><a href="#s1">개요</a></li>
+      <li><a href="#s2">사용자 플로우</a></li>
+      <li><a href="#s3">기능 명세</a></li>
+      <li><a href="#s4">화면 구성</a></li>
+      <li><a href="#s5">개발 단계</a></li>
+      <li><a href="#s6">확정 정책</a></li>
+    </ol>
+  </aside>
+  </div>
+
+</div>
+</body>
+</html>
