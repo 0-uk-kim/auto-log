@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 뒤쪽 클립 한 장과 앞쪽 클립 한 장 — 날짜별로 쌓인 영상 목록 -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M7,3h12a2,2 0 0,1 2,2v10h-2V5H7z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M5,7h10a2,2 0 0,1 2,2v10a2,2 0 0,1 -2,2H5a2,2 0 0,1 -2,-2V9a2,2 0 0,1 2,-2zM8.5,10.5v7l5.5,-3.5z" />
+</vector>

@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "slug": "p1-10-list-entry",
+  "service": "autolog",
+  "feature": "p1",
+  "created": "2026-09-19T10:01:19+09:00",
+  "device": "SM-F971N (Android 17, 1248x1972)",
+  "branch": "task/p1-10-list-entry",
+  "commit": "4290eb2",
+  "items": [
+    {
+      "kind": "video",
+      "file": "list-entry.mp4",
+      "caption": "우측 하단 버튼 → 오늘 날짜 목록 → 뒤로가기로 카메라 복귀",
+      "compare": false,
+      "duration": 14.02,
+      "gif": "list-entry.gif",
+      "gif_width": 320,
+      "gif_height": 506,
+      "gif_duration": 14.02
+    },
+    {
+      "kind": "image",
+      "file": "list-entry.png",
+      "caption": "진입 경로 — 카메라 우측 하단 버튼(좌) / 넘어간 날짜 인자(우)",
+      "compare": true,
+      "width": 1264,
+      "height": 1049,
+      "text_px": 24,
+      "text_lines": 8
+    }
+  ]
+}

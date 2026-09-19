@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -92,11 +90,10 @@ fun CameraScreen(
                     modifier = Modifier.align(Alignment.Center),
                 )
 
-                // P1 #10에서 실제 목록 진입 버튼으로 교체된다.
-                Button(
+                ClipListButton(
                     onClick = onOpenClipList,
                     modifier = Modifier.align(Alignment.CenterEnd),
-                ) { Text("영상 목록") }
+                )
             }
         }
     }
