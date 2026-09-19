@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "slug": "p2-14-repository",
+  "service": "autolog",
+  "feature": "p2",
+  "created": "2026-09-19T10:28:00+09:00",
+  "device": "emupool-api36-1 (Android API 36, 1080x2400)",
+  "branch": "task/p2-14-repository",
+  "commit": "pending",
+  "items": [
+    {
+      "kind": "video",
+      "file": "saved-order.mp4",
+      "caption": "순서를 뒤집고 화면을 나갔다 들어와도 저장된 순서가 남는다",
+      "compare": false,
+      "duration": 26.4,
+      "gif": "saved-order.gif",
+      "gif_width": 320,
+      "gif_height": 711,
+      "gif_duration": 26.4
+    },
+    {
+      "kind": "video",
+      "file": "orphan-cleanup.mp4",
+      "caption": "앱 밖에서 지운 클립이 목록에서 빠지고 순서 행도 걷힌다",
+      "compare": false,
+      "duration": 25.2,
+      "gif": "orphan-cleanup.gif",
+      "gif_width": 320,
+      "gif_height": 711,
+      "gif_duration": 25.2
+    },
+    {
+      "kind": "image",
+      "file": "after-delete.png",
+      "caption": "가운데 클립을 앱 밖에서 지운 뒤 — 남은 2건은 저장된 순서 그대로",
+      "compare": false,
+      "width": 1080,
+      "height": 2400
+    }
+  ]
+}

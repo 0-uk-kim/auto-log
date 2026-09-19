@@ -42,6 +42,8 @@ fun ClipListScreen(
             groups.forEach { (day, clips) ->
                 Text("$day (${clips.size})", style = MaterialTheme.typography.titleMedium)
                 clips.forEach { clip -> Text(clip.toDebugLine()) }
+                // #16의 드래그가 들어오기 전까지, 저장된 순서가 재진입 후에도 남는지 확인하는 임시 조작.
+                TextButton(onClick = { viewModel.reverseOrder(day) }) { Text("$day 순서 뒤집기") }
             }
         }
 
