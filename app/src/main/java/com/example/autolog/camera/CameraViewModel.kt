@@ -2,6 +2,7 @@ package com.example.autolog.camera
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.net.Uri
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.core.SurfaceRequest
@@ -58,6 +59,7 @@ class CameraViewModel @Inject constructor() : ViewModel() {
     val uiState = _uiState.asStateFlow()
 
     private var recording: Recording? = null
+    private var latestClip: Uri? = null
 
     /** 녹화 중이면 멈추고, 아니면 시작한다. 정지 결과는 Finalize 이벤트로 돌아온다. */
     @SuppressLint("MissingPermission") // 권한이 있을 때만 그려지는 화면에서만 호출된다 (CameraPermissionGate)
@@ -81,7 +83,10 @@ class CameraViewModel @Inject constructor() : ViewModel() {
 
                     is VideoRecordEvent.Finalize -> {
                         recording = null
-                        _uiState.value = CameraUiState()
+                        // 실패한 녹화는 재생할 것이 없으므로 직전 촬영본을 갱신하지 않는다.
+                        val saved = if (event.hasError()) latestClip else event.outputResults.outputUri
+                        latestClip = saved
+                        _uiState.value = CameraUiState(latestClip = saved)
                     }
                 }
             }

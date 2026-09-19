@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "slug": "p1-09-thumbnail",
+  "service": "autolog",
+  "feature": "p1",
+  "created": "2026-09-19T09:57:14+09:00",
+  "device": "SM-F971N (Android 17, 1248x1972)",
+  "branch": "task/p1-09-thumbnail",
+  "commit": "6e09b8f",
+  "items": [
+    {
+      "kind": "video",
+      "file": "latest-clip.mp4",
+      "caption": "촬영 → 카메라 유지 → 썸네일 탭 → 미리보기 → 복귀\n정지 직후에도 화면을 벗어나지 않고 좌측 하단에 썸네일이 생긴다\n썸네일을 누르면 미리보기가 직전 촬영본 위치로 열린다",
+      "compare": false,
+      "duration": 27.89,
+      "gif": "latest-clip.gif",
+      "gif_width": 300,
+      "gif_height": 474,
+      "gif_duration": 27.89
+    },
+    {
+      "kind": "image",
+      "file": "thumbnail-visibility.png",
+      "caption": "노출 조건 — 촬영 이력 없음(좌) / 직전 촬영본 있음(우)",
+      "compare": true,
+      "width": 1264,
+      "height": 1049,
+      "text_px": 24,
+      "text_lines": 5
+    }
+  ]
+}

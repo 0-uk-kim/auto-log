@@ -78,11 +78,13 @@ fun CameraScreen(
                     .fillMaxWidth()
                     .padding(Spacing.md),
             ) {
-                // P1 #9·#10에서 좌·우 하단 실제 버튼으로 교체된다.
-                Button(
-                    onClick = onOpenLatestClip,
-                    modifier = Modifier.align(Alignment.CenterStart),
-                ) { Text("직전 촬영본") }
+                uiState.latestClip?.let { clip ->
+                    LatestClipThumbnail(
+                        uri = clip,
+                        onClick = onOpenLatestClip,
+                        modifier = Modifier.align(Alignment.CenterStart),
+                    )
+                }
 
                 RecordButton(
                     isRecording = uiState.isRecording,
@@ -90,6 +92,7 @@ fun CameraScreen(
                     modifier = Modifier.align(Alignment.Center),
                 )
 
+                // P1 #10에서 실제 목록 진입 버튼으로 교체된다.
                 Button(
                     onClick = onOpenClipList,
                     modifier = Modifier.align(Alignment.CenterEnd),

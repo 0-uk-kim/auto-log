@@ -1,5 +1,7 @@
 package com.example.autolog.camera
 
+import android.net.Uri
+
 import java.util.Locale
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -7,6 +9,8 @@ import kotlin.time.Duration.Companion.milliseconds
 data class CameraUiState(
     val isRecording: Boolean = false,
     val elapsed: Duration = Duration.ZERO,
+    /** 직전 촬영본. 있을 때만 좌측 하단 썸네일을 노출한다 (planning 3-1). */
+    val latestClip: Uri? = null,
 )
 
 /** 녹화 경과 시간. 한 시간을 넘기면 자리를 하나 더 쓴다 — 클립 길이에 제한이 없다 (planning 6). */
