@@ -39,6 +39,8 @@ import com.example.autolog.ui.theme.Spacing
 
 fun clipRowTag(position: Int) = "clip-row-$position"
 
+const val TAG_EDITED_BADGE = "clip-edited-badge"
+
 /**
  * 목록의 한 줄. 앞에 붙은 번호는 장식이 아니라 **브이로그에 이어붙는 순서**다 (planning 3-3).
  *
@@ -82,13 +84,19 @@ fun ClipRow(
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                 modifier = Modifier.weight(1f),
             ) {
-                Text(
-                    text = stringResource(
-                        R.string.clip_list_row_ended_at,
-                        formatClipTime(clip.endedAt),
-                    ),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    Text(
+                        text = stringResource(
+                            R.string.clip_list_row_ended_at,
+                            formatClipTime(clip.endedAt),
+                        ),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    if (clip.isEdited) EditedBadge()
+                }
                 Text(
                     text = clip.displayName,
                     style = MaterialTheme.typography.bodySmall,
@@ -110,6 +118,24 @@ fun ClipRow(
 }
 
 /** 9:16 세로 촬영 고정이라(planning 6-1) 썸네일도 세로 비율로 둔다. */
+/**
+ * 편집 여부 표시 (planning 3-3). 1차는 편집 기능이 없어 항상 꺼져 있고, 2·3차에 켜진다 —
+ * 필드와 표시를 미리 이어 두면 그때 목록을 다시 손보지 않아도 된다.
+ */
+@Composable
+private fun EditedBadge(modifier: Modifier = Modifier) {
+    Text(
+        text = stringResource(R.string.clip_list_edited_badge),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onTertiaryContainer,
+        modifier = modifier
+            .testTag(TAG_EDITED_BADGE)
+            .clip(RoundedCornerShape(4.dp))
+            .background(MaterialTheme.colorScheme.tertiaryContainer)
+            .padding(horizontal = Spacing.xs),
+    )
+}
+
 @Composable
 private fun ClipThumbnail(clip: Clip, modifier: Modifier = Modifier) {
     Box(
