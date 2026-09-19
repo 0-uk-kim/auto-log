@@ -18,19 +18,26 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.core.net.toUri
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
 import com.example.autolog.R
 import com.example.autolog.list.formatClipDuration
+import com.example.autolog.ui.VideoSurface
 import com.example.autolog.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -140,16 +147,25 @@ private fun Merging(percent: Int) {
     }
 }
 
+/**
+ * 완성된 브이로그를 그 자리에서 확인한다 (planning 3-5 "생성 결과를 미리보기로 확인").
+ *
+ * 공유·갤러리 저장은 P7에서 이 아래에 붙는다.
+ */
 @Composable
 private fun Done(state: VlogUiState.Done, onRegenerate: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        modifier = Modifier.testTag(TAG_VLOG_DONE),
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag(TAG_VLOG_DONE),
     ) {
-        Text(
-            text = stringResource(R.string.vlog_done),
-            style = MaterialTheme.typography.titleMedium,
+        VlogPlayer(
+            uri = state.uri,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
         )
         Text(
             text = stringResource(
@@ -159,13 +175,32 @@ private fun Done(state: VlogUiState.Done, onRegenerate: () -> Unit) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Button(
-            onClick = onRegenerate,
-            modifier = Modifier.padding(top = Spacing.md),
-        ) {
+        Button(onClick = onRegenerate) {
             Text(stringResource(R.string.vlog_regenerate))
         }
     }
+}
+
+@Composable
+private fun VlogPlayer(uri: String, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val player = remember { ExoPlayer.Builder(context).build() }
+
+    DisposableEffect(player) { onDispose { player.release() } }
+
+    LaunchedEffect(player, uri) {
+        player.setMediaItem(MediaItem.fromUri(uri.toUri()))
+        player.prepare()
+        // 방금 만든 결과물이라 확인하려고 들어온 것이다 — 누르지 않아도 바로 튼다.
+        player.playWhenReady = true
+    }
+
+    // 화면을 벗어나면 소리부터 멈춘다.
+    LifecycleResumeEffect(player) {
+        onPauseOrDispose { player.pause() }
+    }
+
+    VideoSurface(player = player, modifier = modifier)
 }
 
 /**

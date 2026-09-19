@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "slug": "p6-29-vlog-preview",
+  "service": "autolog",
+  "feature": "p6",
+  "created": "2026-09-19T15:20:34+09:00",
+  "device": "SM-F971N (Android 16, 1248x1972, 메인 디스플레이)",
+  "branch": "task/p6-29-vlog-preview",
+  "commit": "987972e",
+  "items": [
+    {
+      "kind": "video",
+      "file": "vlog-preview.mp4",
+      "caption": "목록 FAB으로 들어가면 이미 만들어 둔 브이로그가 바로 재생됨\n화면을 눌러 일시정지하고 다시 눌러 재개\n길이 1:07 과 다시 만들기 버튼이 플레이어 아래에 함께 놓임",
+      "compare": false,
+      "duration": 26.53,
+      "gif": "vlog-preview.gif",
+      "gif_width": 400,
+      "gif_height": 632,
+      "gif_duration": 26.53
+    },
+    {
+      "kind": "image",
+      "file": "vlog-preview.png",
+      "caption": "결과물 미리보기 — 재생 중(좌) / 일시정지(우)\n클립 미리보기(#22)와 같은 표면을 쓰므로 조작이 같음",
+      "compare": true,
+      "width": 1600,
+      "height": 1326,
+      "text_px": 27,
+      "text_lines": 6
+    }
+  ]
+}
