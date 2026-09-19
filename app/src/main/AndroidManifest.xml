@@ -10,6 +10,8 @@
       재설치하면 소유권이 풀려서 이 권한 없이는 자기가 찍은 클립도 못 읽는다.
     -->
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <!-- Android 14+ '제한된 액세스'. 목록이 "권한 거부"와 "일부만 허용"을 갈라 보여준다 (#15). -->
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
