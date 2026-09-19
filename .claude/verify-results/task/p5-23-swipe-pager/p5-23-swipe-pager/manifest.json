@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "slug": "p5-23-swipe-pager",
+  "service": "autolog",
+  "feature": "p5",
+  "created": "2026-09-19T14:45:53+09:00",
+  "device": "SM-F971N (Android 16, 1248x1972, 메인 디스플레이)",
+  "branch": "task/p5-23-swipe-pager",
+  "commit": "5147279",
+  "items": [
+    {
+      "kind": "video",
+      "file": "swipe-pager.mp4",
+      "caption": "목록 3번째 클립으로 들어가 좌우로 넘기는 전 구간 — 3 → 4 → 5 → 4\n넘긴 자리의 클립이 바로 재생되고 상단 위치 표시가 함께 바뀜\n플레이어는 하나만 만들어 재생목록의 자리를 옮기는 방식이라 넘길 때 소리가 겹치지 않음",
+      "compare": false,
+      "duration": 28.46,
+      "gif": "swipe-pager.gif",
+      "gif_width": 400,
+      "gif_height": 632,
+      "gif_duration": 28.46
+    },
+    {
+      "kind": "image",
+      "file": "pager-position.png",
+      "caption": "목록 순서를 따르는 위치 — 진입 직후(좌) / 한 번 넘긴 뒤(우)\n목록에서 본 번호와 같은 값이라 하루치 중 어디쯤인지 잃지 않음",
+      "compare": true,
+      "width": 1600,
+      "height": 1326,
+      "text_px": 27,
+      "text_lines": 3
+    }
+  ]
+}
