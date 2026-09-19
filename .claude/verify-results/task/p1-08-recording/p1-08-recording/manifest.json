@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "slug": "p1-08-recording",
+  "service": "autolog",
+  "feature": "p1",
+  "created": "2026-09-19T09:46:21+09:00",
+  "device": "SM-F971N (Android 17, 1248x1972)",
+  "branch": "task/p1-08-recording",
+  "commit": "e11f23e",
+  "items": [
+    {
+      "kind": "video",
+      "file": "recording.mp4",
+      "caption": "녹화 시작 → 경과 시간 → 정지\n버튼을 누르면 원형이 사각으로 바뀌고 상단에 경과 시간이 뜬다\n다시 누르면 정지하고 대기 상태로 돌아간다 — 카메라 화면은 유지된다",
+      "compare": false,
+      "duration": 19.0,
+      "gif": "recording.gif",
+      "gif_width": 320,
+      "gif_height": 506,
+      "gif_duration": 19.0
+    },
+    {
+      "kind": "image",
+      "file": "record-states.png",
+      "caption": "버튼 상태 전환 — 대기(좌) / 녹화 중(우)",
+      "compare": true,
+      "width": 1264,
+      "height": 1049
+    },
+    {
+      "kind": "image",
+      "file": "saved-clip.png",
+      "caption": "정지 후 저장된 클립 — 1920×1080·30fps·H.264+AAC, 9.07초",
+      "compare": false,
+      "role": "spec",
+      "section": "이슈 정보",
+      "width": 1584,
+      "height": 510,
+      "text_px": 19,
+      "text_lines": 6
+    }
+  ]
+}
