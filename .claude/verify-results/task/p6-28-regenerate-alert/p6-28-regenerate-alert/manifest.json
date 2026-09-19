@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "slug": "p6-28-regenerate-alert",
+  "service": "autolog",
+  "feature": "p6",
+  "created": "2026-09-19T15:17:04+09:00",
+  "device": "SM-F971N (Android 16, 1248x1972, 메인 디스플레이)",
+  "branch": "task/p6-28-regenerate-alert",
+  "commit": "480d138",
+  "items": [
+    {
+      "kind": "image",
+      "file": "regenerate-alert.png",
+      "caption": "재생성 경고 — 기존 결과물이 있는 날짜(좌) / 다시 만들기를 누른 뒤(우)\n앱을 다시 켜고 들어와도 자동으로 덮어쓰지 않고 만들어 둔 것을 보여줌",
+      "compare": true,
+      "width": 1600,
+      "height": 1326,
+      "text_px": 28,
+      "text_lines": 7
+    },
+    {
+      "kind": "video",
+      "file": "regenerate.mp4",
+      "caption": "취소 → 그대로 / 확인 → 교체 두 갈래를 한 번에\n취소했을 때 갤러리의 결과물이 그대로 남는 것을 MediaStore 조회로 확인\n확인 뒤에는 새 결과물로 바뀌고 이전 것은 갤러리에서 사라짐",
+      "compare": false,
+      "duration": 30.29,
+      "gif": "regenerate.gif",
+      "gif_width": 400,
+      "gif_height": 632,
+      "gif_duration": 30.29
+    }
+  ]
+}

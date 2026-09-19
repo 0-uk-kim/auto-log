@@ -54,4 +54,9 @@
     <string name="vlog_done_duration">길이 %s</string>
     <string name="vlog_failed">브이로그를 만들지 못했어요.\n잠시 후 다시 시도해 주세요.</string>
     <string name="vlog_retry">다시 시도</string>
+    <string name="vlog_regenerate">다시 만들기</string>
+    <string name="vlog_regenerate_title">브이로그를 다시 만들까요?</string>
+    <string name="vlog_regenerate_message">지금 저장된 브이로그는 갤러리에서 사라지고 새로 만든 것으로 바뀝니다. 되돌릴 수 없습니다.</string>
+    <string name="vlog_regenerate_confirm">다시 만들기</string>
+    <string name="vlog_regenerate_cancel">취소</string>
 </resources>

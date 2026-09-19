@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -14,6 +15,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,12 +38,13 @@ import java.util.Locale
 
 const val TAG_VLOG_PROGRESS = "vlog-progress"
 const val TAG_VLOG_DONE = "vlog-done"
+const val TAG_REGENERATE_ALERT = "vlog-regenerate-alert"
 
 /**
  * 브이로그 생성 화면 (planning 3-5).
  *
  * 병합은 WorkManager가 들고 있어서 이 화면을 벗어나도 계속 돈다. 화면은 진행률만 구독한다.
- * 결과물 재생은 #29, 재생성 경고는 #28에서 이 위에 얹힌다.
+ * 결과물 재생은 #29에서 이 위에 얹힌다.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,8 +55,10 @@ fun VlogScreen(
     viewModel: VlogViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val showAlert by viewModel.showRegenerateAlert.collectAsStateWithLifecycle()
 
-    // FAB의 뜻이 '생성'이라 들어온 것 자체가 시작 신호다. 다시 만들지 물어보는 것은 #28이다.
+    // FAB의 뜻이 '생성'이라 들어온 것 자체가 시작 신호다. 단, 이미 만들어 둔 날짜는
+    // Idle이 아니므로 여기서 다시 만들어지지 않는다 — 덮어쓰기는 확인을 받고 한다.
     LaunchedEffect(uiState) {
         if (uiState == VlogUiState.Idle) viewModel.createVlog()
     }
@@ -82,14 +87,26 @@ fun VlogScreen(
             contentAlignment = Alignment.Center,
         ) {
             when (val state = uiState) {
+                VlogUiState.Loading -> Unit
+
                 VlogUiState.Idle,
                 is VlogUiState.Running,
                 -> Merging(percent = (state as? VlogUiState.Running)?.percent ?: 0)
 
-                is VlogUiState.Done -> Done(state)
+                is VlogUiState.Done -> Done(
+                    state = state,
+                    onRegenerate = viewModel::requestRegenerate,
+                )
 
                 VlogUiState.Failed -> Failed(onRetry = viewModel::createVlog)
             }
+        }
+
+        if (showAlert) {
+            RegenerateAlert(
+                onConfirm = viewModel::confirmRegenerate,
+                onDismiss = viewModel::dismissRegenerateAlert,
+            )
         }
     }
 }
@@ -124,7 +141,7 @@ private fun Merging(percent: Int) {
 }
 
 @Composable
-private fun Done(state: VlogUiState.Done) {
+private fun Done(state: VlogUiState.Done, onRegenerate: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -142,7 +159,37 @@ private fun Done(state: VlogUiState.Done) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        Button(
+            onClick = onRegenerate,
+            modifier = Modifier.padding(top = Spacing.md),
+        ) {
+            Text(stringResource(R.string.vlog_regenerate))
+        }
     }
+}
+
+/**
+ * 재생성은 되돌릴 수 없다 — 날짜당 브이로그는 1개라 새로 만들면 기존 결과물이 갤러리에서
+ * 사라진다 (planning 6 "브이로그 재생성"). 그래서 확인을 받고서야 시작한다.
+ */
+@Composable
+private fun RegenerateAlert(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.vlog_regenerate_title)) },
+        text = { Text(stringResource(R.string.vlog_regenerate_message)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(R.string.vlog_regenerate_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.vlog_regenerate_cancel))
+            }
+        },
+        modifier = Modifier.testTag(TAG_REGENERATE_ALERT),
+    )
 }
 
 @Composable
