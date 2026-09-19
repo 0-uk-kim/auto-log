@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "p3-18-edited-badge",
+  "service": "autolog",
+  "feature": "p3",
+  "created": "2026-09-19T11:58:09+09:00",
+  "device": "emupool-api36-1 (Android API 36, 1080x2400)",
+  "branch": "task/p3-18-edited-badge",
+  "commit": "e9abffb",
+  "items": [
+    {
+      "kind": "image",
+      "file": "edited-badge.png",
+      "caption": "편집 여부 배지 — 1차 기본(좌) / Room에서 isEdited를 켠 뒤(중) / 그 뒤 순서를 바꾼 뒤(우)\n1차는 편집 기능이 없어 배지가 뜨는 경로가 없으므로 Room 행을 직접 켜서 표시를 확인\n순서를 바꿔도 배지가 클립을 따라감 — saveOrder가 isEdited를 다시 쓰기 때문",
+      "compare": true,
+      "panels": 3,
+      "width": 1600,
+      "height": 1221,
+      "text_px": 13,
+      "text_lines": 15
+    }
+  ]
+}
