@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "slug": "p4-19-calendar-sheet",
+  "service": "autolog",
+  "feature": "p4",
+  "created": "2026-09-19T12:03:11+09:00",
+  "device": "emupool-api36-1 (Android API 36, 1080x2400)",
+  "branch": "task/p4-19-calendar-sheet",
+  "commit": "849a26f",
+  "items": [
+    {
+      "kind": "video",
+      "file": "calendar-sheet.mp4",
+      "caption": "목록 우상단 달력 버튼으로 바텀시트를 열고 이전·다음 달로 이동\n9월 → 8월 → 7월 → 8월 → 9월 → 10월 순으로 헤더와 격자가 함께 바뀜\n닫았다 다시 열면 보고 있는 날짜의 달에서 시작",
+      "compare": false,
+      "duration": 25.63,
+      "gif": "calendar-sheet.gif",
+      "gif_width": 400,
+      "gif_height": 889,
+      "gif_duration": 25.63
+    },
+    {
+      "kind": "image",
+      "file": "calendar-month.png",
+      "caption": "2026년 9월 — 보고 있는 날짜 19일이 채워져 표시됨\n1일이 화요일이라 앞 두 칸을 비우고 시작하며 일·토는 색으로 구분",
+      "compare": false,
+      "width": 1080,
+      "height": 2400,
+      "text_px": 27,
+      "text_lines": 20
+    }
+  ]
+}

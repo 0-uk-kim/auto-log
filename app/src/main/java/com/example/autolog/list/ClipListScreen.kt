@@ -18,7 +18,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -32,6 +35,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.autolog.R
+import com.example.autolog.calendar.CalendarSheet
 import com.example.autolog.data.clip.Clip
 import com.example.autolog.permission.MediaAccess
 import com.example.autolog.permission.openAppSettings
@@ -60,6 +64,7 @@ fun ClipListScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val requestAccess = rememberMediaAccessRequest(onResult = viewModel::refresh)
+    var showCalendar by rememberSaveable { mutableStateOf(false) }
 
     // 앱 밖 삭제와 설정에서의 권한 변경은 콜백 없이 일어난다. 복귀할 때마다 다시 읽는다.
     LifecycleResumeEffect(Unit) {
@@ -77,6 +82,14 @@ fun ClipListScreen(
                         Icon(
                             painter = painterResource(R.drawable.ic_arrow_back),
                             contentDescription = stringResource(R.string.clip_list_back),
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showCalendar = true }) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_calendar),
+                            contentDescription = stringResource(R.string.clip_list_open_calendar),
                         )
                     }
                 },
@@ -111,6 +124,10 @@ fun ClipListScreen(
                 contentPadding = padding,
             )
         }
+    }
+
+    if (showCalendar) {
+        CalendarSheet(viewedDate = viewModel.date, onDismiss = { showCalendar = false })
     }
 }
 
