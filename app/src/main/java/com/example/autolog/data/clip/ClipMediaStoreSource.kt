@@ -1,7 +1,6 @@
 package com.example.autolog.data.clip
 
 import android.content.ContentResolver
-import android.content.ContentUris
 import android.provider.MediaStore
 import com.example.autolog.camera.ClipOutput
 import com.example.autolog.di.IoDispatcher
@@ -39,15 +38,13 @@ class ClipMediaStoreSource @Inject constructor(
             val addedColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
 
             while (cursor.moveToNext()) {
-                val id = cursor.getLong(idColumn)
                 // DATE_TAKEN은 메타데이터의 촬영 시각(ms)이고, 없으면 행이 생긴 시각(s)으로 대신한다.
                 // CameraX는 녹화를 시작할 때 행을 만들므로 둘 다 '시작' 시각이다 — 종료 시각은 Clip이 duration으로 더한다.
                 val startedAtMillis = cursor.getLong(takenColumn)
                     .takeIf { it > 0L }
                     ?: (cursor.getLong(addedColumn) * 1_000L)
                 clips += Clip(
-                    id = id,
-                    uri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id),
+                    id = cursor.getLong(idColumn),
                     displayName = cursor.getString(nameColumn),
                     durationMs = cursor.getLong(durationColumn),
                     startedAt = Instant.ofEpochMilli(startedAtMillis),

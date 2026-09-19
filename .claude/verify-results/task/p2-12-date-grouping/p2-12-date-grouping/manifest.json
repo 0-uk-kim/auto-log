@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "slug": "p2-12-date-grouping",
+  "service": "autolog",
+  "feature": "p2",
+  "created": "2026-09-19T10:18:00+09:00",
+  "device": "emupool-api36-1 (Android API 36, 1080x2400)",
+  "branch": "task/p2-12-date-grouping",
+  "commit": "pending",
+  "items": [
+    {
+      "kind": "video",
+      "file": "midnight-grouping.mp4",
+      "caption": "23:59:49에 시작해 자정을 넘긴 클립이 09-20 묶음으로 들어간다",
+      "compare": false,
+      "duration": 52.2,
+      "gif": "midnight-grouping.gif",
+      "gif_width": 320,
+      "gif_height": 711,
+      "gif_duration": 52.2
+    },
+    {
+      "kind": "image",
+      "file": "grouped-list.png",
+      "caption": "날짜 묶음 — 09-20(1건, 자정 걸침) / 09-19(4건)",
+      "compare": false,
+      "width": 1080,
+      "height": 2400
+    }
+  ]
+}
