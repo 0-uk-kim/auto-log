@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "slug": "p6-26-workmanager",
+  "service": "autolog",
+  "feature": "p6",
+  "created": "2026-09-19T15:04:51+09:00",
+  "device": "SM-F971N (Android 16, 1248x1972, 메인 디스플레이)",
+  "branch": "task/p6-26-workmanager",
+  "commit": "2611128",
+  "items": [
+    {
+      "kind": "video",
+      "file": "vlog-progress.mp4",
+      "caption": "목록 FAB으로 생성을 시작해 진행률이 오르는 전 구간\n중간에 홈으로 나갔다 돌아와도 작업이 이어져 완료 상태로 돌아옴\n결과 길이 1:07 이 목록의 총 길이와 같음 — 그날 클립 10건이 모두 들어감",
+      "compare": false,
+      "duration": 29.14,
+      "gif": "vlog-progress.gif",
+      "gif_width": 400,
+      "gif_height": 632,
+      "gif_duration": 29.14
+    },
+    {
+      "kind": "image",
+      "file": "background-progress.png",
+      "caption": "앱을 내려도 진행 — 시작 직후 38%%(좌) / 홈에 8초 다녀온 뒤(우)\n화면이 없는 동안 38%%에서 완료까지 진행됐다는 뜻",
+      "compare": true,
+      "width": 1600,
+      "height": 1326,
+      "text_px": 23,
+      "text_lines": 7
+    }
+  ]
+}

@@ -33,6 +33,18 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AutoLog">
+        <!-- 기본 WorkManager 초기화를 끈다 — 앱이 Hilt WorkerFactory로 직접 초기화한다 (#26). -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+
         <!-- 1차는 9:16 세로 촬영 고정이라 화면도 세로로 잠근다 (planning 6-1). -->
         <activity
             android:name=".MainActivity"
