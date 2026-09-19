@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "slug": "p2-35-media-read-permission",
+  "service": "autolog",
+  "feature": "p2",
+  "created": "2026-09-19T10:55:00+09:00",
+  "device": "emupool-api36-1 (Android API 36, 1080x2400)",
+  "branch": "task/p2-35-media-read-permission",
+  "commit": "pending",
+  "items": [
+    {
+      "kind": "video",
+      "file": "reinstall-permission.mp4",
+      "caption": "재설치 직후 — 카메라·오디오·사진과 동영상 권한을 한 흐름으로 묻고, 이전 촬영분 7건이 그대로 보인다",
+      "compare": false,
+      "duration": 38.3,
+      "gif": "reinstall-permission.gif",
+      "gif_width": 320,
+      "gif_height": 711,
+      "gif_duration": 38.3
+    },
+    {
+      "kind": "image",
+      "file": "clips-restored.png",
+      "caption": "재설치 후 목록 — 클립 7건 복구",
+      "compare": false,
+      "width": 1080,
+      "height": 2400
+    },
+    {
+      "kind": "image",
+      "file": "partial-access-empty.png",
+      "caption": "'제한된 액세스'를 고른 경우 — 0건 (복구 UI는 #15에서)",
+      "compare": false,
+      "width": 1080,
+      "height": 2400
+    }
+  ]
+}
