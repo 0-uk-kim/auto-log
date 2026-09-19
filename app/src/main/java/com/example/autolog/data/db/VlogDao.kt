@@ -17,6 +17,10 @@ interface VlogDao {
     @Query("SELECT * FROM vlog ORDER BY date DESC")
     fun observeAll(): Flow<List<VlogEntity>>
 
+    /** 달력 마커는 날짜만 있으면 된다 — 결과물 전체를 읽을 이유가 없다 (#20). */
+    @Query("SELECT date FROM vlog")
+    suspend fun allDates(): List<LocalDate>
+
     /** 재생성은 덮어쓰기다 — 날짜가 기본 키라 REPLACE가 곧 그 정책이다. */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(vlog: VlogEntity)

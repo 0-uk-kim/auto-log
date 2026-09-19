@@ -24,6 +24,8 @@
     <string name="calendar_month_title">%1$d년 %2$d월</string>
     <string name="calendar_previous_month">이전 달</string>
     <string name="calendar_next_month">다음 달</string>
+    <string name="calendar_legend_clips">영상 있음</string>
+    <string name="calendar_legend_vlog">브이로그 생성됨</string>
 
     <string name="clip_list_empty_title">이 날짜에 촬영한 영상이 없어요</string>
     <string name="clip_list_empty_hint">카메라로 돌아가 오늘의 첫 클립을 찍어보세요.</string>
