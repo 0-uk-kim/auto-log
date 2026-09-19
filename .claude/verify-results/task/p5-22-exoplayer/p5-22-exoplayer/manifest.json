@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "slug": "p5-22-exoplayer",
+  "service": "autolog",
+  "feature": "p5",
+  "created": "2026-09-19T14:40:01+09:00",
+  "device": "SM-F971N (Android 16, 1248x1972, 메인 디스플레이)",
+  "branch": "task/p5-22-exoplayer",
+  "commit": "f8f7423",
+  "items": [
+    {
+      "kind": "video",
+      "file": "preview-play.mp4",
+      "caption": "카메라 좌측 하단 썸네일로 들어가 재생 → 화면 탭으로 일시정지 → 다시 탭으로 재개\n뒤로 나갔다 목록에서 클립을 탭해 들어와도 같은 화면으로 재생\n재생이 끝나면 재생 아이콘이 다시 떠서 한 번 더 누르면 처음부터",
+      "compare": false,
+      "duration": 31.25,
+      "gif": "preview-play.gif",
+      "gif_width": 400,
+      "gif_height": 632,
+      "gif_duration": 31.25
+    },
+    {
+      "kind": "image",
+      "file": "play-pause.png",
+      "caption": "재생/일시정지 — 재생 중(좌) / 일시정지(우)\n컨트롤 바 없이 화면 전체가 토글이고 일시정지일 때만 아이콘이 뜸",
+      "compare": true,
+      "width": 1600,
+      "height": 1326
+    }
+  ]
+}
