@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "slug": "p2-11-mediastore-scan",
+  "service": "autolog",
+  "feature": "p2",
+  "created": "2026-09-19T10:12:00+09:00",
+  "device": "emupool-api36-1 (Android API 36, 1080x2400)",
+  "branch": "task/p2-11-mediastore-scan",
+  "commit": "ceda473",
+  "items": [
+    {
+      "kind": "video",
+      "file": "mediastore-scan.mp4",
+      "caption": "촬영 2건 추가 → 목록 진입 시 스캔 결과가 촬영 종료 시각 오름차순으로 누적",
+      "compare": false,
+      "duration": 42.34,
+      "gif": "mediastore-scan.gif",
+      "gif_width": 320,
+      "gif_height": 711,
+      "gif_duration": 42.34
+    },
+    {
+      "kind": "image",
+      "file": "scan-result.png",
+      "caption": "스캔 결과 4건 — 파일명·duration·촬영 종료 시각",
+      "compare": false,
+      "width": 1080,
+      "height": 2400
+    }
+  ]
+}
