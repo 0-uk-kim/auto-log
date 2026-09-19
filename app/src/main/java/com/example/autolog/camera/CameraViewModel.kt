@@ -7,6 +7,11 @@ import androidx.camera.core.SurfaceRequest
 import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.video.FallbackStrategy
+import androidx.camera.video.Quality
+import androidx.camera.video.QualitySelector
+import androidx.camera.video.Recorder
+import androidx.camera.video.VideoCapture
 import androidx.camera.lifecycle.awaitInstance
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
@@ -32,6 +37,18 @@ class CameraViewModel @Inject constructor() : ViewModel() {
         .build()
         .apply { setSurfaceProvider { request -> _surfaceRequest.value = request } }
 
+    // 1080×1920·30fps 고정. 기기가 FHD를 못 하면 한 단계 낮은 화질로 대체한다 (planning 6-1).
+    private val recorder = Recorder.Builder()
+        .setQualitySelector(
+            QualitySelector.from(
+                Quality.FHD,
+                FallbackStrategy.lowerQualityOrHigherThan(Quality.FHD),
+            ),
+        )
+        .build()
+
+    val videoCapture = VideoCapture.withOutput(recorder)
+
     /** 호출한 코루틴이 취소될 때까지 바인딩을 유지한다. 화면을 떠나면 자동으로 해제된다. */
     suspend fun bindToCamera(appContext: Context, lifecycleOwner: LifecycleOwner) {
         val cameraProvider = ProcessCameraProvider.awaitInstance(appContext)
@@ -39,6 +56,7 @@ class CameraViewModel @Inject constructor() : ViewModel() {
             lifecycleOwner,
             CameraSelector.DEFAULT_BACK_CAMERA,
             previewUseCase,
+            videoCapture,
         )
         try {
             awaitCancellation()

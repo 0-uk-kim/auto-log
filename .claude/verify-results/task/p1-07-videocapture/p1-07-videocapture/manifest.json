@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "slug": "p1-07-videocapture",
+  "service": "autolog",
+  "feature": "p1",
+  "created": "2026-09-19T09:40:50+09:00",
+  "device": "SM-F971N (Android 17, 1248x1972)",
+  "branch": "task/p1-07-videocapture",
+  "commit": "3b7bda1",
+  "items": [
+    {
+      "kind": "video",
+      "file": "videocapture-bind.mp4",
+      "caption": "VideoCapture를 함께 바인딩한 뒤의 카메라 화면\n프리뷰 유스케이스와 동시에 바인딩해도 프리뷰가 끊기지 않는다",
+      "compare": false,
+      "duration": 10.99,
+      "gif": "videocapture-bind.gif",
+      "gif_width": 320,
+      "gif_height": 506,
+      "gif_duration": 10.99
+    },
+    {
+      "kind": "image",
+      "file": "videocapture-config.png",
+      "caption": "화질 선택과 실제 구성된 스트림 — 프리뷰·녹화 모두 1920×1080",
+      "compare": false,
+      "role": "spec",
+      "section": "이슈 정보",
+      "width": 1656,
+      "height": 788,
+      "text_px": 19,
+      "text_lines": 10
+    }
+  ]
+}
