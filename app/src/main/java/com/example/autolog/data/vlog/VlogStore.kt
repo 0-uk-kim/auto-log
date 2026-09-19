@@ -39,6 +39,10 @@ class VlogStore @Inject constructor(
      *
      * 날짜가 기본 키라 같은 날에 다시 만들면 기록이 덮어써진다 (planning 6 "브이로그 재생성").
      * 그때 **이전 결과물도 같이 지운다** — 안 지우면 갤러리에 옛 브이로그가 그대로 남는다.
+     *
+     * 단, 앱을 지우거나 앱 데이터를 비우면 MediaStore가 소유자 표시를 떼어 버려서 그 뒤로는
+     * 옛 결과물을 말없이 지울 수 없다(사용자 확인이 필요한 영역이다). 그때는 같은 날짜의 파일이
+     * 갤러리에 하나 더 남고 새것 이름에 `(1)`이 붙는다 — 정리는 n차 과제로 미룬다 (#34에서 확인).
      */
     suspend fun save(date: LocalDate, merged: File): Uri = withContext(ioDispatcher) {
         val previous = vlogDao.byDate(date)
@@ -134,6 +138,6 @@ class VlogStore @Inject constructor(
     private companion object {
         const val RELATIVE_PATH = "${ClipOutput.RELATIVE_PATH}/Vlogs"
         const val MIME_TYPE = "video/mp4"
-        val NAME_FORMAT = DateTimeFormatter.ofPattern("'AUTOLOG_VLOG'_yyyyMMdd")
+        val NAME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("'AUTOLOG_VLOG'_yyyyMMdd")
     }
 }
