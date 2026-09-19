@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "slug": "p7-30-share-intent",
+  "service": "autolog",
+  "feature": "p7",
+  "created": "2026-09-19T15:23:04+09:00",
+  "device": "SM-F971N (Android 16, 1248x1972, 메인 디스플레이)",
+  "branch": "task/p7-30-share-intent",
+  "commit": "3040506",
+  "items": [
+    {
+      "kind": "image",
+      "file": "share-sheet.png",
+      "caption": "공유 인텐트 — 결과물 화면(좌) / 공유 시트(우)\n넘어가는 항목이 결과물 파일 AUTOLOG_VLOG_20260919.mp4 하나이고 대상에 인스타그램이 뜸",
+      "compare": true,
+      "width": 1600,
+      "height": 1326,
+      "text_px": 27,
+      "text_lines": 9
+    },
+    {
+      "kind": "video",
+      "file": "share-intent.mp4",
+      "caption": "공유 버튼에서 시트가 열리고 뒤로 눌러 결과물 화면으로 돌아오는 구간",
+      "compare": false,
+      "duration": 10.6,
+      "gif": "share-intent.gif",
+      "gif_width": 400,
+      "gif_height": 632,
+      "gif_duration": 10.6
+    }
+  ]
+}
