@@ -14,13 +14,16 @@ sealed interface PreviewUiState {
 }
 
 /**
- * 진입점이 준 위치를 실제 목록 안의 자리로 옮긴다.
+ * 진입점이 준 위치를 실제 목록 안의 자리로 옮긴다 (planning 6 "미리보기 재생 범위").
  *
- * 카메라 좌측 하단으로 들어오면 [Preview.LATEST_CLIP]이고, 그때 시작 위치는 그날의 마지막 클립이다
- * (planning 6 "미리보기 재생 범위"). 목록에서 들어오면 탭한 자리 그대로다.
+ * 카메라 좌측 하단으로 들어오면 [Preview.LATEST_CLIP]이고, 그때 시작 위치는 **가장 나중에 찍은**
+ * 클립이다 — 목록의 마지막 자리가 아니다. 순서를 바꿔 두면 둘이 갈리는데, 좌측 하단 썸네일은
+ * 직전 촬영본을 보여주므로 그 썸네일과 열리는 클립이 어긋나면 안 된다 (#24).
+ *
+ * 목록에서 들어오면 탭한 자리 그대로다.
  */
-fun Int.resolveStartIndex(clipCount: Int): Int = when {
-    clipCount <= 0 -> 0
-    this == Preview.LATEST_CLIP -> clipCount - 1
-    else -> coerceIn(0, clipCount - 1)
+fun List<Clip>.startIndexFor(clipIndex: Int): Int = when {
+    isEmpty() -> 0
+    clipIndex == Preview.LATEST_CLIP -> indexOf(maxBy { it.endedAt })
+    else -> clipIndex.coerceIn(0, lastIndex)
 }
