@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -47,19 +48,18 @@ import java.util.Locale
 const val TAG_CALENDAR_SHEET = "calendar-sheet"
 const val TAG_CALENDAR_MONTH = "calendar-month"
 
+fun dayCellTag(date: LocalDate) = "calendar-day-$date"
+
 private val DayCircle = 34.dp
 private val MarkerDot = 6.dp
 
-/**
- * 다른 날짜의 목록으로 옮겨 가기 위한 달력 (planning 3-4).
- *
- * 날짜를 골라 목록을 바꾸는 것은 #21에서 이 위에 얹힌다.
- */
+/** 다른 날짜의 목록으로 옮겨 가기 위한 달력 (planning 3-4). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarSheet(
     viewedDate: LocalDate,
     marks: CalendarMarks,
+    onSelectDate: (LocalDate) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     today: LocalDate = LocalDate.now(),
@@ -79,7 +79,13 @@ fun CalendarSheet(
                 onNextMonth = { month = month.plusMonths(1) },
             )
             WeekDayHeader()
-            MonthGrid(month = month, today = today, viewedDate = viewedDate, marks = marks)
+            MonthGrid(
+                month = month,
+                today = today,
+                viewedDate = viewedDate,
+                marks = marks,
+                onSelectDate = onSelectDate,
+            )
             MarkerLegend()
         }
     }
@@ -140,6 +146,7 @@ private fun MonthGrid(
     today: LocalDate,
     viewedDate: LocalDate,
     marks: CalendarMarks,
+    onSelectDate: (LocalDate) -> Unit,
 ) {
     Column {
         weeksOf(month).forEach { week ->
@@ -158,6 +165,7 @@ private fun MonthGrid(
                                 isViewed = date == viewedDate,
                                 hasClips = date in marks.datesWithClips,
                                 hasVlog = date in marks.datesWithVlog,
+                                onClick = { onSelectDate(date) },
                             )
                         }
                     }
@@ -179,11 +187,16 @@ private fun DayCell(
     isViewed: Boolean,
     hasClips: Boolean,
     hasVlog: Boolean,
+    onClick: () -> Unit,
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxSize(),
+        // 영상이 없는 날도 고를 수 있다 — 빈 목록이 "그날 안 찍었다"는 답이다 (#15).
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable(onClick = onClick)
+            .testTag(dayCellTag(date)),
     ) {
         Box(
             modifier = Modifier

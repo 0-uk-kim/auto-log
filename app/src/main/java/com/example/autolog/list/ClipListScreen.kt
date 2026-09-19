@@ -56,6 +56,7 @@ const val TAG_CLIP_LIST_SCREEN = "clip-list-screen"
 fun ClipListScreen(
     date: String,
     onOpenClip: (clipIndex: Int) -> Unit,
+    onSelectDate: (LocalDate) -> Unit,
     onCreateVlog: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -131,6 +132,10 @@ fun ClipListScreen(
         CalendarSheet(
             viewedDate = viewModel.date,
             marks = marks,
+            onSelectDate = { selected ->
+                showCalendar = false
+                if (selected != viewModel.date) onSelectDate(selected)
+            },
             onDismiss = { showCalendar = false },
         )
     }

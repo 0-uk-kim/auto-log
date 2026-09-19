@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "slug": "p4-21-date-selection",
+  "service": "autolog",
+  "feature": "p4",
+  "created": "2026-09-19T12:11:55+09:00",
+  "device": "emupool-api36-1 (Android API 36, 1080x2400)",
+  "branch": "task/p4-21-date-selection",
+  "commit": "931c1da",
+  "items": [
+    {
+      "kind": "video",
+      "file": "date-selection.mp4",
+      "caption": "달력에서 9월 15일 → 10일 → 3일을 차례로 고르는 전 구간\n고를 때마다 상단 날짜와 목록이 그 날짜 것으로 바뀌고 시트는 닫힘\n마지막 뒤로가기 한 번에 카메라로 — 고른 날짜들이 뒤로가기 이력에 쌓이지 않음",
+      "compare": false,
+      "duration": 32.48,
+      "gif": "date-selection.gif",
+      "gif_width": 400,
+      "gif_height": 889,
+      "gif_duration": 32.48
+    },
+    {
+      "kind": "image",
+      "file": "date-selection.png",
+      "caption": "선택 날짜의 목록 — 9월 15일(좌) / 9월 10일(중) / 9월 3일(우)\n영상이 없는 날도 고를 수 있고 그때는 빈 상태가 곧 답이 됨",
+      "compare": true,
+      "panels": 3,
+      "width": 1600,
+      "height": 1221,
+      "text_px": 17,
+      "text_lines": 10
+    }
+  ]
+}

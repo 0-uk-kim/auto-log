@@ -36,6 +36,12 @@ fun AutoLogNavHost(
             ClipListScreen(
                 date = route.date,
                 onOpenClip = { clipIndex -> navController.navigate(Preview(route.date, clipIndex)) },
+                // 날짜를 고르면 목록을 갈아 끼운다 — 쌓으면 뒤로가기가 날짜 이력을 되짚게 된다.
+                onSelectDate = { selected ->
+                    navController.navigate(ClipList(selected.toString())) {
+                        popUpTo<ClipList> { inclusive = true }
+                    }
+                },
                 onCreateVlog = { navController.navigate(Vlog(route.date)) },
                 onBack = { navController.popBackStack() },
             )
