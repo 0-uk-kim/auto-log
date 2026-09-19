@@ -1,10 +1,9 @@
 package com.example.autolog.camera
 
 import androidx.camera.compose.CameraXViewfinder
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -43,6 +42,7 @@ fun CameraScreen(
         }
 
         val surfaceRequest by viewModel.surfaceRequest.collectAsStateWithLifecycle()
+        val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
         Box(
             modifier = Modifier
@@ -61,17 +61,39 @@ fun CameraScreen(
                 )
             }
 
-            // P1 #9·#10에서 좌·우 하단 실제 버튼으로 교체된다.
-            Row(
+            AnimatedVisibility(
+                visible = uiState.isRecording,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .safeDrawingPadding()
+                    .padding(top = Spacing.md),
+            ) {
+                ElapsedIndicator(elapsed = uiState.elapsed.formatElapsed())
+            }
+
+            Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .safeDrawingPadding()
                     .fillMaxWidth()
                     .padding(Spacing.md),
-                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Button(onClick = onOpenLatestClip) { Text("직전 촬영본") }
-                Button(onClick = onOpenClipList) { Text("영상 목록") }
+                // P1 #9·#10에서 좌·우 하단 실제 버튼으로 교체된다.
+                Button(
+                    onClick = onOpenLatestClip,
+                    modifier = Modifier.align(Alignment.CenterStart),
+                ) { Text("직전 촬영본") }
+
+                RecordButton(
+                    isRecording = uiState.isRecording,
+                    onClick = { viewModel.toggleRecording(context) },
+                    modifier = Modifier.align(Alignment.Center),
+                )
+
+                Button(
+                    onClick = onOpenClipList,
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                ) { Text("영상 목록") }
             }
         }
     }

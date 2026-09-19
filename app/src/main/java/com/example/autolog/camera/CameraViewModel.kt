@@ -1,5 +1,6 @@
 package com.example.autolog.camera
 
+import android.annotation.SuppressLint
 import android.content.Context
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
@@ -11,7 +12,10 @@ import androidx.camera.video.FallbackStrategy
 import androidx.camera.video.Quality
 import androidx.camera.video.QualitySelector
 import androidx.camera.video.Recorder
+import androidx.camera.video.Recording
 import androidx.camera.video.VideoCapture
+import androidx.camera.video.VideoRecordEvent
+import androidx.core.content.ContextCompat
 import androidx.camera.lifecycle.awaitInstance
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
@@ -20,6 +24,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 @HiltViewModel
 class CameraViewModel @Inject constructor() : ViewModel() {
@@ -48,6 +53,44 @@ class CameraViewModel @Inject constructor() : ViewModel() {
         .build()
 
     val videoCapture = VideoCapture.withOutput(recorder)
+
+    private val _uiState = MutableStateFlow(CameraUiState())
+    val uiState = _uiState.asStateFlow()
+
+    private var recording: Recording? = null
+
+    /** 녹화 중이면 멈추고, 아니면 시작한다. 정지 결과는 Finalize 이벤트로 돌아온다. */
+    @SuppressLint("MissingPermission") // 권한이 있을 때만 그려지는 화면에서만 호출된다 (CameraPermissionGate)
+    fun toggleRecording(context: Context) {
+        recording?.let {
+            it.stop()
+            return
+        }
+        recording = videoCapture.output
+            .prepareRecording(context, ClipOutput.mediaStoreOptions(context.contentResolver))
+            .withAudioEnabled()
+            .start(ContextCompat.getMainExecutor(context)) { event ->
+                when (event) {
+                    is VideoRecordEvent.Start ->
+                        _uiState.update { it.copy(isRecording = true) }
+
+                    is VideoRecordEvent.Status ->
+                        _uiState.update {
+                            it.copy(elapsed = event.recordingStats.recordedDurationNanos.nanosToDuration())
+                        }
+
+                    is VideoRecordEvent.Finalize -> {
+                        recording = null
+                        _uiState.value = CameraUiState()
+                    }
+                }
+            }
+    }
+
+    override fun onCleared() {
+        recording?.stop()
+        recording = null
+    }
 
     /** 호출한 코루틴이 취소될 때까지 바인딩을 유지한다. 화면을 떠나면 자동으로 해제된다. */
     suspend fun bindToCamera(appContext: Context, lifecycleOwner: LifecycleOwner) {
