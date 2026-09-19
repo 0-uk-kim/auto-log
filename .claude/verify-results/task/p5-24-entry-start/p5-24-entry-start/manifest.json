@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "slug": "p5-24-entry-start",
+  "service": "autolog",
+  "feature": "p5",
+  "created": "2026-09-19T14:53:19+09:00",
+  "device": "SM-F971N (Android 16, 1248x1972, 메인 디스플레이)",
+  "branch": "task/p5-24-entry-start",
+  "commit": "cbe83b3",
+  "items": [
+    {
+      "kind": "image",
+      "file": "latest-clip-entry.png",
+      "caption": "카메라 좌측 하단 진입 — 수정 전(좌) / 수정 후(우)\n순서를 바꿔 직전 촬영본이 마지막 자리가 아닌 상태에서 썸네일을 누른 결과\n수정 전에는 썸네일이 보여주던 클립과 열리는 클립이 서로 달랐음",
+      "compare": true,
+      "width": 1600,
+      "height": 1366,
+      "text_px": 66,
+      "text_lines": 4
+    },
+    {
+      "kind": "video",
+      "file": "entry-start.mp4",
+      "caption": "두 진입점 — 목록에서 5번째 클립을 탭하면 5 / 10\n뒤로 나가 카메라 좌측 하단 썸네일을 누르면 직전 촬영본 자리인 4 / 10",
+      "compare": false,
+      "duration": 29.54,
+      "gif": "entry-start.gif",
+      "gif_width": 400,
+      "gif_height": 632,
+      "gif_duration": 29.54
+    }
+  ]
+}
