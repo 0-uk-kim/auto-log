@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -22,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -38,6 +41,9 @@ fun clipRowTag(position: Int) = "clip-row-$position"
 
 /**
  * 목록의 한 줄. 앞에 붙은 번호는 장식이 아니라 **브이로그에 이어붙는 순서**다 (planning 3-3).
+ *
+ * [isDragging]이면 그림자를 줘서 줄이 목록에서 들린 것처럼 보이게 한다 — 지금 무엇을 끌고 있는지
+ * 손가락에 가려도 알 수 있어야 한다 (#16).
  */
 @Composable
 fun ClipRow(
@@ -45,40 +51,59 @@ fun ClipRow(
     position: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isDragging: Boolean = false,
+    dragHandleModifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = Spacing.md, vertical = Spacing.sm)
-            .testTag(clipRowTag(position)),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shadowElevation = if (isDragging) 8.dp else 0.dp,
+        tonalElevation = if (isDragging) 4.dp else 0.dp,
     ) {
-        Text(
-            text = "${position + 1}",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.width(ListDimens.orderNumber),
-        )
-
-        ClipThumbnail(clip)
-
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+                .testTag(clipRowTag(position)),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
             Text(
-                text = stringResource(
-                    R.string.clip_list_row_ended_at,
-                    formatClipTime(clip.endedAt),
-                ),
-                style = MaterialTheme.typography.bodyLarge,
+                text = "${position + 1}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.width(ListDimens.orderNumber),
             )
-            Text(
-                text = clip.displayName,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+
+            ClipThumbnail(clip)
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(
+                    text = stringResource(
+                        R.string.clip_list_row_ended_at,
+                        formatClipTime(clip.endedAt),
+                    ),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Text(
+                    text = clip.displayName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+
+            Icon(
+                painter = painterResource(R.drawable.ic_drag_handle),
+                contentDescription = stringResource(R.string.clip_list_drag_handle),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                // 끄는 것은 이 손잡이에서만 시작한다 — 줄 전체에 걸면 목록 스크롤과 다툰다.
+                modifier = dragHandleModifier.padding(Spacing.sm),
             )
         }
     }

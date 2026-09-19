@@ -4,8 +4,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -17,11 +19,15 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -100,6 +106,8 @@ fun ClipListScreen(
                 access = state.access,
                 onRequestAccess = requestAccess,
                 onOpenClip = onOpenClip,
+                onMoveClip = viewModel::moveClip,
+                onOrderSettled = viewModel::persistOrder,
                 contentPadding = padding,
             )
         }
@@ -112,9 +120,18 @@ private fun ClipList(
     access: MediaAccess,
     onRequestAccess: () -> Unit,
     onOpenClip: (Int) -> Unit,
+    onMoveClip: (from: Int, to: Int) -> Unit,
+    onOrderSettled: () -> Unit,
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
+    val lazyListState = rememberLazyListState()
+    val dragDropState = rememberDragDropState(
+        lazyListState = lazyListState,
+        onMove = onMoveClip,
+        onDrop = onOrderSettled,
+    )
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -134,14 +151,40 @@ private fun ClipList(
         )
 
         LazyColumn(
+            state = lazyListState,
             // FAB이 마지막 줄을 가리지 않게 아래를 비워 둔다.
             contentPadding = PaddingValues(bottom = Spacing.xl * 2),
         ) {
             itemsIndexed(clips, key = { _, clip -> clip.id }) { position, clip ->
+                val isDragging = position == dragDropState.draggingItemIndex
+                // 자리가 바뀌어도 제스처가 끊기지 않게 pointerInput은 clip.id로만 묶고,
+                // 시작 위치는 항상 최신 값을 읽는다.
+                val currentPosition by rememberUpdatedState(position)
+
                 ClipRow(
                     clip = clip,
                     position = position,
+                    isDragging = isDragging,
                     onClick = { onOpenClip(position) },
+                    modifier = if (isDragging) {
+                        // 끌고 있는 줄은 다른 줄 위로 떠야 하고, 자리 이동 애니메이션을 타면 안 된다.
+                        Modifier
+                            .zIndex(1f)
+                            .graphicsLayer { translationY = dragDropState.draggingItemOffset }
+                    } else {
+                        Modifier.animateItem()
+                    },
+                    dragHandleModifier = Modifier.pointerInput(clip.id) {
+                        detectDragGestures(
+                            onDragStart = { dragDropState.onDragStart(currentPosition) },
+                            onDragEnd = dragDropState::onDragInterrupted,
+                            onDragCancel = dragDropState::onDragInterrupted,
+                            onDrag = { change, offset ->
+                                change.consume()
+                                dragDropState.onDrag(offset)
+                            },
+                        )
+                    },
                 )
             }
         }

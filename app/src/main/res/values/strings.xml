@@ -16,6 +16,7 @@
     <string name="clip_list_summary">클립 %1$d개 · 총 %2$s</string>
     <string name="clip_list_row_ended_at">%s 촬영 완료</string>
     <string name="clip_list_create_vlog">브이로그 생성</string>
+    <string name="clip_list_drag_handle">순서 변경 — 끌어서 옮기기</string>
 
     <string name="clip_list_empty_title">이 날짜에 촬영한 영상이 없어요</string>
     <string name="clip_list_empty_hint">카메라로 돌아가 오늘의 첫 클립을 찍어보세요.</string>

@@ -48,4 +48,19 @@ class ClipListViewModel @Inject constructor(
             }
         }
     }
+
+    /**
+     * 끄는 동안의 자리 바꿈. 화면에만 반영하고 저장하지 않는다 —
+     * 한 칸 지날 때마다 쓰면 드래그 한 번에 Room 쓰기가 수십 번 일어난다 (#16).
+     */
+    fun moveClip(from: Int, to: Int) {
+        val current = _uiState.value as? ClipListUiState.Clips ?: return
+        _uiState.value = current.copy(clips = current.clips.moved(from, to))
+    }
+
+    /** 손을 뗀 순간의 순서를 그날 것으로 확정한다. 이 순서가 곧 브이로그의 재생 순서다 (planning 3-3). */
+    fun persistOrder() {
+        val current = _uiState.value as? ClipListUiState.Clips ?: return
+        viewModelScope.launch { clipRepository.saveOrder(date, current.clips) }
+    }
 }
