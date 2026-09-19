@@ -1,22 +1,47 @@
 package com.example.autolog.list
 
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.autolog.R
 import com.example.autolog.data.clip.Clip
-import com.example.autolog.ui.PlaceholderScreen
-import java.time.ZoneId
+import com.example.autolog.permission.MediaAccess
+import com.example.autolog.permission.openAppSettings
+import com.example.autolog.permission.rememberMediaAccessRequest
+import com.example.autolog.ui.theme.Spacing
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val END_TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss")
+const val TAG_CLIP_LIST_SCREEN = "clip-list-screen"
 
+/**
+ * 하루치 클립을 브이로그에 들어갈 순서대로 보여주는 화면 (planning 3-3).
+ * 순서 변경(드래그)은 #16, 편집 여부 배지는 #18에서 이 목록 위에 얹힌다.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClipListScreen(
     date: String,
@@ -26,37 +51,107 @@ fun ClipListScreen(
     modifier: Modifier = Modifier,
     viewModel: ClipListViewModel = hiltViewModel(),
 ) {
-    val clipsByDate by viewModel.clipsByDate.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val requestAccess = rememberMediaAccessRequest(onResult = viewModel::refresh)
 
-    PlaceholderScreen(
-        title = "영상 목록",
-        route = "ClipList(date=$date) · ${viewModel::class.java.simpleName}",
-        modifier = modifier,
-    ) {
-        // P3 #15에서 진짜 목록 UI로 교체된다. 지금은 날짜 묶기 결과를 눈으로 확인하는 용도다.
-        val groups = clipsByDate
-        if (groups == null) {
-            Text("스캔 중…")
-        } else {
-            Text("${groups.size}개 날짜 · 클립 ${groups.values.sumOf { it.size }}건")
-            groups.forEach { (day, clips) ->
-                Text("$day (${clips.size})", style = MaterialTheme.typography.titleMedium)
-                clips.forEach { clip -> Text(clip.toDebugLine()) }
-                // #16의 드래그가 들어오기 전까지, 저장된 순서가 재진입 후에도 남는지 확인하는 임시 조작.
-                TextButton(onClick = { viewModel.reverseOrder(day) }) { Text("$day 순서 뒤집기") }
+    // 앱 밖 삭제와 설정에서의 권한 변경은 콜백 없이 일어난다. 복귀할 때마다 다시 읽는다.
+    LifecycleResumeEffect(Unit) {
+        viewModel.refresh()
+        onPauseOrDispose {}
+    }
+
+    Scaffold(
+        modifier = modifier.testTag(TAG_CLIP_LIST_SCREEN),
+        topBar = {
+            TopAppBar(
+                title = { Text(rememberDateTitle(date)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_arrow_back),
+                            contentDescription = stringResource(R.string.clip_list_back),
+                        )
+                    }
+                },
+            )
+        },
+        floatingActionButton = {
+            // 이어붙일 것이 있을 때만 생성 버튼을 둔다 — 0건에서 누르면 할 수 있는 일이 없다.
+            if (uiState is ClipListUiState.Clips) {
+                ExtendedFloatingActionButton(onClick = onCreateVlog) {
+                    Text(stringResource(R.string.clip_list_create_vlog))
+                }
             }
-        }
+        },
+    ) { padding ->
+        when (val state = uiState) {
+            ClipListUiState.Loading -> ClipListLoading(Modifier.padding(padding))
 
-        Button(onClick = { onOpenClip(0) }) { Text("클립 탭 → 미리보기") }
-        Button(onClick = onCreateVlog) { Text("FAB · 브이로그 생성") }
-        TextButton(onClick = onBack) { Text("뒤로") }
+            is ClipListUiState.Empty -> ClipListEmpty(
+                access = state.access,
+                onRequestAccess = requestAccess,
+                onOpenSettings = { context.openAppSettings() },
+                modifier = Modifier.padding(padding),
+            )
+
+            is ClipListUiState.Clips -> ClipList(
+                clips = state.clips,
+                access = state.access,
+                onRequestAccess = requestAccess,
+                onOpenClip = onOpenClip,
+                contentPadding = padding,
+            )
+        }
     }
 }
 
-private fun Clip.toDebugLine(): String {
-    val zone = ZoneId.systemDefault()
-    val started = startedAt.atZone(zone).format(END_TIME_FORMAT)
-    val ended = endedAt.atZone(zone).format(END_TIME_FORMAT)
-    val seconds = String.format(Locale.US, "%.1f", durationMs / 1000.0)
-    return "$displayName · ${seconds}s · $started → $ended"
+@Composable
+private fun ClipList(
+    clips: List<Clip>,
+    access: MediaAccess,
+    onRequestAccess: () -> Unit,
+    onOpenClip: (Int) -> Unit,
+    contentPadding: PaddingValues,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(contentPadding),
+    ) {
+        MediaAccessBanner(access = access, onRequestAccess = onRequestAccess)
+
+        Text(
+            text = stringResource(
+                R.string.clip_list_summary,
+                clips.size,
+                formatClipDuration(clips.sumOf { it.durationMs }),
+            ),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+        )
+
+        LazyColumn(
+            // FAB이 마지막 줄을 가리지 않게 아래를 비워 둔다.
+            contentPadding = PaddingValues(bottom = Spacing.xl * 2),
+        ) {
+            itemsIndexed(clips, key = { _, clip -> clip.id }) { position, clip ->
+                ClipRow(
+                    clip = clip,
+                    position = position,
+                    onClick = { onOpenClip(position) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun rememberDateTitle(date: String): String {
+    val pattern = stringResource(R.string.clip_list_date_pattern)
+    return remember(date, pattern) {
+        LocalDate.parse(date).format(DateTimeFormatter.ofPattern(pattern, Locale.getDefault()))
+    }
 }

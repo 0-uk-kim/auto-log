@@ -2,11 +2,7 @@ package com.example.autolog.camera.permission
 
 import android.Manifest
 import android.app.Activity
-import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
-import android.os.Build
-import android.provider.Settings
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,25 +16,17 @@ import androidx.compose.runtime.setValue
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import com.example.autolog.permission.MediaReadPermissions
+import com.example.autolog.permission.openAppSettings
 
 /** 촬영에 필요한 권한. 오디오는 원본 소리를 그대로 이어붙이는 정책(planning 6) 때문에 선택이 아니라 필수다. */
 val CameraPermissions = arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
 
 /**
- * 촬영본을 **다시 읽는 데** 필요한 권한. 저장은 앱 소유 항목이라 권한이 없어도 되지만,
- * 재설치하면 소유권이 풀려서 이 권한 없이는 자기가 찍은 클립도 안 보인다 (#35).
- */
-val MediaReadPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-    Manifest.permission.READ_MEDIA_VIDEO
-} else {
-    Manifest.permission.READ_EXTERNAL_STORAGE
-}
-
-/**
- * 한 번의 다이얼로그 흐름으로 같이 묻는다. 단, 게이트를 막는 것은 [CameraPermissions]뿐이다 —
+ * 한 번의 다이얼로그 흐름으로 조회 권한까지 같이 묻는다. 단, 게이트를 막는 것은 [CameraPermissions]뿐이다 —
  * 조회 권한을 거부했다고 촬영까지 막지는 않는다.
  */
-private val RequestedPermissions = CameraPermissions + MediaReadPermission
+private val RequestedPermissions = CameraPermissions + MediaReadPermissions
 
 enum class CameraPermissionStatus {
     Granted,
@@ -99,13 +87,4 @@ private fun Activity.cameraPermissionStatus(everRequested: Boolean): CameraPermi
         CameraPermissionStatus.Denied
 
     else -> CameraPermissionStatus.PermanentlyDenied
-}
-
-private fun Activity.openAppSettings() {
-    startActivity(
-        Intent(
-            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-            Uri.fromParts("package", packageName, null),
-        ),
-    )
 }
