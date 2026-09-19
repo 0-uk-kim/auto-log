@@ -7,6 +7,7 @@ import androidx.navigation.toRoute
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.example.autolog.data.db.VlogDao
+import com.example.autolog.data.vlog.VlogFailure
 import com.example.autolog.data.vlog.VlogStore
 import com.example.autolog.data.vlog.VlogWorker
 import com.example.autolog.navigation.Vlog
@@ -53,13 +54,15 @@ class VlogViewModel @Inject constructor(
         info?.state == WorkInfo.State.RUNNING ->
             VlogUiState.Running(percent = info.progress.getInt(VlogWorker.KEY_PROGRESS, 0))
 
+        // 저장분보다 먼저 본다 — 다시 만들다 실패했을 때 예전 결과물을 보여주면
+        // 방금 실패한 것이 성공처럼 보인다.
+        info?.state == WorkInfo.State.FAILED || info?.state == WorkInfo.State.CANCELLED ->
+            VlogUiState.Failed(VlogFailure.from(info.outputData.getString(VlogWorker.KEY_FAILURE)))
+
         hasSavedRecord -> vlogStore.saved(date)
             ?.let { VlogUiState.Done(it.uri.toString(), it.durationMs) }
         // 기록은 있는데 원본이 앱 밖에서 지워진 경우다. 없는 것으로 보고 다시 만들게 둔다.
             ?: VlogUiState.Idle
-
-        info?.state == WorkInfo.State.FAILED || info?.state == WorkInfo.State.CANCELLED ->
-            VlogUiState.Failed
 
         else -> VlogUiState.Idle
     }

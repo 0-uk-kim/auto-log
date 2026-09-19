@@ -1,5 +1,7 @@
 package com.example.autolog.vlog
 
+import com.example.autolog.data.vlog.VlogFailure
+
 /**
  * 브이로그 생성 화면의 상태. WorkManager가 들고 있는 작업 상태를 화면 말로 옮긴 것이다.
  */
@@ -20,5 +22,5 @@ sealed interface VlogUiState {
     /** [uri]는 갤러리에 올라간 결과물이다 — 앱 캐시 파일이 아니라 공유·재생이 바로 되는 주소다. */
     data class Done(val uri: String, val durationMs: Long) : VlogUiState
 
-    data object Failed : VlogUiState
+    data class Failed(val reason: VlogFailure) : VlogUiState
 }

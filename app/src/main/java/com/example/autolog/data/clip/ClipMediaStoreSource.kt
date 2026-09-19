@@ -34,6 +34,7 @@ class ClipMediaStoreSource @Inject constructor(
             val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
             val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
             val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
+            val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
             val takenColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_TAKEN)
             val addedColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
 
@@ -48,6 +49,7 @@ class ClipMediaStoreSource @Inject constructor(
                     displayName = cursor.getString(nameColumn),
                     durationMs = cursor.getLong(durationColumn),
                     startedAt = Instant.ofEpochMilli(startedAtMillis),
+                    sizeBytes = cursor.getLong(sizeColumn),
                 )
             }
         }
@@ -60,6 +62,7 @@ class ClipMediaStoreSource @Inject constructor(
             MediaStore.Video.Media._ID,
             MediaStore.Video.Media.DISPLAY_NAME,
             MediaStore.Video.Media.DURATION,
+            MediaStore.Video.Media.SIZE,
             MediaStore.Video.Media.DATE_TAKEN,
             MediaStore.Video.Media.DATE_ADDED,
         )

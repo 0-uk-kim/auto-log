@@ -16,6 +16,8 @@ data class Clip(
     val displayName: String,
     val durationMs: Long,
     val startedAt: Instant,
+    /** 병합 전에 저장공간이 모자란지 미리 재는 데 쓴다 (#32). */
+    val sizeBytes: Long = 0,
     /**
      * 편집 기능이 들어오는 2·3차에 켜진다. 1차에는 항상 false지만 필드와 표시를 미리 연결해 둬서
      * 나중 마이그레이션 비용을 줄인다 (planning 5 "1차 개발 시 유의", #18).
