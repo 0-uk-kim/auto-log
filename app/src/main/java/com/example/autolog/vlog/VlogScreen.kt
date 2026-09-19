@@ -3,12 +3,14 @@ package com.example.autolog.vlog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -46,6 +48,7 @@ import java.util.Locale
 const val TAG_VLOG_PROGRESS = "vlog-progress"
 const val TAG_VLOG_DONE = "vlog-done"
 const val TAG_REGENERATE_ALERT = "vlog-regenerate-alert"
+const val TAG_VLOG_SHARE = "vlog-share"
 
 /**
  * 브이로그 생성 화면 (planning 3-5).
@@ -63,6 +66,7 @@ fun VlogScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val showAlert by viewModel.showRegenerateAlert.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     // FAB의 뜻이 '생성'이라 들어온 것 자체가 시작 신호다. 단, 이미 만들어 둔 날짜는
     // Idle이 아니므로 여기서 다시 만들어지지 않는다 — 덮어쓰기는 확인을 받고 한다.
@@ -103,6 +107,7 @@ fun VlogScreen(
                 is VlogUiState.Done -> Done(
                     state = state,
                     onRegenerate = viewModel::requestRegenerate,
+                    onShare = { context.shareVlog(state.uri.toUri()) },
                 )
 
                 VlogUiState.Failed -> Failed(onRetry = viewModel::createVlog)
@@ -153,7 +158,11 @@ private fun Merging(percent: Int) {
  * 공유·갤러리 저장은 P7에서 이 아래에 붙는다.
  */
 @Composable
-private fun Done(state: VlogUiState.Done, onRegenerate: () -> Unit) {
+private fun Done(
+    state: VlogUiState.Done,
+    onRegenerate: () -> Unit,
+    onShare: () -> Unit,
+) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -175,8 +184,13 @@ private fun Done(state: VlogUiState.Done, onRegenerate: () -> Unit) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Button(onClick = onRegenerate) {
-            Text(stringResource(R.string.vlog_regenerate))
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            OutlinedButton(onClick = onRegenerate) {
+                Text(stringResource(R.string.vlog_regenerate))
+            }
+            Button(onClick = onShare, modifier = Modifier.testTag(TAG_VLOG_SHARE)) {
+                Text(stringResource(R.string.vlog_share))
+            }
         }
     }
 }
