@@ -127,7 +127,12 @@ fun ClipListScreen(
     }
 
     if (showCalendar) {
-        CalendarSheet(viewedDate = viewModel.date, onDismiss = { showCalendar = false })
+        val marks by viewModel.calendarMarks.collectAsStateWithLifecycle()
+        CalendarSheet(
+            viewedDate = viewModel.date,
+            marks = marks,
+            onDismiss = { showCalendar = false },
+        )
     }
 }
 

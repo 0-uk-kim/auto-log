@@ -2,6 +2,7 @@ package com.example.autolog.data.clip
 
 import com.example.autolog.data.db.ClipOrderDao
 import com.example.autolog.data.db.ClipOrderEntity
+import com.example.autolog.data.db.VlogDao
 import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
@@ -17,6 +18,7 @@ import javax.inject.Singleton
 class ClipRepository @Inject constructor(
     private val mediaStoreSource: ClipMediaStoreSource,
     private val clipOrderDao: ClipOrderDao,
+    private val vlogDao: VlogDao,
 ) {
 
     suspend fun clipsByDate(): Map<LocalDate, List<Clip>> {
@@ -28,6 +30,17 @@ class ClipRepository @Inject constructor(
     }
 
     suspend fun clipsOn(date: LocalDate): List<Clip> = clipsByDate()[date].orEmpty()
+
+    /**
+     * 달력이 날짜마다 무엇을 표시할지 (#20).
+     *
+     * 둘은 포함 관계가 아니다 — 브이로그를 만든 뒤 원본 클립을 앱 밖에서 지우면
+     * "영상은 없고 브이로그만 있는" 날짜가 남는다.
+     */
+    suspend fun calendarMarks(): CalendarMarks = CalendarMarks(
+        datesWithClips = clipsByDate().keys,
+        datesWithVlog = vlogDao.allDates().toSet(),
+    )
 
     /**
      * 사용자가 정한 순서를 그날 것만 통째로 갈아 끼운다 (#16).

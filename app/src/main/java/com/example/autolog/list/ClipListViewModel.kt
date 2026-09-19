@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import com.example.autolog.data.clip.CalendarMarks
 import com.example.autolog.data.clip.ClipRepository
 import com.example.autolog.navigation.ClipList
 import com.example.autolog.permission.MediaAccess
@@ -27,6 +28,9 @@ class ClipListViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<ClipListUiState>(ClipListUiState.Loading)
     val uiState = _uiState.asStateFlow()
 
+    private val _calendarMarks = MutableStateFlow(CalendarMarks())
+    val calendarMarks = _calendarMarks.asStateFlow()
+
     init {
         refresh()
     }
@@ -46,6 +50,7 @@ class ClipListViewModel @Inject constructor(
             } else {
                 ClipListUiState.Clips(clips, access)
             }
+            _calendarMarks.value = clipRepository.calendarMarks()
         }
     }
 
