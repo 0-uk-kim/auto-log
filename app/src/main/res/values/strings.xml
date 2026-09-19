@@ -8,4 +8,5 @@
 
     <string name="camera_start_recording">녹화 시작</string>
     <string name="camera_stop_recording">녹화 정지</string>
+    <string name="camera_latest_clip">직전 촬영본 미리보기</string>
 </resources>
