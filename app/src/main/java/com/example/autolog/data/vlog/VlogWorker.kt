@@ -38,9 +38,14 @@ class VlogWorker @AssistedInject constructor(
             ?: return Result.failure()
 
         val clips = clipRepository.clipsOn(date)
-        if (clips.isEmpty()) return Result.failure()
+        if (clips.isEmpty()) return failWith(VlogFailure.NoClips)
 
         val output = File(applicationContext.cacheDir, "vlog-$date.mp4")
+
+        val required = requiredBytesFor(clips)
+        if (output.parentFile?.usableSpace?.let { it < required } == true) {
+            return failWith(VlogFailure.NotEnoughStorage)
+        }
 
         return runCatching {
             val merged = clipMerger.merge(clips, output.absolutePath) { percent ->
@@ -59,13 +64,17 @@ class VlogWorker @AssistedInject constructor(
             onFailure = {
                 // 반쯤 쓰인 파일이 남으면 다음 시도가 이어쓰기로 깨진다.
                 output.delete()
-                Result.failure()
+                failWith(VlogFailure.MergeFailed)
             },
         )
     }
 
+    private fun failWith(reason: VlogFailure) =
+        Result.failure(workDataOf(KEY_FAILURE to reason.name))
+
     companion object {
         const val KEY_DATE = "date"
+        const val KEY_FAILURE = "failure"
         const val KEY_PROGRESS = "progress"
         const val KEY_OUTPUT_URI = "outputUri"
         const val KEY_DURATION_MS = "durationMs"

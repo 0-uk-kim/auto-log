@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "slug": "p8-32-error-handling",
+  "service": "autolog",
+  "feature": "p8",
+  "created": "2026-09-19T15:37:31+09:00",
+  "device": "SM-F971N (Android 16, 1248x1972, 메인 디스플레이)",
+  "branch": "task/p8-32-error-handling",
+  "commit": "8505c6a",
+  "items": [
+    {
+      "kind": "image",
+      "file": "merge-failure.png",
+      "caption": "병합 실패 — 원본이 깨진 상태(좌) / 원인을 없애고 다시 시도(우)\n원본 1건을 0바이트로 만들어 실제 실패를 일으킨 뒤 확인\n깨진 클립을 걷어내자 3.9초 줄어든 1:03 으로 완성됨",
+      "compare": true,
+      "width": 1600,
+      "height": 1326,
+      "text_px": 22,
+      "text_lines": 9
+    },
+    {
+      "kind": "video",
+      "file": "error-retry.mp4",
+      "caption": "실패 화면에서 다시 시도를 눌러 복구되는 구간\n재생성이 실패하면 예전 결과물이 아니라 실패를 보여줌",
+      "compare": false,
+      "duration": 30.46,
+      "gif": "error-retry.gif",
+      "gif_width": 400,
+      "gif_height": 632,
+      "gif_duration": 30.46
+    }
+  ]
+}

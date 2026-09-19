@@ -16,6 +16,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -44,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.autolog.R
+import com.example.autolog.data.vlog.VlogFailure
 import com.example.autolog.list.formatClipDuration
 import com.example.autolog.ui.VideoSurface
 import com.example.autolog.ui.theme.Spacing
@@ -55,6 +57,7 @@ const val TAG_VLOG_PROGRESS = "vlog-progress"
 const val TAG_VLOG_DONE = "vlog-done"
 const val TAG_REGENERATE_ALERT = "vlog-regenerate-alert"
 const val TAG_VLOG_SHARE = "vlog-share"
+const val TAG_VLOG_FAILED = "vlog-failed"
 
 /**
  * 브이로그 생성 화면 (planning 3-5).
@@ -89,6 +92,8 @@ fun VlogScreen(
             val action = snackbarHostState.showSnackbar(
                 message = savedMessage,
                 actionLabel = openLabel,
+                // 버튼이 붙으면 기본이 Indefinite라 안내가 안 사라지고 아래 버튼을 계속 가린다.
+                duration = SnackbarDuration.Long,
             )
             if (action == SnackbarResult.ActionPerformed) {
                 context.openInGallery(state.uri.toUri())
@@ -139,7 +144,10 @@ fun VlogScreen(
                     onShare = { context.shareVlog(state.uri.toUri()) },
                 )
 
-                VlogUiState.Failed -> Failed(onRetry = viewModel::createVlog)
+                is VlogUiState.Failed -> Failed(
+                    reason = state.reason,
+                    onRetry = viewModel::createVlog,
+                )
             }
         }
 
@@ -276,18 +284,31 @@ private fun RegenerateAlert(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     )
 }
 
+/**
+ * 실패는 이유마다 사용자가 할 일이 다르다 (#32).
+ * 클립이 없으면 다시 시도해도 같은 결과라 버튼을 주지 않는다.
+ */
 @Composable
-private fun Failed(onRetry: () -> Unit) {
+private fun Failed(reason: VlogFailure, onRetry: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        modifier = Modifier.testTag(TAG_VLOG_FAILED),
     ) {
         Text(
-            text = stringResource(R.string.vlog_failed),
+            text = stringResource(
+                when (reason) {
+                    VlogFailure.NoClips -> R.string.vlog_failed_no_clips
+                    VlogFailure.NotEnoughStorage -> R.string.vlog_failed_storage
+                    VlogFailure.MergeFailed -> R.string.vlog_failed
+                },
+            ),
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center,
         )
-        Button(onClick = onRetry) { Text(stringResource(R.string.vlog_retry)) }
+        if (reason != VlogFailure.NoClips) {
+            Button(onClick = onRetry) { Text(stringResource(R.string.vlog_retry)) }
+        }
     }
 }
 
