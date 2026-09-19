@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "slug": "p8-34-smoke-test",
+  "service": "autolog",
+  "feature": "p8",
+  "created": "2026-09-19T15:54:04+09:00",
+  "device": "SM-F971N (Android 16, 1248x1972, 메인 디스플레이)",
+  "branch": "task/p8-34-smoke-test",
+  "commit": "e1da2b3",
+  "items": [
+    {
+      "kind": "video",
+      "file": "smoke-test.mp4",
+      "caption": "설치 직후 권한 3종 → 촬영 2건 → 목록 순서 변경 → 브이로그 생성 → 결과 재생 → 공유까지 한 번에\n클립 11건이 1:13 한 편으로 이어지고 그 자리에서 공유 시트가 열림\n끊긴 구간 없이 1분 55초 한 테이크",
+      "compare": false,
+      "duration": 114.68,
+      "gif": "smoke-test.gif",
+      "gif_width": 360,
+      "gif_height": 569,
+      "gif_duration": 114.68
+    },
+    {
+      "kind": "image",
+      "file": "smoke-result.png",
+      "caption": "스모크 결과 — 생성 완료(좌) / 공유 시트(우)\n전 구간 통과 후 갤러리 저장과 공유 대상이 모두 정상",
+      "compare": true,
+      "width": 1600,
+      "height": 1326,
+      "text_px": 27,
+      "text_lines": 10
+    }
+  ]
+}
