@@ -16,6 +16,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -23,7 +26,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -67,6 +73,28 @@ fun VlogScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val showAlert by viewModel.showRegenerateAlert.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val savedMessage = stringResource(R.string.vlog_saved_to_gallery)
+    val openLabel = stringResource(R.string.vlog_open_gallery)
+
+    // 갓 만들어진 것과 예전에 만들어 둔 것을 가른다 — 들어올 때마다 "저장했어요"라고 하면
+    // 방금 무슨 일이 있었는지가 묻힌다.
+    var justMerged by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(uiState) {
+        val state = uiState
+        if (state is VlogUiState.Running) justMerged = true
+        if (state is VlogUiState.Done && justMerged) {
+            justMerged = false
+            val action = snackbarHostState.showSnackbar(
+                message = savedMessage,
+                actionLabel = openLabel,
+            )
+            if (action == SnackbarResult.ActionPerformed) {
+                context.openInGallery(state.uri.toUri())
+            }
+        }
+    }
 
     // FAB의 뜻이 '생성'이라 들어온 것 자체가 시작 신호다. 단, 이미 만들어 둔 날짜는
     // Idle이 아니므로 여기서 다시 만들어지지 않는다 — 덮어쓰기는 확인을 받고 한다.
@@ -76,6 +104,7 @@ fun VlogScreen(
 
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(rememberDateTitle(date)) },
@@ -182,6 +211,12 @@ private fun Done(
                 formatClipDuration(state.durationMs),
             ),
             style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        // 저장은 만들 때 이미 끝나 있다 — 어디에 있는지 알려 주는 줄이다 (planning 3-6).
+        Text(
+            text = stringResource(R.string.vlog_gallery_location),
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {

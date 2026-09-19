@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "slug": "p7-31-gallery-feedback",
+  "service": "autolog",
+  "feature": "p7",
+  "created": "2026-09-19T15:26:34+09:00",
+  "device": "SM-F971N (Android 16, 1248x1972, 메인 디스플레이)",
+  "branch": "task/p7-31-gallery-feedback",
+  "commit": "da4c9c2",
+  "items": [
+    {
+      "kind": "image",
+      "file": "gallery-feedback.png",
+      "caption": "갤러리 저장 피드백 — 생성 직후(좌) / 피드백이 사라진 뒤(우)\n한 번 지나가는 안내와 계속 남는 위치 표시를 나눠 둠",
+      "compare": true,
+      "width": 1600,
+      "height": 1326,
+      "text_px": 21,
+      "text_lines": 6
+    },
+    {
+      "kind": "video",
+      "file": "gallery-feedback.mp4",
+      "caption": "병합이 끝나는 순간 저장 완료 안내가 떴다가 사라지는 구간\n들어올 때마다가 아니라 방금 만들었을 때만 뜸",
+      "compare": false,
+      "duration": 21.63,
+      "gif": "gallery-feedback.gif",
+      "gif_width": 400,
+      "gif_height": 632,
+      "gif_duration": 21.63
+    }
+  ]
+}
