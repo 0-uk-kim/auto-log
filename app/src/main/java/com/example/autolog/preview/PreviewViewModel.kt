@@ -38,7 +38,7 @@ class PreviewViewModel @Inject constructor(
             } else {
                 PreviewUiState.Ready(
                     clips = clips,
-                    startIndex = route.clipIndex.resolveStartIndex(clips.size),
+                    startIndex = clips.startIndexFor(route.clipIndex),
                 )
             }
         }
