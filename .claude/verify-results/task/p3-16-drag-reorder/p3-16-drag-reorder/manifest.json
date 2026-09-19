@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "slug": "p3-16-drag-reorder",
+  "service": "autolog",
+  "feature": "p3",
+  "created": "2026-09-19T11:50:20+09:00",
+  "device": "emupool-api36-1 (Android API 36, 1080x2400)",
+  "branch": "task/p3-16-drag-reorder",
+  "commit": "eaafe2c",
+  "items": [
+    {
+      "kind": "video",
+      "file": "drag-reorder.mp4",
+      "caption": "손잡이를 끌어 4번 클립을 1번 자리로 이동 — 끄는 동안 나머지 줄이 밀리고 번호가 다시 매겨짐\n뒤로 나간 뒤 앱을 강제 종료하고 다시 들어와도 바뀐 순서 유지\n끄는 줄은 그림자로 들려 보이고 나머지 줄만 자리 이동 애니메이션을 탐",
+      "compare": false,
+      "duration": 19.6,
+      "gif": "drag-reorder.gif",
+      "gif_width": 400,
+      "gif_height": 889,
+      "gif_duration": 19.6
+    },
+    {
+      "kind": "image",
+      "file": "order-persisted.png",
+      "caption": "순서 영속화 — 드래그 전(좌) / 강제 종료 후 재진입(우)\n앱 데이터를 지우면 기본값인 촬영 종료 시각 오름차순으로 돌아감",
+      "compare": true,
+      "width": 1600,
+      "height": 1835,
+      "text_px": 21,
+      "text_lines": 17
+    }
+  ]
+}
