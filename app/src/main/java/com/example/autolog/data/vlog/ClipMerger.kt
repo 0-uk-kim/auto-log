@@ -10,15 +10,17 @@ import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
 import androidx.media3.transformer.ExportException
 import androidx.media3.transformer.ExportResult
+import androidx.media3.transformer.ProgressHolder
 import androidx.media3.transformer.Transformer
 import com.example.autolog.data.clip.Clip
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** 병합이 끝나고 남는 것. 결과물을 MediaStore에 올리는 것은 #27이 한다. */
@@ -37,52 +39,75 @@ class ClipMerger @Inject constructor(
 ) {
 
     /**
-     * [clips]를 받은 순서 그대로 [outputPath]에 이어붙인다.
+     * [clips]를 받은 순서 그대로 [outputPath]에 이어붙이고, 진행률을 [onProgress]로 흘린다.
      *
      * Transformer는 Looper가 있는 스레드에서만 시작할 수 있어 메인에서 띄우고, 실제 작업은
      * 자기 내부 스레드에서 돈다. 호출이 취소되면 진행 중인 내보내기도 같이 접는다.
      */
-    suspend fun merge(clips: List<Clip>, outputPath: String): MergeResult {
+    suspend fun merge(
+        clips: List<Clip>,
+        outputPath: String,
+        onProgress: (percent: Int) -> Unit = {},
+    ): MergeResult {
         require(clips.isNotEmpty()) { "이어붙일 클립이 없다" }
 
         return withContext(Dispatchers.Main) {
-            suspendCancellableCoroutine { continuation ->
-                val sequence = EditedMediaItemSequence.Builder(
-                    clips.map { EditedMediaItem.Builder(MediaItem.fromUri(it.uri)).build() },
-                ).build()
+            val completion = CompletableDeferred<MergeResult>()
 
-                val transformer = Transformer.Builder(context)
-                    .setVideoMimeType(MimeTypes.VIDEO_H264)
-                    .setAudioMimeType(MimeTypes.AUDIO_AAC)
-                    .addListener(
-                        object : Transformer.Listener {
-                            override fun onCompleted(composition: Composition, result: ExportResult) {
-                                continuation.resume(
-                                    MergeResult(
-                                        durationMs = result.durationMs,
-                                        fileSizeBytes = result.fileSizeBytes,
-                                    ),
-                                )
-                            }
+            val sequence = EditedMediaItemSequence.Builder(
+                clips.map { EditedMediaItem.Builder(MediaItem.fromUri(it.uri)).build() },
+            ).build()
 
-                            override fun onError(
-                                composition: Composition,
-                                result: ExportResult,
-                                exception: ExportException,
-                            ) {
-                                continuation.resumeWithException(exception)
-                            }
-                        },
-                    )
-                    .build()
+            val transformer = Transformer.Builder(context)
+                .setVideoMimeType(MimeTypes.VIDEO_H264)
+                .setAudioMimeType(MimeTypes.AUDIO_AAC)
+                .addListener(
+                    object : Transformer.Listener {
+                        override fun onCompleted(composition: Composition, result: ExportResult) {
+                            completion.complete(
+                                MergeResult(
+                                    durationMs = result.durationMs,
+                                    fileSizeBytes = result.fileSizeBytes,
+                                ),
+                            )
+                        }
 
-                transformer.start(Composition.Builder(sequence).build(), outputPath)
+                        override fun onError(
+                            composition: Composition,
+                            result: ExportResult,
+                            exception: ExportException,
+                        ) {
+                            completion.completeExceptionally(exception)
+                        }
+                    },
+                )
+                .build()
 
-                // 취소는 아무 스레드에서나 올 수 있는데 Transformer는 자기를 띄운 스레드만 받는다.
-                continuation.invokeOnCancellation {
-                    Handler(Looper.getMainLooper()).post { transformer.cancel() }
+            transformer.start(Composition.Builder(sequence).build(), outputPath)
+
+            // Transformer는 진행률을 밀어 주지 않는다 — 물어봐야 한다.
+            val poller = launch {
+                val holder = ProgressHolder()
+                while (isActive) {
+                    if (transformer.getProgress(holder) == Transformer.PROGRESS_STATE_AVAILABLE) {
+                        onProgress(holder.progress)
+                    }
+                    delay(PROGRESS_INTERVAL_MS)
                 }
             }
+
+            try {
+                completion.await()
+            } finally {
+                poller.cancel()
+                // 취소로 빠져나갈 때는 내보내기가 아직 돌고 있다. 같이 접지 않으면 파일만 남는다.
+                if (!completion.isCompleted) transformer.cancel()
+            }
         }
+    }
+
+    private companion object {
+        /** 진행률 갱신 간격. 더 촘촘히 물어도 화면에서 구분되지 않는다. */
+        const val PROGRESS_INTERVAL_MS = 300L
     }
 }

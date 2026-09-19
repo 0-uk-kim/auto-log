@@ -3,6 +3,7 @@ package com.example.autolog.data.di
 import android.content.ContentResolver
 import android.content.Context
 import androidx.room.Room
+import androidx.work.WorkManager
 import com.example.autolog.data.db.AutoLogDatabase
 import com.example.autolog.data.db.ClipOrderDao
 import com.example.autolog.data.db.VlogDao
@@ -21,6 +22,11 @@ object DataModule {
     @Singleton
     fun provideContentResolver(@ApplicationContext context: Context): ContentResolver =
         context.contentResolver
+
+    @Provides
+    @Singleton
+    fun provideWorkManager(@ApplicationContext context: Context): WorkManager =
+        WorkManager.getInstance(context)
 
     @Provides
     @Singleton
