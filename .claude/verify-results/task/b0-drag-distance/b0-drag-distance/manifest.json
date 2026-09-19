@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "b0-drag-distance",
+  "service": "autolog",
+  "feature": "backlog-b0",
+  "created": "2026-09-19T22:33:00+09:00",
+  "device": "emupool-api36-1 (Android 16 에뮬레이터, 1080x2400)",
+  "branch": "task/b0-drag-distance",
+  "commit": "65b3777",
+  "items": [
+    {
+      "kind": "video",
+      "file": "b0-drag-distance.mp4",
+      "caption": "23건 목록에서 1번 줄 손잡이를 한 행(232px)만 아래로 끈 같은 조작\n좌(AS-IS) 목록이 통째로 튀며 1번이 14번 자리까지 추락 / 우(TO-BE) 2번 자리로 한 칸만 이동\n저장된 clip_order 로 확인 — AS-IS position 13, TO-BE position 1",
+      "compare": true,
+      "duration": 12.0,
+      "gif": "b0-drag-distance.gif",
+      "gif_width": 720,
+      "gif_height": 430,
+      "gif_duration": 12.0
+    }
+  ]
+}
