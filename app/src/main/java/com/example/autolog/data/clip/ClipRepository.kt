@@ -29,12 +29,22 @@ class ClipRepository @Inject constructor(
 
     suspend fun clipsOn(date: LocalDate): List<Clip> = clipsByDate()[date].orEmpty()
 
-    /** 사용자가 정한 순서를 그날 것만 통째로 갈아 끼운다 (#16). */
+    /**
+     * 사용자가 정한 순서를 그날 것만 통째로 갈아 끼운다 (#16).
+     *
+     * 행을 갈아 끼우는 것이라 편집 여부도 같이 다시 써야 한다 — 빠뜨리면 순서를 바꿀 때마다
+     * 편집 표시가 지워진다 (#18).
+     */
     suspend fun saveOrder(date: LocalDate, clips: List<Clip>) {
         clipOrderDao.replaceDate(
             date,
             clips.mapIndexed { index, clip ->
-                ClipOrderEntity(clipId = clip.id, date = date, position = index)
+                ClipOrderEntity(
+                    clipId = clip.id,
+                    date = date,
+                    position = index,
+                    isEdited = clip.isEdited,
+                )
             },
         )
     }
@@ -54,11 +64,14 @@ class ClipRepository @Inject constructor(
 /**
  * 저장된 순서를 실제 클립에 입힌다. 저장된 행 중 원본이 사라진 것은 자연히 빠지고,
  * 순서에 없는 클립은 종료 시각 순으로 뒤에 붙는다.
+ *
+ * 편집 여부도 같은 행에 있으므로 여기서 함께 입힌다 — 행이 없는 클립은 아직 손댄 적이 없다 (#18).
  */
 internal fun List<Clip>.applySavedOrder(saved: List<ClipOrderEntity>): List<Clip> {
     if (saved.isEmpty()) return sortedBy { it.endedAt }
     val byId = associateBy { it.id }
-    val ordered = saved.sortedBy { it.position }.mapNotNull { byId[it.clipId] }
+    val ordered = saved.sortedBy { it.position }
+        .mapNotNull { row -> byId[row.clipId]?.copy(isEdited = row.isEdited) }
     val orderedIds = ordered.mapTo(mutableSetOf()) { it.id }
     return ordered + filterNot { it.id in orderedIds }.sortedBy { it.endedAt }
 }

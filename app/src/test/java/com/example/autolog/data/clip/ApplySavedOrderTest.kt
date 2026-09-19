@@ -73,6 +73,26 @@ class ApplySavedOrderTest {
         assertEquals(listOf(1L), ordered.map { it.id })
     }
 
+    @Test
+    fun `편집 여부는 저장된 행에서 따라온다`() {
+        val clips = listOf(clip(id = 1, endedAtSecond = 10), clip(id = 2, endedAtSecond = 20))
+
+        val ordered = clips.applySavedOrder(
+            listOf(saved(clipId = 2, position = 0, isEdited = true), saved(clipId = 1, position = 1)),
+        )
+
+        assertEquals(listOf(true, false), ordered.map { it.isEdited })
+    }
+
+    @Test
+    fun `순서 행이 없는 클립은 편집된 적 없는 것으로 본다`() {
+        val clips = listOf(clip(id = 1, endedAtSecond = 10), clip(id = 7, endedAtSecond = 30))
+
+        val ordered = clips.applySavedOrder(listOf(saved(clipId = 1, position = 0, isEdited = true)))
+
+        assertEquals(listOf(true, false), ordered.map { it.isEdited })
+    }
+
     private fun clip(id: Long, endedAtSecond: Long) = Clip(
         id = id,
         displayName = "AUTOLOG_$id.mp4",
@@ -80,6 +100,6 @@ class ApplySavedOrderTest {
         startedAt = Instant.ofEpochSecond(endedAtSecond).minusMillis(1_000),
     )
 
-    private fun saved(clipId: Long, position: Int) =
-        ClipOrderEntity(clipId = clipId, date = day, position = position)
+    private fun saved(clipId: Long, position: Int, isEdited: Boolean = false) =
+        ClipOrderEntity(clipId = clipId, date = day, position = position, isEdited = isEdited)
 }
