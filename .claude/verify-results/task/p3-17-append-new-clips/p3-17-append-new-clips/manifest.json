@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "slug": "p3-17-append-new-clips",
+  "service": "autolog",
+  "feature": "p3",
+  "created": "2026-09-19T11:54:27+09:00",
+  "device": "emupool-api36-1 (Android API 36, 1080x2400)",
+  "branch": "task/p3-17-append-new-clips",
+  "commit": "591dfb6",
+  "items": [
+    {
+      "kind": "video",
+      "file": "append-new-clip.mp4",
+      "caption": "순서를 정한 목록에서 나가 1건 더 촬영하고 돌아오는 전 구간\n정해 둔 1~4번은 그대로고 새 클립만 5번으로 붙음",
+      "compare": false,
+      "duration": 20.87,
+      "gif": "append-new-clip.gif",
+      "gif_width": 400,
+      "gif_height": 889,
+      "gif_duration": 20.87
+    },
+    {
+      "kind": "image",
+      "file": "append-order.png",
+      "caption": "신규 클립 추가 규칙 — 추가 전(좌) / 추가 후(우)\n총 길이도 0:09 → 0:13으로 신규분만큼 늘어남",
+      "compare": true,
+      "width": 1600,
+      "height": 1835,
+      "text_px": 21,
+      "text_lines": 19
+    }
+  ]
+}
