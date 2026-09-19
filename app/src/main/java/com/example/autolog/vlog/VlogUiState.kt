@@ -14,7 +14,8 @@ sealed interface VlogUiState {
      */
     data class Running(val percent: Int) : VlogUiState
 
-    data class Done(val outputPath: String, val durationMs: Long) : VlogUiState
+    /** [uri]는 갤러리에 올라간 결과물이다 — 앱 캐시 파일이 아니라 공유·재생이 바로 되는 주소다. */
+    data class Done(val uri: String, val durationMs: Long) : VlogUiState
 
     data object Failed : VlogUiState
 }

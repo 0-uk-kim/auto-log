@@ -21,7 +21,8 @@ import java.time.LocalDate
  * 하루치가 길어지면 병합도 길어지므로 화면에 묶어 두지 않는다 — 목록을 벗어나거나 앱을 내려도
  * 계속 돌고, 화면은 진행률만 구독한다.
  *
- * 결과물을 MediaStore에 올리고 Room에 기록하는 것은 #27이 한다. 지금은 캐시 파일까지다.
+ * 병합은 앱 캐시에 먼저 떨어뜨리고, 다 되면 갤러리로 옮긴다 — 만들다 만 파일이 갤러리에
+ * 보이면 안 된다 (#27).
  */
 @HiltWorker
 class VlogWorker @AssistedInject constructor(
@@ -29,6 +30,7 @@ class VlogWorker @AssistedInject constructor(
     @Assisted params: WorkerParameters,
     private val clipRepository: ClipRepository,
     private val clipMerger: ClipMerger,
+    private val vlogStore: VlogStore,
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
@@ -41,14 +43,15 @@ class VlogWorker @AssistedInject constructor(
         val output = File(applicationContext.cacheDir, "vlog-$date.mp4")
 
         return runCatching {
-            clipMerger.merge(clips, output.absolutePath) { percent ->
+            val merged = clipMerger.merge(clips, output.absolutePath) { percent ->
                 setProgressAsync(workDataOf(KEY_PROGRESS to percent))
             }
+            vlogStore.save(date, output) to merged
         }.fold(
-            onSuccess = { merged ->
+            onSuccess = { (uri, merged) ->
                 Result.success(
                     workDataOf(
-                        KEY_OUTPUT_PATH to output.absolutePath,
+                        KEY_OUTPUT_URI to uri.toString(),
                         KEY_DURATION_MS to merged.durationMs,
                     ),
                 )
@@ -64,7 +67,7 @@ class VlogWorker @AssistedInject constructor(
     companion object {
         const val KEY_DATE = "date"
         const val KEY_PROGRESS = "progress"
-        const val KEY_OUTPUT_PATH = "outputPath"
+        const val KEY_OUTPUT_URI = "outputUri"
         const val KEY_DURATION_MS = "durationMs"
 
         /** 날짜당 브이로그는 항상 1개라(planning 6) 같은 날짜 작업은 하나만 돈다. */

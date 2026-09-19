@@ -46,11 +46,11 @@ private fun WorkInfo?.toUiState(): VlogUiState = when (this?.state) {
         VlogUiState.Running(percent = progress.getInt(VlogWorker.KEY_PROGRESS, 0))
 
     WorkInfo.State.SUCCEEDED -> {
-        val path = outputData.getString(VlogWorker.KEY_OUTPUT_PATH)
-        if (path == null) {
+        val uri = outputData.getString(VlogWorker.KEY_OUTPUT_URI)
+        if (uri == null) {
             VlogUiState.Failed
         } else {
-            VlogUiState.Done(path, outputData.getLong(VlogWorker.KEY_DURATION_MS, 0L))
+            VlogUiState.Done(uri, outputData.getLong(VlogWorker.KEY_DURATION_MS, 0L))
         }
     }
 

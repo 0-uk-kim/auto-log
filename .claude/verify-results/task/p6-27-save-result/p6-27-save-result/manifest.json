@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "slug": "p6-27-save-result",
+  "service": "autolog",
+  "feature": "p6",
+  "created": "2026-09-19T15:08:40+09:00",
+  "device": "SM-F971N (Android 16, 1248x1972, 메인 디스플레이)",
+  "branch": "task/p6-27-save-result",
+  "commit": "4298193",
+  "items": [
+    {
+      "kind": "image",
+      "file": "saved-vlog.png",
+      "caption": "갤러리에 저장된 결과물을 다시 꺼내 본 세 지점 — 0:05 / 0:33 / 1:02\nMediaStore에서 읽어 온 파일이 그대로 재생됨 — 67.444초 · h264 + aac",
+      "compare": true,
+      "panels": 3,
+      "width": 1380,
+      "height": 863
+    },
+    {
+      "kind": "image",
+      "file": "vlog-done.png",
+      "caption": "생성 완료 화면 — 길이 1:07\n목록의 총 길이와 같아 그날 클립이 모두 들어갔음을 보여줌",
+      "compare": false,
+      "width": 1248,
+      "height": 1972,
+      "text_px": 37,
+      "text_lines": 4
+    }
+  ]
+}
