@@ -53,6 +53,16 @@ class ApplySavedOrderTest {
     }
 
     @Test
+    fun `새 클립이 더 일찍 끝났어도 정해진 순서 뒤에 붙는다`() {
+        // 자정을 걸친 클립이나 뒤늦게 스캔된 클립이 이미 정한 순서를 밀고 들어오면 안 된다.
+        val clips = listOf(clip(id = 1, endedAtSecond = 20), clip(id = 9, endedAtSecond = 5))
+
+        val ordered = clips.applySavedOrder(listOf(saved(clipId = 1, position = 0)))
+
+        assertEquals(listOf(1L, 9L), ordered.map { it.id })
+    }
+
+    @Test
     fun `앱 밖에서 지워진 클립의 순서 행은 목록에 영향을 주지 않는다`() {
         val clips = listOf(clip(id = 1, endedAtSecond = 10))
 
