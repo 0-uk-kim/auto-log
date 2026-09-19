@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "slug": "p4-20-date-markers",
+  "service": "autolog",
+  "feature": "p4",
+  "created": "2026-09-19T12:09:24+09:00",
+  "device": "emupool-api36-1 (Android API 36, 1080x2400)",
+  "branch": "task/p4-20-date-markers",
+  "commit": "0402737",
+  "items": [
+    {
+      "kind": "image",
+      "file": "date-markers.png",
+      "caption": "날짜 마커 2종 — 영상만 있는 상태(좌) / 브이로그 기록을 넣은 뒤(우)\n9월 10·15·19일에 클립이 있고 그중 10·15일에만 브이로그 기록이 있음\n브이로그 생성은 P6에서 생기므로 Room에 직접 넣어 두 마커의 구분을 확인",
+      "compare": true,
+      "width": 1600,
+      "height": 968,
+      "text_px": 21,
+      "text_lines": 10
+    }
+  ]
+}
