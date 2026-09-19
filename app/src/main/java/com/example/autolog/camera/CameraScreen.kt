@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.autolog.camera.permission.CameraPermissionGate
@@ -41,6 +42,12 @@ fun CameraScreen(
 
         val surfaceRequest by viewModel.surfaceRequest.collectAsStateWithLifecycle()
         val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+        // 목록에서 지우고 돌아오거나 앱 밖에서 지워질 수 있다. 돌아올 때마다 다시 읽는다.
+        LifecycleResumeEffect(Unit) {
+            viewModel.refreshLatestClip()
+            onPauseOrDispose {}
+        }
 
         Box(
             modifier = Modifier

@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "slug": "p8-33-state-restore",
+  "service": "autolog",
+  "feature": "p8",
+  "created": "2026-09-19T15:41:16+09:00",
+  "device": "SM-F971N (Android 16, 1248x1972, 메인 디스플레이)",
+  "branch": "task/p8-33-state-restore",
+  "commit": "309223b",
+  "items": [
+    {
+      "kind": "image",
+      "file": "thumbnail-restore.png",
+      "caption": "직전 촬영본 썸네일 — 수정 전(좌) / 수정 후(우)\n앱을 강제 종료하고 다시 켠 직후 화면\n메모리에만 두면 찍은 영상이 있는데도 들어갈 길이 사라졌었음",
+      "compare": true,
+      "width": 1600,
+      "height": 1326,
+      "text_px": 27,
+      "text_lines": 3
+    },
+    {
+      "kind": "image",
+      "file": "page-restore.png",
+      "caption": "화면·자리 복원 — 강제 종료 전(좌) / 다시 연 뒤(우)\n미리보기 4 / 9 에서 프로세스를 죽여도 같은 화면 같은 클립으로 돌아옴",
+      "compare": true,
+      "width": 1600,
+      "height": 1326,
+      "text_px": 27,
+      "text_lines": 3
+    }
+  ]
+}
