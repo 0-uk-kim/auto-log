@@ -5,6 +5,9 @@ package com.example.autolog.vlog
  */
 sealed interface VlogUiState {
 
+    /** 작업 기록과 저장분을 아직 못 읽었다. 한 프레임짜리 상태다. */
+    data object Loading : VlogUiState
+
     /** 아직 만든 적이 없다. */
     data object Idle : VlogUiState
 

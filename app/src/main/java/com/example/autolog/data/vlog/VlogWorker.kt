@@ -73,11 +73,14 @@ class VlogWorker @AssistedInject constructor(
         /** 날짜당 브이로그는 항상 1개라(planning 6) 같은 날짜 작업은 하나만 돈다. */
         fun workName(date: LocalDate) = "vlog-$date"
 
-        fun enqueue(workManager: WorkManager, date: LocalDate) {
+        /**
+         * [replaceExisting]은 사용자가 재생성을 확인했을 때만 true다 (#28) — 기본값 KEEP은
+         * 이미 돌고 있는 작업을 그대로 둔다. 두 번 눌렀다고 처음부터 다시 할 이유가 없다.
+         */
+        fun enqueue(workManager: WorkManager, date: LocalDate, replaceExisting: Boolean = false) {
             workManager.enqueueUniqueWork(
                 workName(date),
-                // 이미 돌고 있으면 그대로 둔다 — 두 번 눌렀다고 처음부터 다시 할 이유가 없다.
-                ExistingWorkPolicy.KEEP,
+                if (replaceExisting) ExistingWorkPolicy.REPLACE else ExistingWorkPolicy.KEEP,
                 OneTimeWorkRequestBuilder<VlogWorker>()
                     .setInputData(Data.Builder().putString(KEY_DATE, date.toString()).build())
                     .build(),

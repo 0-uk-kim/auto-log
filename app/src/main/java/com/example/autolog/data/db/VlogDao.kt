@@ -13,6 +13,10 @@ interface VlogDao {
     @Query("SELECT * FROM vlog WHERE date = :date")
     suspend fun byDate(date: LocalDate): VlogEntity?
 
+    /** 생성 화면이 "이미 만들어 둔 것이 있는지"를 이 흐름으로 본다 (#28). */
+    @Query("SELECT * FROM vlog WHERE date = :date")
+    fun observeByDate(date: LocalDate): Flow<VlogEntity?>
+
     /** 달력의 '브이로그 생성됨' 마커가 이 목록을 본다 (#20). */
     @Query("SELECT * FROM vlog ORDER BY date DESC")
     fun observeAll(): Flow<List<VlogEntity>>
