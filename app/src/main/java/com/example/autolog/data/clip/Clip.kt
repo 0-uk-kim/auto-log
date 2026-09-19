@@ -1,6 +1,8 @@
 package com.example.autolog.data.clip
 
+import android.content.ContentUris
 import android.net.Uri
+import android.provider.MediaStore
 import java.time.Instant
 
 /**
@@ -11,10 +13,12 @@ import java.time.Instant
  */
 data class Clip(
     val id: Long,
-    val uri: Uri,
     val displayName: String,
     val durationMs: Long,
     val startedAt: Instant,
 ) {
     val endedAt: Instant get() = startedAt.plusMillis(durationMs)
+
+    val uri: Uri
+        get() = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
 }
