@@ -19,6 +19,11 @@
     <string name="clip_list_drag_handle">순서 변경 — 끌어서 옮기기</string>
     <string name="clip_list_edited_badge">편집됨</string>
     <string name="clip_list_open_calendar">다른 날짜 보기</string>
+    <string name="clip_list_start_selection">영상 삭제</string>
+    <string name="clip_list_end_selection">삭제 취소</string>
+    <string name="clip_list_selected_count">%d개 선택</string>
+    <string name="clip_list_delete_selected">선택한 영상 삭제</string>
+    <string name="clip_list_swipe_delete">밀어서 삭제</string>
 
     <!-- 달력 (#19) -->
     <string name="calendar_month_title">%1$d년 %2$d월</string>

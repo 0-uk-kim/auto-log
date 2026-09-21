@@ -1,5 +1,6 @@
 package com.example.autolog.data.clip
 
+import android.content.IntentSender
 import com.example.autolog.data.db.ClipOrderDao
 import com.example.autolog.data.db.ClipOrderEntity
 import com.example.autolog.data.db.VlogDao
@@ -60,6 +61,16 @@ class ClipRepository @Inject constructor(
                 )
             },
         )
+    }
+
+    fun deleteRequest(clips: List<Clip>): IntentSender = mediaStoreSource.deleteRequest(clips)
+
+    /**
+     * 시스템 창에서 삭제가 승인된 뒤 순서 행을 걷어낸다. 남은 클립의 순서는 행 사이 빈 자리를
+     * 그대로 둬도 [applySavedOrder]가 position 순으로 읽어 유지된다.
+     */
+    suspend fun forgetDeleted(clips: List<Clip>) {
+        clipOrderDao.deleteByIds(clips.map { it.id })
     }
 
     /**

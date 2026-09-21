@@ -76,6 +76,21 @@ class AutoLogDatabaseTest {
     }
 
     @Test
+    fun 삭제한_클립의_행만_걷히고_남은_순서는_유지된다() = runTest {
+        clipOrderDao.upsertAll(
+            listOf(
+                order(clipId = 1, position = 0),
+                order(clipId = 2, position = 1),
+                order(clipId = 3, position = 2),
+            ),
+        )
+
+        clipOrderDao.deleteByIds(listOf(2L))
+
+        assertEquals(listOf(1L, 3L), clipOrderDao.byDate(day).map { it.clipId })
+    }
+
+    @Test
     fun 브이로그는_날짜당_1건이라_재생성이_덮어쓴다() = runTest {
         vlogDao.upsert(VlogEntity(date = day, mediaId = 100, createdAt = Instant.ofEpochMilli(1)))
         vlogDao.upsert(VlogEntity(date = day, mediaId = 200, createdAt = Instant.ofEpochMilli(2)))

@@ -33,4 +33,7 @@ interface ClipOrderDao {
     /** 앱 밖에서 원본이 지워진 클립의 고아 행을 걷어낸다 (#14). */
     @Query("DELETE FROM clip_order WHERE clipId NOT IN (:existingClipIds)")
     suspend fun deleteMissing(existingClipIds: List<Long>)
+
+    @Query("DELETE FROM clip_order WHERE clipId IN (:clipIds)")
+    suspend fun deleteByIds(clipIds: List<Long>)
 }
