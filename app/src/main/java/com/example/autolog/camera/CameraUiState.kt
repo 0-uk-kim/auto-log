@@ -11,7 +11,13 @@ data class CameraUiState(
     val elapsed: Duration = Duration.ZERO,
     /** 직전 촬영본. 있을 때만 좌측 하단 썸네일을 노출한다 (planning 3-1). */
     val latestClip: Uri? = null,
-)
+    val orientation: CaptureOrientation = CaptureOrientation.Portrait,
+    val isDeviceSideways: Boolean = false,
+) {
+    /** 가로를 골랐는데 세워 들고 있으면 눕히라고 알린다 — 그대로 찍으면 옆으로 누운 영상이 된다. */
+    val shouldTurnSideways: Boolean
+        get() = orientation == CaptureOrientation.Landscape && !isDeviceSideways && !isRecording
+}
 
 /** 녹화 경과 시간. 한 시간을 넘기면 자리를 하나 더 쓴다 — 클립 길이에 제한이 없다 (planning 6). */
 fun Duration.formatElapsed(): String = toComponents { hours, minutes, seconds, _ ->

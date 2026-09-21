@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "slug": "40-capture-orientation",
+  "service": "autolog",
+  "feature": "camera",
+  "created": "2026-09-21T23:32:26+09:00",
+  "device": "sdk_gphone64_arm64 (Android 16)",
+  "branch": "feature/40-capture-orientation",
+  "commit": "8db194d",
+  "items": [
+    {
+      "kind": "video",
+      "file": "40-capture-orientation.mp4",
+      "caption": "가로 선택부터 가로 녹화·목록·브이로그 생성까지\n가로 선택 후 세워 들면 눕히라는 안내, 눕히면 사라짐\n녹화 중에는 방향 버튼 숨김\n미리보기에서 가로 클립은 16:9로 표시\n세로 클립 뒤에 가로 클립이 붙은 브이로그 재생",
+      "compare": false,
+      "duration": 57.0,
+      "gif": "40-capture-orientation.gif",
+      "gif_width": 360,
+      "gif_height": 800,
+      "gif_duration": 57.0
+    },
+    {
+      "kind": "image",
+      "file": "40-vlog-mixed.png",
+      "caption": "세로·가로가 섞인 브이로그 프레임\n첫 클립이 세로라 결과물은 1080×1920 세로\n가로 클립은 위아래 레터박스",
+      "compare": true,
+      "width": 1600,
+      "height": 1482
+    }
+  ]
+}

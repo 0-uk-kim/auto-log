@@ -3,6 +3,7 @@ package com.example.autolog.camera
 import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
+import android.view.Surface
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.core.SurfaceRequest
@@ -25,6 +26,7 @@ import com.example.autolog.data.clip.ClipRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import javax.inject.Inject
+import kotlin.time.Duration
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,12 +36,13 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class CameraViewModel @Inject constructor(
     private val clipRepository: ClipRepository,
+    private val orientationStore: CaptureOrientationStore,
 ) : ViewModel() {
 
     private val _surfaceRequest = MutableStateFlow<SurfaceRequest?>(null)
     val surfaceRequest = _surfaceRequest.asStateFlow()
 
-    // 1차는 9:16 세로 고정이라 프리뷰도 16:9 선택 전략으로 못 박는다 (planning 6-1).
+    // 프리뷰는 세로 화면에 9:16으로 그린다. 가로 촬영도 기기를 눕혀 찍으니 같은 프레임이 그대로 가로가 된다 (#40).
     private val previewUseCase = Preview.Builder()
         .setResolutionSelector(
             ResolutionSelector.Builder()
@@ -49,7 +52,7 @@ class CameraViewModel @Inject constructor(
         .build()
         .apply { setSurfaceProvider { request -> _surfaceRequest.value = request } }
 
-    // 1080×1920·30fps 고정. 기기가 FHD를 못 하면 한 단계 낮은 화질로 대체한다 (planning 6-1).
+    // FHD·30fps 고정 — 방향에 따라 1080×1920 또는 1920×1080. 기기가 FHD를 못 하면 한 단계 낮은 화질로 대체한다 (planning 6-1).
     private val recorder = Recorder.Builder()
         .setQualitySelector(
             QualitySelector.from(
@@ -61,11 +64,12 @@ class CameraViewModel @Inject constructor(
 
     val videoCapture = VideoCapture.withOutput(recorder)
 
-    private val _uiState = MutableStateFlow(CameraUiState())
+    private val _uiState = MutableStateFlow(CameraUiState(orientation = orientationStore.orientation))
     val uiState = _uiState.asStateFlow()
 
     private var recording: Recording? = null
     private var latestClip: Uri? = null
+    private var deviceRotation = Surface.ROTATION_0
 
     init {
         refreshLatestClip()
@@ -88,6 +92,19 @@ class CameraViewModel @Inject constructor(
         }
     }
 
+    /** 녹화 중에는 바꾸지 않는다 — 한 클립 안에서 방향이 바뀔 수 없다. */
+    fun toggleOrientation() {
+        if (recording != null) return
+        val next = _uiState.value.orientation.toggled()
+        orientationStore.orientation = next
+        _uiState.update { it.copy(orientation = next) }
+    }
+
+    fun onDeviceRotationChanged(rotation: Int) {
+        deviceRotation = rotation
+        _uiState.update { it.copy(isDeviceSideways = isSideways(rotation)) }
+    }
+
     /** 녹화 중이면 멈추고, 아니면 시작한다. 정지 결과는 Finalize 이벤트로 돌아온다. */
     @SuppressLint("MissingPermission") // 권한이 있을 때만 그려지는 화면에서만 호출된다 (CameraPermissionGate)
     fun toggleRecording(context: Context) {
@@ -95,6 +112,8 @@ class CameraViewModel @Inject constructor(
             it.stop()
             return
         }
+        // 방향은 녹화를 시작할 때 파일에 새겨진다. 녹화 중에 기기를 돌려도 바뀌지 않는다.
+        videoCapture.targetRotation = _uiState.value.orientation.targetRotation(deviceRotation)
         recording = videoCapture.output
             .prepareRecording(context, ClipOutput.mediaStoreOptions(context.contentResolver))
             .withAudioEnabled()
@@ -113,7 +132,9 @@ class CameraViewModel @Inject constructor(
                         // 실패한 녹화는 재생할 것이 없으므로 직전 촬영본을 갱신하지 않는다.
                         val saved = if (event.hasError()) latestClip else event.outputResults.outputUri
                         latestClip = saved
-                        _uiState.value = CameraUiState(latestClip = saved)
+                        _uiState.update {
+                            it.copy(isRecording = false, elapsed = Duration.ZERO, latestClip = saved)
+                        }
                     }
                 }
             }

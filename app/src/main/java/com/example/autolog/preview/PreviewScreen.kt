@@ -198,7 +198,11 @@ private fun NeighbourClip(clip: Clip, modifier: Modifier = Modifier) {
                 bitmap = bitmap.asImageBitmap(),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.aspectRatio(9f / 16f, matchHeightConstraintsFirst = true),
+                // 썸네일은 클립 비율을 그대로 담고 있다 — 세로·가로가 섞인 목록이라 거기에 맞춘다.
+                modifier = Modifier.aspectRatio(
+                    bitmap.width.toFloat() / bitmap.height,
+                    matchHeightConstraintsFirst = bitmap.height > bitmap.width,
+                ),
             )
         }
     }
