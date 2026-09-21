@@ -1,17 +1,21 @@
 package com.example.autolog.data.vlog
 
 import android.content.Context
+import android.media.MediaMetadataRetriever
 import android.os.Handler
 import android.os.Looper
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
+import androidx.media3.effect.Presentation
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
+import androidx.media3.transformer.Effects
 import androidx.media3.transformer.ExportException
 import androidx.media3.transformer.ExportResult
 import androidx.media3.transformer.ProgressHolder
 import androidx.media3.transformer.Transformer
+import com.example.autolog.camera.CaptureOrientation
 import com.example.autolog.data.clip.Clip
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -29,8 +33,9 @@ data class MergeResult(val durationMs: Long, val fileSizeBytes: Long)
 /**
  * 하루치 클립을 목록 순서 그대로 한 편으로 이어붙인다 (planning 3-5).
  *
- * 1차는 모든 클립이 같은 규격·같은 방향이라(planning 6-1) 회전 보정도 레터박스도 필요 없고,
- * Transformer가 대부분 구간을 다시 인코딩하지 않고 그대로 옮겨 담는다.
+ * 클립 방향이 모두 같으면 회전 보정도 레터박스도 필요 없어 Transformer가 대부분 구간을
+ * 다시 인코딩하지 않고 그대로 옮겨 담는다. 세로·가로가 섞이면 [mergeFrameFor]가 정한 크기로
+ * 모두 다시 그린다 (#40).
  * 출력 코덱은 공유 대상 플랫폼이 공통으로 요구하는 H.264 + AAC로 못 박는다.
  */
 @Singleton
@@ -51,11 +56,24 @@ class ClipMerger @Inject constructor(
     ): MergeResult {
         require(clips.isNotEmpty()) { "이어붙일 클립이 없다" }
 
+        val frame = withContext(Dispatchers.IO) { mergeFrameFor(clips.map { orientationOf(it) }) }
+
         return withContext(Dispatchers.Main) {
             val completion = CompletableDeferred<MergeResult>()
 
+            // 효과는 클립마다 따로 건다 — 레터박스는 각 클립을 출력 크기에 맞춰 넣는 일이다.
+            val effects = frame?.let {
+                Effects(
+                    emptyList(),
+                    listOf(Presentation.createForWidthAndHeight(it.width, it.height, Presentation.LAYOUT_SCALE_TO_FIT)),
+                )
+            }
             val sequence = EditedMediaItemSequence.Builder(
-                clips.map { EditedMediaItem.Builder(MediaItem.fromUri(it.uri)).build() },
+                clips.map { clip ->
+                    EditedMediaItem.Builder(MediaItem.fromUri(clip.uri))
+                        .apply { effects?.let(::setEffects) }
+                        .build()
+                },
             ).build()
 
             val transformer = Transformer.Builder(context)
@@ -105,6 +123,19 @@ class ClipMerger @Inject constructor(
             }
         }
     }
+
+    /** 회전 메타데이터까지 반영한, 보이는 그대로의 방향. */
+    private fun orientationOf(clip: Clip): CaptureOrientation = MediaMetadataRetriever().use { retriever ->
+        retriever.setDataSource(context, clip.uri)
+        val width = retriever.intMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
+        val height = retriever.intMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
+        val rotation = retriever.intMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)
+        val (shownWidth, shownHeight) = if (rotation % 180 == 0) width to height else height to width
+        if (shownWidth > shownHeight) CaptureOrientation.Landscape else CaptureOrientation.Portrait
+    }
+
+    private fun MediaMetadataRetriever.intMetadata(key: Int): Int =
+        extractMetadata(key)?.toIntOrNull() ?: 0
 
     private companion object {
         /** 진행률 갱신 간격. 더 촘촘히 물어도 화면에서 구분되지 않는다. */

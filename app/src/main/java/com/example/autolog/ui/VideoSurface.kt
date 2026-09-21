@@ -39,7 +39,7 @@ const val TAG_PLAY_PAUSE = "video-play-pause"
 /**
  * 영상 한 편을 그리는 표면. 클립 미리보기(#22)와 브이로그 미리보기(#29)가 같이 쓴다.
  *
- * 화면 아무 데나 누르면 재생과 일시정지를 오간다 — 세로 영상이 화면을 거의 다 덮어서
+ * 화면 아무 데나 누르면 재생과 일시정지를 오간다 — 영상이 화면 대부분을 덮어서
  * 작은 컨트롤을 겨냥하게 만들 이유가 없다. 그래서 컨트롤 바를 두지 않고,
  * 멈춰 있을 때만 가운데에 재생 아이콘을 띄운다.
  */
@@ -59,12 +59,17 @@ fun VideoSurface(player: Player, modifier: Modifier = Modifier) {
             ),
         contentAlignment = Alignment.Center,
     ) {
+        // 세로·가로 클립이 섞여 있다(#40). 영상 크기를 알기 전에는 기본인 세로로 잡아 둔다.
+        val aspectRatio = presentation.videoSizeDp
+            ?.takeIf { it.width > 0f && it.height > 0f }
+            ?.let { it.width / it.height }
+            ?: (9f / 16f)
         PlayerSurface(
             player = player,
             surfaceType = SURFACE_TYPE_SURFACE_VIEW,
             modifier = Modifier
-                // 9:16 고정 촬영이라(planning 6-1) 결과물도 세로다. 프레임 전체가 항상 보이게 가둔다.
-                .aspectRatio(9f / 16f, matchHeightConstraintsFirst = true)
+                // 프레임 전체가 항상 보이게 영상 비율대로 가둔다.
+                .aspectRatio(aspectRatio, matchHeightConstraintsFirst = aspectRatio < 1f)
                 .testTag(TAG_PLAYER),
         )
 
