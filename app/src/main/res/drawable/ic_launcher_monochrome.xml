@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 하루의 세로 클립들이 한 장의 브이로그로 모이는 모양. 66dp 안전 영역 안에 둔다. -->
+<!-- 테마 아이콘용 단색 버전. 재생 삼각형은 색 대신 구멍으로 뚫는다. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -10,7 +10,7 @@
         android:pivotY="78"
         android:rotation="-16">
         <path
-            android:fillAlpha="0.45"
+            android:fillAlpha="0.5"
             android:fillColor="#FFFFFFFF"
             android:pathData="M45,33h18a4,4 0 0,1 4,4v34a4,4 0 0,1 -4,4h-18a4,4 0 0,1 -4,-4v-34a4,4 0 0,1 4,-4z" />
     </group>
@@ -19,14 +19,12 @@
         android:pivotY="78"
         android:rotation="16">
         <path
-            android:fillAlpha="0.45"
+            android:fillAlpha="0.5"
             android:fillColor="#FFFFFFFF"
             android:pathData="M45,33h18a4,4 0 0,1 4,4v34a4,4 0 0,1 -4,4h-18a4,4 0 0,1 -4,-4v-34a4,4 0 0,1 4,-4z" />
     </group>
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M45,33h18a4,4 0 0,1 4,4v34a4,4 0 0,1 -4,4h-18a4,4 0 0,1 -4,-4v-34a4,4 0 0,1 4,-4z" />
-    <path
-        android:fillColor="#FFE5533A"
-        android:pathData="M50.5,45.5L62,54L50.5,62.5z" />
+        android:fillType="evenOdd"
+        android:pathData="M45,33h18a4,4 0 0,1 4,4v34a4,4 0 0,1 -4,4h-18a4,4 0 0,1 -4,-4v-34a4,4 0 0,1 4,-4zM50.5,45.5L62,54L50.5,62.5z" />
 </vector>
