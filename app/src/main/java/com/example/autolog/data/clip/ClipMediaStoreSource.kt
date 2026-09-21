@@ -1,6 +1,7 @@
 package com.example.autolog.data.clip
 
 import android.content.ContentResolver
+import android.content.IntentSender
 import android.provider.MediaStore
 import com.example.autolog.camera.ClipOutput
 import com.example.autolog.di.IoDispatcher
@@ -56,6 +57,13 @@ class ClipMediaStoreSource @Inject constructor(
         // 정렬 키가 파생값(종료 시각)이라 SQL ORDER BY로는 못 걸고 읽은 뒤에 세운다.
         clips.sortedBy { it.endedAt }
     }
+
+    /**
+     * 원본 파일을 지우려면 시스템 확인 창을 거쳐야 한다. 재설치로 소유권이 풀린 클립도 있어서
+     * 앱이 찍은 것도 예외 없이 이 창으로 보낸다 — 창 한 번에 여러 개를 함께 지운다.
+     */
+    fun deleteRequest(clips: List<Clip>): IntentSender =
+        MediaStore.createDeleteRequest(contentResolver, clips.map { it.uri }).intentSender
 
     private companion object {
         val PROJECTION = arrayOf(

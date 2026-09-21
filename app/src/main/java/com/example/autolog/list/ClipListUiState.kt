@@ -17,3 +17,10 @@ sealed interface ClipListUiState {
 
     data class Clips(val clips: List<Clip>, val access: MediaAccess) : ClipListUiState
 }
+
+/** 지운 클립을 뺀 상태. 마지막 클립까지 지우면 빈 화면으로 넘어간다 (#38). */
+fun ClipListUiState.withoutClips(clipIds: Set<Long>): ClipListUiState {
+    if (this !is ClipListUiState.Clips) return this
+    val remaining = clips.filterNot { it.id in clipIds }
+    return if (remaining.isEmpty()) ClipListUiState.Empty(access) else copy(clips = remaining)
+}

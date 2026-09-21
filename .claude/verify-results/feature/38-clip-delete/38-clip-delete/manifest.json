@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "38-clip-delete",
+  "service": "autolog",
+  "feature": "list",
+  "created": "2026-09-21T23:01:39+09:00",
+  "device": "Android 16 에뮬레이터 (1080x2400)",
+  "branch": "feature/38-clip-delete",
+  "commit": "23de69e",
+  "items": [
+    {
+      "kind": "video",
+      "file": "38-clip-delete.mp4",
+      "caption": "밀어서 삭제 → 거부하면 줄이 제자리로, 허용하면 목록에서 빠짐\n삭제 모드 → 2개 체크 → 한 번의 시스템 확인으로 함께 삭제, 남은 순서 유지",
+      "compare": false,
+      "duration": 26.98,
+      "gif": "38-clip-delete.gif",
+      "gif_width": 360,
+      "gif_height": 800,
+      "gif_duration": 26.98
+    }
+  ]
+}

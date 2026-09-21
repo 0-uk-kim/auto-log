@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -41,11 +42,15 @@ fun clipRowTag(position: Int) = "clip-row-$position"
 
 const val TAG_EDITED_BADGE = "clip-edited-badge"
 
+fun clipCheckboxTag(position: Int) = "clip-checkbox-$position"
+
 /**
  * 목록의 한 줄. 앞에 붙은 번호는 장식이 아니라 **브이로그에 이어붙는 순서**다 (planning 3-3).
  *
  * [isDragging]이면 그림자를 줘서 줄이 목록에서 들린 것처럼 보이게 한다 — 지금 무엇을 끌고 있는지
  * 손가락에 가려도 알 수 있어야 한다 (#16).
+ *
+ * [selected]가 null이 아니면 삭제 모드다 — 손잡이 자리에 체크박스를 두고, 줄을 누르면 체크가 바뀐다 (#38).
  */
 @Composable
 fun ClipRow(
@@ -55,6 +60,7 @@ fun ClipRow(
     modifier: Modifier = Modifier,
     isDragging: Boolean = false,
     dragHandleModifier: Modifier = Modifier,
+    selected: Boolean? = null,
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -106,13 +112,24 @@ fun ClipRow(
                 )
             }
 
-            Icon(
-                painter = painterResource(R.drawable.ic_drag_handle),
-                contentDescription = stringResource(R.string.clip_list_drag_handle),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                // 끄는 것은 이 손잡이에서만 시작한다 — 줄 전체에 걸면 목록 스크롤과 다툰다.
-                modifier = dragHandleModifier.padding(Spacing.sm),
-            )
+            if (selected != null) {
+                // 체크는 줄 클릭이 맡는다 — 체크박스가 따로 받으면 한 번 누름이 두 번 처리된다.
+                Checkbox(
+                    checked = selected,
+                    onCheckedChange = null,
+                    modifier = Modifier
+                        .padding(Spacing.sm)
+                        .testTag(clipCheckboxTag(position)),
+                )
+            } else {
+                Icon(
+                    painter = painterResource(R.drawable.ic_drag_handle),
+                    contentDescription = stringResource(R.string.clip_list_drag_handle),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    // 끄는 것은 이 손잡이에서만 시작한다 — 줄 전체에 걸면 목록 스크롤과 다툰다.
+                    modifier = dragHandleModifier.padding(Spacing.sm),
+                )
+            }
         }
     }
 }
