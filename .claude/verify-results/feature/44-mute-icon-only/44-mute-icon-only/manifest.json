@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "slug": "44-mute-icon-only",
+  "service": "autolog",
+  "feature": "camera",
+  "created": "2026-09-22T11:15:14+09:00",
+  "device": "SM-F971N Android 17",
+  "branch": "feature/44-mute-icon-only",
+  "commit": "b2fdc1f",
+  "items": [
+    {
+      "kind": "image",
+      "file": "44-mute-icon-only.png",
+      "caption": "음소거 토글 아이콘만 표시 — 실기기 SM-F971N\n위: 소리 켬(마이크) / 아래: 음소거(마이크 빗금)\n우측 방향 토글과 같은 높이",
+      "compare": false,
+      "width": 1250,
+      "height": 632,
+      "text_px": 41,
+      "text_lines": 4
+    }
+  ]
+}
