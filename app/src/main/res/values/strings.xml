@@ -19,6 +19,10 @@
     <string name="camera_mute_toggle">녹음 %s — 눌러서 바꾸기</string>
     <string name="camera_turn_sideways">휴대폰을 가로로 눕혀 주세요</string>
     <string name="camera_turn_upright">휴대폰을 세로로 세워 주세요</string>
+    <string name="camera_timer_off">끔</string>
+    <string name="camera_timer_seconds">%d초</string>
+    <string name="camera_timer_toggle">촬영 타이머 %s — 눌러서 바꾸기</string>
+    <string name="camera_cancel_countdown">타이머 취소</string>
     <!-- 영상 목록 (#15) -->
     <string name="clip_list_date_pattern" translatable="false">M월 d일 (E)</string>
     <string name="clip_list_back">뒤로</string>

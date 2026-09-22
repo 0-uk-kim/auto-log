@@ -30,17 +30,26 @@ import com.example.autolog.ui.theme.RecordRed
 const val TAG_RECORD_BUTTON = "record-button"
 const val TAG_ELAPSED = "record-elapsed"
 
-/** 원(대기) ↔ 둥근 사각(녹화 중). 아이콘을 바꾸지 않고 안쪽 도형만 변형해 상태를 잇는다. */
+/**
+ * 원(대기) ↔ 둥근 사각(녹화 중). 아이콘을 바꾸지 않고 안쪽 도형만 변형해 상태를 잇는다.
+ * 카운트다운 중에도 사각이다 — 이미 촬영이 걸린 상태이고, 누르면 멈춘다는 뜻이 같다.
+ */
 @Composable
 fun RecordButton(
     isRecording: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isCountingDown: Boolean = false,
 ) {
-    val innerSize by animateDpAsState(if (isRecording) 28.dp else 58.dp, label = "innerSize")
-    val innerCorner by animateDpAsState(if (isRecording) 8.dp else 29.dp, label = "innerCorner")
+    val active = isRecording || isCountingDown
+    val innerSize by animateDpAsState(if (active) 28.dp else 58.dp, label = "innerSize")
+    val innerCorner by animateDpAsState(if (active) 8.dp else 29.dp, label = "innerCorner")
     val description = stringResource(
-        if (isRecording) R.string.camera_stop_recording else R.string.camera_start_recording,
+        when {
+            isRecording -> R.string.camera_stop_recording
+            isCountingDown -> R.string.camera_cancel_countdown
+            else -> R.string.camera_start_recording
+        },
     )
 
     Box(

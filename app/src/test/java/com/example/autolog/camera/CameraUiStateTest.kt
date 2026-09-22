@@ -34,4 +34,14 @@ class CameraUiStateTest {
         )
         assertNull(state.turnHint)
     }
+
+    @Test
+    fun `카운트다운 중에는 알리지 않는다`() {
+        val state = CameraUiState(
+            countdown = 3,
+            orientation = CaptureOrientation.Portrait,
+            deviceRotation = Surface.ROTATION_90,
+        )
+        assertNull(state.turnHint)
+    }
 }
