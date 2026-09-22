@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "slug": "47-camera-letterbox-ui",
+  "service": "autolog",
+  "feature": "camera",
+  "created": "2026-09-22T11:54:58+09:00",
+  "device": "SM-F971N Android 17",
+  "branch": "feature/47-camera-letterbox-ui",
+  "commit": "9ad3273",
+  "items": [
+    {
+      "kind": "image",
+      "file": "47-letterbox-ui.png",
+      "caption": "카메라 화면 검은띠 주변 — AS-IS(좌) / TO-BE(우)\n상태바 아이콘 흰색, 시계 전체가 보임\n음소거·세로 칩이 프리뷰 틀 안쪽 끝에 붙음",
+      "compare": true,
+      "width": 1600,
+      "height": 1326,
+      "text_px": 27,
+      "text_lines": 5
+    },
+    {
+      "kind": "video",
+      "file": "47-letterbox-flow.mp4",
+      "caption": "좌상단 음소거 토글 동작과 상태바 원복 — 실기기 SM-F971N\n대기 중 음소거 전환, 녹화 중 전환해도 녹화 유지\n목록 화면으로 나가면 상태바 아이콘이 어두운 색으로 복귀",
+      "compare": false,
+      "duration": 29.03,
+      "gif": "47-letterbox-flow.gif",
+      "gif_width": 320,
+      "gif_height": 506,
+      "gif_duration": 29.03
+    }
+  ]
+}
