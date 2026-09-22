@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "53-rotate-turn-hint",
+  "service": "auto-log",
+  "feature": "camera",
+  "created": "2026-09-22T16:18:47+09:00",
+  "device": "sdk_gphone64_arm64 (Android 16)",
+  "branch": "feature/53-rotate-turn-hint",
+  "commit": "b27f9ce",
+  "items": [
+    {
+      "kind": "video",
+      "file": "turn-hint-rotated.mp4",
+      "caption": "세로 선택 후 눕혀 들었을 때의 안내 문구 방향\n오른쪽으로 눕히면 문구도 90° 돌아 눕힌 채로 읽힘\n왼쪽으로 눕히면 반대로 90° 돌아 읽힘\n세우면 안내가 사라짐",
+      "compare": false,
+      "duration": 14.59,
+      "gif": "turn-hint-rotated.gif",
+      "gif_width": 360,
+      "gif_height": 800,
+      "gif_duration": 14.59
+    }
+  ]
+}
