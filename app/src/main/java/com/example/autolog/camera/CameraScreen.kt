@@ -101,6 +101,7 @@ fun CameraScreen(
                         .pointerInput(Unit) {
                             detectTapGestures(onDoubleTap = { viewModel.toggleLens() })
                         }
+                        .lensSwipe(onSwipe = viewModel::toggleLens)
                         .testTag(TAG_VIEWFINDER),
                 )
             }

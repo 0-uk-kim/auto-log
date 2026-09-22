@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "57-swipe-flip-lens",
+  "service": "auto-log",
+  "feature": "camera",
+  "created": "2026-09-22T22:38:25+09:00",
+  "device": "SM-F971N (Android 17)",
+  "branch": "feature/57-swipe-flip-lens",
+  "commit": "f1f75c5",
+  "items": [
+    {
+      "kind": "video",
+      "file": "swipe-flip-lens.mp4",
+      "caption": "프리뷰를 위·아래로 쓸어 전면·후면 렌즈 전환\n위로 쓸면 전면으로 전환 — 줌 버튼이 1x·2x로 바뀜\n아래로 쓸면 후면으로 복귀 — 0.6x 버튼이 다시 나타남\n가로로 쓸면 전환되지 않음",
+      "compare": false,
+      "duration": 26.04,
+      "gif": "swipe-flip-lens.gif",
+      "gif_width": 320,
+      "gif_height": 506,
+      "gif_duration": 26.04
+    }
+  ]
+}
