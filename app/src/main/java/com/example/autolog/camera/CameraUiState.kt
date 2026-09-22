@@ -21,9 +21,17 @@ data class CameraUiState(
     val zoomRange: ZoomRange? = null,
     val zoomRatio: Float = 1f,
 ) {
-    /** 가로를 골랐는데 세워 들고 있으면 눕히라고 알린다 — 그대로 찍으면 옆으로 누운 영상이 된다. */
-    val shouldTurnSideways: Boolean
-        get() = orientation == CaptureOrientation.Landscape && !isDeviceSideways && !isRecording
+    /**
+     * 고른 방향과 기기를 든 방향이 어긋나면 그쪽으로 돌리라고 알린다 — 그대로 찍으면 옆으로 누운
+     * 영상이 된다. 맞게 들고 있거나 녹화 중이면 null.
+     */
+    val turnHint: CaptureOrientation?
+        get() = when {
+            isRecording -> null
+            orientation == CaptureOrientation.Landscape && !isDeviceSideways -> CaptureOrientation.Landscape
+            orientation == CaptureOrientation.Portrait && isDeviceSideways -> CaptureOrientation.Portrait
+            else -> null
+        }
 }
 
 /** 녹화 경과 시간. 한 시간을 넘기면 자리를 하나 더 쓴다 — 클립 길이에 제한이 없다 (planning 6). */

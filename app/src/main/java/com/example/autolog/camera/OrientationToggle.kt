@@ -26,7 +26,7 @@ import com.example.autolog.ui.theme.CameraScrim
 import com.example.autolog.ui.theme.Spacing
 
 const val TAG_ORIENTATION_TOGGLE = "orientation-toggle"
-const val TAG_TURN_SIDEWAYS = "turn-sideways-hint"
+const val TAG_TURN_HINT = "turn-device-hint"
 
 /** 우측 상단 방향 전환. 누를 때마다 세로·가로를 오간다 — 선택지가 둘뿐이라 메뉴를 두지 않는다. */
 @Composable
@@ -72,15 +72,17 @@ private fun FrameGlyph(orientation: CaptureOrientation) {
 }
 
 @Composable
-fun TurnSidewaysHint(modifier: Modifier = Modifier) {
+fun TurnDeviceHint(target: CaptureOrientation, modifier: Modifier = Modifier) {
     Text(
-        text = stringResource(R.string.camera_turn_sideways),
+        text = stringResource(
+            if (target == CaptureOrientation.Landscape) R.string.camera_turn_sideways else R.string.camera_turn_upright,
+        ),
         style = MaterialTheme.typography.bodyLarge,
         color = CameraControlTint,
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
             .background(CameraScrim)
             .padding(horizontal = Spacing.md, vertical = Spacing.sm)
-            .testTag(TAG_TURN_SIDEWAYS),
+            .testTag(TAG_TURN_HINT),
     )
 }
