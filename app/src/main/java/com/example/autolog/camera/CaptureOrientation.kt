@@ -1,11 +1,7 @@
 package com.example.autolog.camera
 
-import android.content.Context
 import android.view.OrientationEventListener
 import android.view.Surface
-import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /** 촬영본의 방향 (#40). 화면은 세로로 고정돼 있어서 가로는 휴대폰을 옆으로 눕혀 찍는다. */
 enum class CaptureOrientation {
@@ -40,22 +36,3 @@ fun degreesToRotation(degrees: Int): Int? = when (degrees) {
 
 fun isSideways(deviceRotation: Int): Boolean =
     deviceRotation == Surface.ROTATION_90 || deviceRotation == Surface.ROTATION_270
-
-/** 마지막으로 고른 방향. 설정 하나라 DataStore까지 들이지 않는다. */
-@Singleton
-class CaptureOrientationStore @Inject constructor(
-    @ApplicationContext context: Context,
-) {
-    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-
-    var orientation: CaptureOrientation
-        get() = prefs.getString(KEY_ORIENTATION, null)
-            ?.let { saved -> CaptureOrientation.entries.firstOrNull { it.name == saved } }
-            ?: CaptureOrientation.Portrait
-        set(value) = prefs.edit().putString(KEY_ORIENTATION, value.name).apply()
-
-    private companion object {
-        const val PREFS_NAME = "camera"
-        const val KEY_ORIENTATION = "capture_orientation"
-    }
-}
