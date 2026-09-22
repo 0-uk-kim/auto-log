@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "65-timelapse",
+  "service": "auto-log",
+  "feature": "camera",
+  "created": "2026-09-22T23:23:42+09:00",
+  "device": "SM-F971N (Android 17)",
+  "branch": "feature/65-timelapse",
+  "commit": "78d9c2f",
+  "items": [
+    {
+      "kind": "video",
+      "file": "timelapse.mp4",
+      "caption": "타이머 위 타임랩스 버튼: 누를 때마다 10× → 30× → 끔(아이콘) → 5× → 10×\n타임랩스를 켜면 마이크 버튼이 흐려지고 눌리지 않음 (소리를 담지 않음)\n촬영 중 상단에 찍은 시간 → 완성본 길이 (00:20 → 00:02)\n정지하면 '타임랩스 만드는 중 N%' 동안 촬영 버튼이 흐려지고, 끝나면 썸네일이 새 클립으로 바뀜\n썸네일을 눌러 완성본(18/18) 재생 — 21초 촬영이 2.1초, H.264 30fps + 무음 AAC\n후면 렌즈가 가려져 프리뷰는 검은 화면",
+      "compare": false,
+      "duration": 42.00,
+      "gif": "timelapse.gif",
+      "gif_width": 360,
+      "gif_height": 569,
+      "gif_duration": 42.00
+    }
+  ]
+}

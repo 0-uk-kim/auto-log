@@ -12,6 +12,8 @@ import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.FallbackStrategy
+import androidx.camera.video.FileOutputOptions
+import androidx.camera.video.PendingRecording
 import androidx.camera.video.Quality
 import androidx.camera.video.QualitySelector
 import androidx.camera.video.Recorder
@@ -25,10 +27,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.autolog.data.clip.ClipRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.io.File
+import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 import javax.inject.Inject
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
@@ -41,6 +47,7 @@ import kotlinx.coroutines.launch
 class CameraViewModel @Inject constructor(
     private val clipRepository: ClipRepository,
     private val settingsStore: CameraSettingsStore,
+    private val timelapseEncoder: TimelapseEncoder,
 ) : ViewModel() {
 
     private val _surfaceRequest = MutableStateFlow<SurfaceRequest?>(null)
@@ -76,6 +83,7 @@ class CameraViewModel @Inject constructor(
             isMuted = settingsStore.isMuted,
             lens = settingsStore.lens,
             timer = settingsStore.timer,
+            timelapse = settingsStore.timelapse,
         ),
     )
     val uiState = _uiState.asStateFlow()
@@ -124,6 +132,14 @@ class CameraViewModel @Inject constructor(
         _uiState.update { it.copy(lens = next) }
     }
 
+    /** 녹화 중에는 바꾸지 않는다 — 한 클립을 찍는 도중에 배속이 달라질 수 없다. */
+    fun cycleTimelapse() {
+        if (_uiState.value.isCapturing) return
+        val next = _uiState.value.timelapse.next()
+        settingsStore.timelapse = next
+        _uiState.update { it.copy(timelapse = next) }
+    }
+
     fun cycleTimer() {
         if (_uiState.value.isCapturing) return
         val next = _uiState.value.timer.next()
@@ -140,6 +156,7 @@ class CameraViewModel @Inject constructor(
 
     /** 녹화 중에도 바꿀 수 있다. 녹화는 이어지고 그 시점부터 소리만 꺼지거나 켜진다. */
     fun toggleMute() {
+        if (!_uiState.value.canToggleMute) return
         val next = !_uiState.value.isMuted
         settingsStore.isMuted = next
         recording?.mute(next)
@@ -179,6 +196,7 @@ class CameraViewModel @Inject constructor(
             cancelCountdown()
             return
         }
+        if (_uiState.value.isEncodingTimelapse) return
         val seconds = _uiState.value.timer.seconds
         if (seconds == 0) {
             startRecording(context)
@@ -201,10 +219,19 @@ class CameraViewModel @Inject constructor(
     private fun startRecording(context: Context) {
         // 방향은 녹화를 시작할 때 파일에 새겨진다. 녹화 중에 기기를 돌려도 바뀌지 않는다.
         videoCapture.targetRotation = _uiState.value.orientation.targetRotation(deviceRotation)
-        recording = videoCapture.output
-            .prepareRecording(context, ClipOutput.mediaStoreOptions(context.contentResolver))
-            // 음소거로 시작해도 오디오 트랙은 연다 — 열어 두지 않으면 녹화 도중 소리를 켤 수 없다.
-            .withAudioEnabled()
+        val timelapse = _uiState.value.timelapse
+        val startedAt = LocalDateTime.now()
+        // 타임랩스는 원본을 캐시에 찍어 두고 끝난 뒤 배속을 올려 갤러리에 넣는다. 소리는 담지 않는다.
+        val rawFile = if (timelapse.isOn) timelapseEncoder.newRawFile() else null
+        val pending: PendingRecording = if (rawFile != null) {
+            videoCapture.output.prepareRecording(context, FileOutputOptions.Builder(rawFile).build())
+        } else {
+            videoCapture.output
+                .prepareRecording(context, ClipOutput.mediaStoreOptions(context.contentResolver, startedAt))
+                // 음소거로 시작해도 오디오 트랙은 연다 — 열어 두지 않으면 녹화 도중 소리를 켤 수 없다.
+                .withAudioEnabled()
+        }
+        recording = pending
             .start(ContextCompat.getMainExecutor(context)) { event ->
                 when (event) {
                     is VideoRecordEvent.Start ->
@@ -217,6 +244,12 @@ class CameraViewModel @Inject constructor(
 
                     is VideoRecordEvent.Finalize -> {
                         recording = null
+                        if (rawFile != null) {
+                            _uiState.update { it.copy(isRecording = false, elapsed = Duration.ZERO) }
+                            val recorded = event.recordingStats.recordedDurationNanos.nanosToDuration()
+                            if (event.hasError()) rawFile.delete() else encodeTimelapse(rawFile, timelapse, startedAt, recorded)
+                            return@start
+                        }
                         // 실패한 녹화는 재생할 것이 없으므로 직전 촬영본을 갱신하지 않는다.
                         val saved = if (event.hasError()) latestClip else event.outputResults.outputUri
                         latestClip = saved
@@ -226,7 +259,25 @@ class CameraViewModel @Inject constructor(
                     }
                 }
             }
-            .apply { mute(_uiState.value.isMuted) }
+            .apply { if (rawFile == null) mute(_uiState.value.isMuted) }
+    }
+
+    private fun encodeTimelapse(raw: File, speed: TimelapseSpeed, startedAt: LocalDateTime, recorded: Duration) {
+        val endedAt = Instant.now()
+        _uiState.update { it.copy(timelapseProgress = 0) }
+        viewModelScope.launch {
+            // 실패하면 원본도 사라진다. 직전 촬영본은 그대로 둔다 — 일반 촬영이 실패했을 때와 같다.
+            try {
+                latestClip = timelapseEncoder.encode(raw, speed, startedAt, endedAt, recorded) { percent ->
+                    _uiState.update { it.copy(timelapseProgress = percent) }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+            } finally {
+                _uiState.update { it.copy(timelapseProgress = null, latestClip = latestClip) }
+            }
+        }
     }
 
     override fun onCleared() {

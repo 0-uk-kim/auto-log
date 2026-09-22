@@ -13,6 +13,9 @@ data class CameraUiState(
     /** 타이머가 도는 동안 남은 초. 돌지 않으면 null이다 (#61). */
     val countdown: Int? = null,
     val elapsed: Duration = Duration.ZERO,
+    val timelapse: TimelapseSpeed = TimelapseSpeed.Off,
+    /** 타임랩스 완성본을 만드는 동안의 진행률. 만들고 있지 않으면 null이다 (#65). */
+    val timelapseProgress: Int? = null,
     /** 직전 촬영본. 있을 때만 좌측 하단 썸네일을 노출한다 (planning 3-1). */
     val latestClip: Uri? = null,
     val orientation: CaptureOrientation = CaptureOrientation.Portrait,
@@ -32,6 +35,14 @@ data class CameraUiState(
     /** 녹화 중이거나 곧 시작될 참이다. 이때는 촬영 설정을 바꾸지 않는다. */
     val isCapturing: Boolean
         get() = isRecording || isCountingDown
+
+    /** 앞선 타임랩스를 아직 만드는 중이다. 인코더를 둘 돌리지 않도록 이때는 새로 찍지 않는다. */
+    val isEncodingTimelapse: Boolean
+        get() = timelapseProgress != null
+
+    /** 타임랩스에는 소리를 담지 않으므로 음소거 전환이 뜻이 없다. */
+    val canToggleMute: Boolean
+        get() = !timelapse.isOn
 
     val isDeviceSideways: Boolean
         get() = isSideways(deviceRotation)

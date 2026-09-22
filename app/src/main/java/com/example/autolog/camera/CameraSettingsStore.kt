@@ -34,11 +34,18 @@ class CameraSettingsStore @Inject constructor(
             ?: RecordTimer.Off
         set(value) = prefs.edit().putString(KEY_TIMER, value.name).apply()
 
+    var timelapse: TimelapseSpeed
+        get() = prefs.getString(KEY_TIMELAPSE, null)
+            ?.let { saved -> TimelapseSpeed.entries.firstOrNull { it.name == saved } }
+            ?: TimelapseSpeed.Off
+        set(value) = prefs.edit().putString(KEY_TIMELAPSE, value.name).apply()
+
     private companion object {
         const val PREFS_NAME = "camera"
         const val KEY_ORIENTATION = "capture_orientation"
         const val KEY_MUTED = "muted"
         const val KEY_LENS = "lens"
         const val KEY_TIMER = "record_timer"
+        const val KEY_TIMELAPSE = "timelapse_speed"
     }
 }

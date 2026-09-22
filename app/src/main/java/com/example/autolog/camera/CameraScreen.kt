@@ -29,18 +29,23 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.min
 import androidx.core.view.WindowCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.autolog.R
 import com.example.autolog.camera.permission.CameraPermissionGate
 import com.example.autolog.ui.theme.CameraBackground
 import com.example.autolog.ui.theme.CameraDimens
 import com.example.autolog.ui.theme.Spacing
 
 const val TAG_VIEWFINDER = "camera-viewfinder"
+
+/** 눌러도 반응하지 않는 조작부. 자리는 지키되 지금은 쓸 수 없다는 것만 알린다. */
+private const val DISABLED_ALPHA = 0.38f
 
 @Composable
 fun CameraScreen(
@@ -119,7 +124,29 @@ fun CameraScreen(
                     .safeDrawingPadding()
                     .padding(top = Spacing.md),
             ) {
-                ElapsedIndicator(elapsed = uiState.elapsed.formatElapsed())
+                // 타임랩스는 찍은 시간과 완성본 길이가 다르다. 얼마나 더 찍어야 할지 가늠하도록 둘 다 보인다.
+                val elapsed = uiState.elapsed.formatElapsed()
+                ElapsedIndicator(
+                    elapsed = if (uiState.timelapse.isOn) {
+                        stringResource(
+                            R.string.camera_timelapse_elapsed,
+                            elapsed,
+                            uiState.timelapse.outputOf(uiState.elapsed).formatElapsed(),
+                        )
+                    } else {
+                        elapsed
+                    },
+                )
+            }
+
+            uiState.timelapseProgress?.let { percent ->
+                ElapsedIndicator(
+                    elapsed = stringResource(R.string.camera_timelapse_encoding, percent),
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .safeDrawingPadding()
+                        .padding(top = Spacing.md),
+                )
             }
 
             Box(
@@ -162,6 +189,16 @@ fun CameraScreen(
                         .alpha(timerAlpha),
                     contentAlignment = Alignment.Center,
                 ) {
+                    TimelapseToggle(speed = uiState.timelapse, onClick = viewModel::cycleTimelapse)
+                }
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Start)
+                        .width(CameraDimens.cornerAction)
+                        .alpha(timerAlpha),
+                    contentAlignment = Alignment.Center,
+                ) {
                     RecordTimerToggle(timer = uiState.timer, onClick = viewModel::cycleTimer)
                 }
 
@@ -173,7 +210,11 @@ fun CameraScreen(
                             .width(CameraDimens.cornerAction),
                         contentAlignment = Alignment.Center,
                     ) {
-                        MuteToggle(isMuted = uiState.isMuted, onClick = viewModel::toggleMute)
+                        MuteToggle(
+                            isMuted = uiState.isMuted,
+                            onClick = viewModel::toggleMute,
+                            modifier = Modifier.alpha(if (uiState.canToggleMute) 1f else DISABLED_ALPHA),
+                        )
                     }
 
                     uiState.zoomRange?.takeIf { it.isZoomable }?.let { range ->
@@ -195,6 +236,7 @@ fun CameraScreen(
                         isRecording = uiState.isRecording,
                         isCountingDown = uiState.isCountingDown,
                         onClick = { viewModel.toggleRecording(context) },
+                        modifier = Modifier.alpha(if (uiState.isEncodingTimelapse) DISABLED_ALPHA else 1f),
                     )
 
                     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
