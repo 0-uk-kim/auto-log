@@ -101,7 +101,11 @@ fun CameraScreen(
                         .pointerInput(Unit) {
                             detectTapGestures(onDoubleTap = { viewModel.toggleLens() })
                         }
-                        .lensSwipe(onSwipe = viewModel::toggleLens)
+                        .lensSwipe(
+                            // 가로 모드는 눕혀 드므로, 든 사람 기준 위아래가 화면의 좌우다.
+                            alongScreenWidth = uiState.orientation == CaptureOrientation.Landscape,
+                            onSwipe = viewModel::toggleLens,
+                        )
                         .testTag(TAG_VIEWFINDER),
                 )
             }
@@ -176,13 +180,7 @@ fun CameraScreen(
                         onClick = { viewModel.toggleRecording(context) },
                     )
 
-                    Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                        // 셔터 바로 옆 — 녹화 직전에 가장 자주 누르는 버튼이라 엄지가 닿는 자리에 둔다.
-                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                            androidx.compose.animation.AnimatedVisibility(visible = uiState.canSwitchLens && !uiState.isRecording) {
-                                LensToggle(lens = uiState.lens, onClick = viewModel::toggleLens)
-                            }
-                        }
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
                         ClipListButton(onClick = onOpenClipList)
                     }
                 }
