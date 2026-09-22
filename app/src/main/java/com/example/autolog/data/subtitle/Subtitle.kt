@@ -17,3 +17,10 @@ data class Subtitle(
 internal fun SubtitleEntity.toSubtitle() = Subtitle(id, clipId, startMs, endMs, text)
 
 internal fun Subtitle.toEntity() = SubtitleEntity(id, clipId, startMs, endMs, text)
+
+/** [positionMs]에 보일 글. 구간이 겹치면 시작 순으로 줄을 바꿔 함께 보인다. 없으면 null. */
+fun List<Subtitle>.textAt(positionMs: Long): String? =
+    filter { it.isShownAt(positionMs) }
+        .sortedBy { it.startMs }
+        .joinToString("\n") { it.text }
+        .ifEmpty { null }

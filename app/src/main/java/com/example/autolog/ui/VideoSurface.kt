@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -42,10 +43,16 @@ const val TAG_PLAY_PAUSE = "video-play-pause"
  * 화면 아무 데나 누르면 재생과 일시정지를 오간다 — 영상이 화면 대부분을 덮어서
  * 작은 컨트롤을 겨냥하게 만들 이유가 없다. 그래서 컨트롤 바를 두지 않고,
  * 멈춰 있을 때만 가운데에 재생 아이콘을 띄운다.
+ *
+ * [overlay]는 영상 프레임과 같은 크기의 칸에 그려진다 — 레터박스 검은 띠가 아니라 영상 위에 얹힌다.
  */
 @OptIn(UnstableApi::class)
 @Composable
-fun VideoSurface(player: Player, modifier: Modifier = Modifier) {
+fun VideoSurface(
+    player: Player,
+    modifier: Modifier = Modifier,
+    overlay: @Composable BoxScope.() -> Unit = {},
+) {
     val playPause = rememberPlayPauseButtonState(player)
     val presentation = rememberPresentationState(player)
 
@@ -64,14 +71,17 @@ fun VideoSurface(player: Player, modifier: Modifier = Modifier) {
             ?.takeIf { it.width > 0f && it.height > 0f }
             ?.let { it.width / it.height }
             ?: (9f / 16f)
-        PlayerSurface(
-            player = player,
-            surfaceType = SURFACE_TYPE_SURFACE_VIEW,
-            modifier = Modifier
-                // 프레임 전체가 항상 보이게 영상 비율대로 가둔다.
-                .aspectRatio(aspectRatio, matchHeightConstraintsFirst = aspectRatio < 1f)
-                .testTag(TAG_PLAYER),
-        )
+        // 프레임 전체가 항상 보이게 영상 비율대로 가둔다.
+        Box(Modifier.aspectRatio(aspectRatio, matchHeightConstraintsFirst = aspectRatio < 1f)) {
+            PlayerSurface(
+                player = player,
+                surfaceType = SURFACE_TYPE_SURFACE_VIEW,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag(TAG_PLAYER),
+            )
+            overlay()
+        }
 
         // 첫 프레임이 올라오기 전에는 표면이 회색으로 비어 보인다 — 검은 천을 덮어 둔다.
         if (presentation.coverSurface) {

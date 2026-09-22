@@ -46,3 +46,13 @@ data class SubtitleDraft(
             SubtitleDraft(subtitle.id, subtitle.startMs, subtitle.endMs, subtitle.text)
     }
 }
+
+/**
+ * 편집 화면에 보일 자막들. 고치는 중인 줄은 저장된 값 대신 초안으로 보여 줘서, 구간을 찍고 글을
+ * 바꾸는 대로 영상 위에서 바로 확인할 수 있다.
+ */
+fun List<Subtitle>.withDraft(draft: SubtitleDraft?, clipId: Long): List<Subtitle> {
+    if (draft == null) return this
+    val others = if (draft.id == 0L) this else filterNot { it.id == draft.id }
+    return if (draft.text.isBlank()) others else others + draft.toSubtitle(clipId)
+}
