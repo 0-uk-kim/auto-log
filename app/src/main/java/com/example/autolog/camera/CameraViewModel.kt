@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
 import android.view.Surface
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.core.SurfaceRequest
@@ -70,6 +71,7 @@ class CameraViewModel @Inject constructor(
     private var recording: Recording? = null
     private var latestClip: Uri? = null
     private var deviceRotation = Surface.ROTATION_0
+    private var camera: Camera? = null
 
     init {
         refreshLatestClip()
@@ -103,6 +105,21 @@ class CameraViewModel @Inject constructor(
     fun onDeviceRotationChanged(rotation: Int) {
         deviceRotation = rotation
         _uiState.update { it.copy(isDeviceSideways = isSideways(rotation)) }
+    }
+
+    /** 핀치 한 번의 배율 변화량을 현재 배율에 곱한다. 녹화 중에도 막지 않는다 — 배율은 파일 규격과 무관하다. */
+    fun onPinch(scale: Float) {
+        val range = _uiState.value.zoomRange ?: return
+        setZoom(range.clamp(_uiState.value.zoomRatio * scale))
+    }
+
+    fun setZoom(ratio: Float) {
+        val camera = camera ?: return
+        val range = _uiState.value.zoomRange ?: return
+        val clamped = range.clamp(ratio)
+        // 적용은 비동기다. zoomState를 기다리면 핀치 도중 이전 값에 곱해져 튀므로 요청한 값을 바로 상태로 삼는다.
+        camera.cameraControl.setZoomRatio(clamped)
+        _uiState.update { it.copy(zoomRatio = clamped) }
     }
 
     /** 녹화 중이면 멈추고, 아니면 시작한다. 정지 결과는 Finalize 이벤트로 돌아온다. */
@@ -148,15 +165,23 @@ class CameraViewModel @Inject constructor(
     /** 호출한 코루틴이 취소될 때까지 바인딩을 유지한다. 화면을 떠나면 자동으로 해제된다. */
     suspend fun bindToCamera(appContext: Context, lifecycleOwner: LifecycleOwner) {
         val cameraProvider = ProcessCameraProvider.awaitInstance(appContext)
-        cameraProvider.bindToLifecycle(
+        val bound = cameraProvider.bindToLifecycle(
             lifecycleOwner,
             CameraSelector.DEFAULT_BACK_CAMERA,
             previewUseCase,
             videoCapture,
         )
+        camera = bound
+        // 다시 바인딩하면 배율이 1x로 돌아온다. 화면도 카메라가 알려주는 값에서 새로 시작한다.
+        bound.cameraInfo.zoomState.value?.let { zoom ->
+            _uiState.update {
+                it.copy(zoomRange = ZoomRange(zoom.minZoomRatio, zoom.maxZoomRatio), zoomRatio = zoom.zoomRatio)
+            }
+        }
         try {
             awaitCancellation()
         } finally {
+            camera = null
             cameraProvider.unbindAll()
         }
     }
