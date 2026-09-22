@@ -14,6 +14,9 @@ data class CameraUiState(
     val orientation: CaptureOrientation = CaptureOrientation.Portrait,
     val isDeviceSideways: Boolean = false,
     val isMuted: Boolean = false,
+    val lens: CameraLens = CameraLens.Back,
+    /** 반대쪽 렌즈가 있을 때만 전환 버튼을 보인다. 바인딩 전에는 모르므로 숨겨 둔다. */
+    val canSwitchLens: Boolean = false,
     /** 카메라가 바인딩되기 전에는 모른다. 그동안은 배율 조작을 받지 않는다. */
     val zoomRange: ZoomRange? = null,
     val zoomRatio: Float = 1f,

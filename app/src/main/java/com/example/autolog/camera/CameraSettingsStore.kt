@@ -22,9 +22,16 @@ class CameraSettingsStore @Inject constructor(
         get() = prefs.getBoolean(KEY_MUTED, false)
         set(value) = prefs.edit().putBoolean(KEY_MUTED, value).apply()
 
+    var lens: CameraLens
+        get() = prefs.getString(KEY_LENS, null)
+            ?.let { saved -> CameraLens.entries.firstOrNull { it.name == saved } }
+            ?: CameraLens.Back
+        set(value) = prefs.edit().putString(KEY_LENS, value.name).apply()
+
     private companion object {
         const val PREFS_NAME = "camera"
         const val KEY_ORIENTATION = "capture_orientation"
         const val KEY_MUTED = "muted"
+        const val KEY_LENS = "lens"
     }
 }

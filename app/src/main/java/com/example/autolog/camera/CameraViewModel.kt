@@ -5,7 +5,7 @@ import android.content.Context
 import android.net.Uri
 import android.view.Surface
 import androidx.camera.core.Camera
-import androidx.camera.core.CameraSelector
+import androidx.camera.core.MirrorMode
 import androidx.camera.core.Preview
 import androidx.camera.core.SurfaceRequest
 import androidx.camera.core.resolutionselector.AspectRatioStrategy
@@ -63,9 +63,17 @@ class CameraViewModel @Inject constructor(
         )
         .build()
 
-    val videoCapture = VideoCapture.withOutput(recorder)
+    // 셀카는 프리뷰가 거울처럼 보이므로 저장본도 같은 좌우로 남긴다 (#49). 후면은 그대로다.
+    private val videoCapture = VideoCapture.Builder(recorder)
+        .setMirrorMode(MirrorMode.MIRROR_MODE_ON_FRONT_ONLY)
+        .build()
 
-    private val _uiState = MutableStateFlow(CameraUiState(orientation = settingsStore.orientation, isMuted = settingsStore.isMuted))
+    private val _uiState = MutableStateFlow(CameraUiState(
+            orientation = settingsStore.orientation,
+            isMuted = settingsStore.isMuted,
+            lens = settingsStore.lens,
+        ),
+    )
     val uiState = _uiState.asStateFlow()
 
     private var recording: Recording? = null
@@ -100,6 +108,14 @@ class CameraViewModel @Inject constructor(
         val next = _uiState.value.orientation.toggled()
         settingsStore.orientation = next
         _uiState.update { it.copy(orientation = next) }
+    }
+
+    /** 녹화 중에는 바꾸지 않는다 — 다시 바인딩하면 진행 중인 녹화가 끊긴다. 바인딩은 화면이 lens를 보고 다시 건다. */
+    fun toggleLens() {
+        if (recording != null || !_uiState.value.canSwitchLens) return
+        val next = _uiState.value.lens.toggled()
+        settingsStore.lens = next
+        _uiState.update { it.copy(lens = next) }
     }
 
     /** 녹화 중에도 바꿀 수 있다. 녹화는 이어지고 그 시점부터 소리만 꺼지거나 켜진다. */
@@ -173,11 +189,17 @@ class CameraViewModel @Inject constructor(
     }
 
     /** 호출한 코루틴이 취소될 때까지 바인딩을 유지한다. 화면을 떠나면 자동으로 해제된다. */
-    suspend fun bindToCamera(appContext: Context, lifecycleOwner: LifecycleOwner) {
+    suspend fun bindToCamera(appContext: Context, lifecycleOwner: LifecycleOwner, lens: CameraLens) {
         val cameraProvider = ProcessCameraProvider.awaitInstance(appContext)
+        val available = CameraLens.entries.filter { cameraProvider.hasCamera(it.selector) }
+        // 저장된 렌즈가 이 기기에 없으면(전면 없는 기기 등) 있는 쪽으로 찍는다.
+        val target = lens.takeIf { it in available } ?: available.firstOrNull() ?: return
+        _uiState.update { it.copy(lens = target, canSwitchLens = available.size > 1) }
+        // 렌즈를 바꾸면 이전 호출의 해제와 이번 바인딩 중 무엇이 먼저 돌지 보장되지 않는다. 먼저 풀고 건다.
+        cameraProvider.unbindAll()
         val bound = cameraProvider.bindToLifecycle(
             lifecycleOwner,
-            CameraSelector.DEFAULT_BACK_CAMERA,
+            target.selector,
             previewUseCase,
             videoCapture,
         )
@@ -191,8 +213,11 @@ class CameraViewModel @Inject constructor(
         try {
             awaitCancellation()
         } finally {
-            camera = null
-            cameraProvider.unbindAll()
+            // 이미 새 렌즈로 다시 바인딩됐다면 그쪽을 풀면 안 된다.
+            if (camera === bound) {
+                camera = null
+                cameraProvider.unbindAll()
+            }
         }
     }
 }

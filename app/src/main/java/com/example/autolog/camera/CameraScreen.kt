@@ -5,11 +5,13 @@ import androidx.activity.compose.LocalActivity
 import androidx.camera.compose.CameraXViewfinder
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -47,14 +49,15 @@ fun CameraScreen(
     CameraPermissionGate(modifier = modifier) {
         val context = LocalContext.current
         val lifecycleOwner = LocalLifecycleOwner.current
-        LaunchedEffect(lifecycleOwner) {
-            viewModel.bindToCamera(context.applicationContext, lifecycleOwner)
-        }
-
         LightSystemBarIcons()
 
         val surfaceRequest by viewModel.surfaceRequest.collectAsStateWithLifecycle()
         val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+        // 렌즈가 바뀌면 이전 바인딩을 풀고 새 렌즈로 다시 건다.
+        LaunchedEffect(lifecycleOwner, uiState.lens) {
+            viewModel.bindToCamera(context.applicationContext, lifecycleOwner, uiState.lens)
+        }
 
         // 화면은 세로로 고정이라 눕혀 든 것을 화면 회전으로는 알 수 없다. 센서로 직접 읽는다.
         DisposableEffect(context) {
@@ -92,6 +95,10 @@ fun CameraScreen(
                         .aspectRatio(9f / 16f, matchHeightConstraintsFirst = true)
                         .pointerInput(Unit) {
                             detectTransformGestures { _, _, zoom, _ -> viewModel.onPinch(zoom) }
+                        }
+                        // 화면을 보며 말하다가 버튼을 찾지 않고 바로 뒤집을 수 있게 한다.
+                        .pointerInput(Unit) {
+                            detectTapGestures(onDoubleTap = { viewModel.toggleLens() })
                         }
                         .testTag(TAG_VIEWFINDER),
                 )
@@ -148,25 +155,30 @@ fun CameraScreen(
                     ZoomControl(range = range, ratio = uiState.zoomRatio, onSelect = viewModel::setZoom)
                 }
 
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    uiState.latestClip?.let { clip ->
-                        LatestClipThumbnail(
-                            uri = clip,
-                            onClick = onOpenLatestClip,
-                            modifier = Modifier.align(Alignment.CenterStart),
-                        )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                        uiState.latestClip?.let { clip ->
+                            LatestClipThumbnail(uri = clip, onClick = onOpenLatestClip)
+                        }
                     }
 
                     RecordButton(
                         isRecording = uiState.isRecording,
                         onClick = { viewModel.toggleRecording(context) },
-                        modifier = Modifier.align(Alignment.Center),
                     )
 
-                    ClipListButton(
-                        onClick = onOpenClipList,
-                        modifier = Modifier.align(Alignment.CenterEnd),
-                    )
+                    Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                        // 셔터 바로 옆 — 녹화 직전에 가장 자주 누르는 버튼이라 엄지가 닿는 자리에 둔다.
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            androidx.compose.animation.AnimatedVisibility(visible = uiState.canSwitchLens && !uiState.isRecording) {
+                                LensToggle(lens = uiState.lens, onClick = viewModel::toggleLens)
+                            }
+                        }
+                        ClipListButton(onClick = onOpenClipList)
+                    }
                 }
             }
         }
