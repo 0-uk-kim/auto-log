@@ -1,18 +1,21 @@
 package com.example.autolog.camera
 
 import android.view.OrientationEventListener
+import androidx.activity.compose.LocalActivity
 import androidx.camera.compose.CameraXViewfinder
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -22,6 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.min
+import androidx.core.view.WindowCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -46,6 +51,8 @@ fun CameraScreen(
             viewModel.bindToCamera(context.applicationContext, lifecycleOwner)
         }
 
+        LightSystemBarIcons()
+
         val surfaceRequest by viewModel.surfaceRequest.collectAsStateWithLifecycle()
         val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -66,12 +73,15 @@ fun CameraScreen(
             onPauseOrDispose {}
         }
 
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .background(CameraBackground),
             contentAlignment = Alignment.Center,
         ) {
+            // 프리뷰 틀의 폭. 9:16보다 넓은 화면에서는 양옆이 검은띠라, 상단 칩은 띠가 아니라 틀 끝에 붙인다.
+            val frameWidth = min(maxWidth, maxHeight * 9f / 16f)
+
             // 촬영 규격이 9:16이므로 프리뷰도 같은 비율로 가둔다 — 보이는 것과 찍히는 것을 맞춘다.
             // 가로 촬영은 기기를 눕혀 찍으므로 이 프레임이 그대로 16:9 가로 영상이 된다.
             surfaceRequest?.let { request ->
@@ -97,26 +107,28 @@ fun CameraScreen(
                 ElapsedIndicator(elapsed = uiState.elapsed.formatElapsed())
             }
 
-            MuteToggle(
-                isMuted = uiState.isMuted,
-                onClick = viewModel::toggleMute,
+            Box(
                 modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .safeDrawingPadding()
-                    .padding(Spacing.md),
-            )
-
-            AnimatedVisibility(
-                visible = !uiState.isRecording,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
+                    .align(Alignment.TopCenter)
+                    .width(frameWidth)
                     .safeDrawingPadding()
                     .padding(Spacing.md),
             ) {
-                OrientationToggle(
-                    orientation = uiState.orientation,
-                    onClick = viewModel::toggleOrientation,
+                MuteToggle(
+                    isMuted = uiState.isMuted,
+                    onClick = viewModel::toggleMute,
+                    modifier = Modifier.align(Alignment.TopStart),
                 )
+
+                AnimatedVisibility(
+                    visible = !uiState.isRecording,
+                    modifier = Modifier.align(Alignment.TopEnd),
+                ) {
+                    OrientationToggle(
+                        orientation = uiState.orientation,
+                        onClick = viewModel::toggleOrientation,
+                    )
+                }
             }
 
             if (uiState.shouldTurnSideways) {
@@ -157,6 +169,24 @@ fun CameraScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+/** 카메라 화면은 배경이 검다. 머무는 동안만 시스템 바 아이콘을 밝게 바꾸고 나가면 되돌린다. */
+@Composable
+private fun LightSystemBarIcons() {
+    val activity = LocalActivity.current
+    DisposableEffect(activity) {
+        val window = activity?.window ?: return@DisposableEffect onDispose {}
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        val wasLightStatusBars = controller.isAppearanceLightStatusBars
+        val wasLightNavigationBars = controller.isAppearanceLightNavigationBars
+        controller.isAppearanceLightStatusBars = false
+        controller.isAppearanceLightNavigationBars = false
+        onDispose {
+            controller.isAppearanceLightStatusBars = wasLightStatusBars
+            controller.isAppearanceLightNavigationBars = wasLightNavigationBars
         }
     }
 }
