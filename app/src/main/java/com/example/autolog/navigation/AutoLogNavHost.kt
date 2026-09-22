@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.example.autolog.camera.CameraScreen
+import com.example.autolog.edit.EditScreen
 import com.example.autolog.list.ClipListScreen
 import com.example.autolog.preview.PreviewScreen
 import com.example.autolog.vlog.VlogScreen
@@ -52,7 +53,11 @@ fun AutoLogNavHost(
                 date = route.date,
                 clipIndex = route.clipIndex,
                 onBack = { navController.popBackStack() },
+                onEdit = { clipId -> navController.navigate(Edit(route.date, clipId)) },
             )
+        }
+        composable<Edit> {
+            EditScreen(onBack = { navController.popBackStack() })
         }
         composable<Vlog> { entry ->
             VlogScreen(date = entry.toRoute<Vlog>().date, onBack = { navController.popBackStack() })
