@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "61-record-timer",
+  "service": "auto-log",
+  "feature": "camera",
+  "created": "2026-09-22T22:56:31+09:00",
+  "device": "SM-F971N (Android 17)",
+  "branch": "feature/61-record-timer",
+  "commit": "463e2b1",
+  "items": [
+    {
+      "kind": "video",
+      "file": "record-timer.mp4",
+      "caption": "좌측 상단 타이머를 누를 때마다 끔 → 3초 → 10초 → 끔\n3초로 두고 촬영 버튼을 누르면 3·2·1 카운트다운 뒤 녹화 시작 (00:01 표시)\n카운트다운 중에는 촬영 버튼이 정지 모양이고 상단 칩이 숨는다\n10초로 바꿔 시작한 뒤 도중에 촬영 버튼을 누르면 취소되고 대기 상태로 복귀\n후면 렌즈는 가려져 검은 화면",
+      "compare": false,
+      "duration": 27.52,
+      "gif": "record-timer.gif",
+      "gif_width": 360,
+      "gif_height": 569,
+      "gif_duration": 27.52
+    }
+  ]
+}
