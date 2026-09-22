@@ -14,6 +14,10 @@ class SubtitleRepository @Inject constructor(
     fun observe(clipId: Long): Flow<List<Subtitle>> =
         subtitleDao.observeByClip(clipId).map { rows -> rows.map { it.toSubtitle() } }
 
+    /** 미리보기처럼 하루치를 넘겨 보는 동안 편집에서 돌아와도 바로 맞도록 흘려 준다. 자막이 없는 클립은 키가 없다. */
+    fun observe(clipIds: List<Long>): Flow<Map<Long, List<Subtitle>>> =
+        subtitleDao.observeByClips(clipIds).map { rows -> rows.map { it.toSubtitle() }.groupBy { it.clipId } }
+
     /** 병합처럼 하루치를 한꺼번에 볼 때 쓴다. 자막이 없는 클립은 키가 없다. */
     suspend fun byClips(clipIds: List<Long>): Map<Long, List<Subtitle>> =
         subtitleDao.byClips(clipIds).map { it.toSubtitle() }.groupBy { it.clipId }

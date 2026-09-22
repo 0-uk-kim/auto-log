@@ -1,5 +1,6 @@
 package com.example.autolog.edit
 
+import com.example.autolog.data.subtitle.Subtitle
 import com.example.autolog.edit.SubtitleDraft.Companion.DEFAULT_LENGTH_MS
 import com.example.autolog.edit.SubtitleDraft.Companion.MIN_LENGTH_MS
 import org.junit.Assert.assertEquals
@@ -74,5 +75,20 @@ class SubtitleDraftTest {
     fun 자막_시각은_0점1초까지_보인다() {
         assertEquals("0:02.4", formatSubtitleTime(2_468))
         assertEquals("1:05.0", formatSubtitleTime(65_000))
+    }
+
+    @Test
+    fun 고치는_중인_자막은_저장된_값_대신_초안으로_보인다() {
+        val saved = listOf(Subtitle(id = 1, clipId = 9, startMs = 0, endMs = 1_000, text = "처음"))
+        val draft = SubtitleDraft(id = 1, startMs = 0, endMs = 1_000, text = "고침")
+
+        assertEquals(listOf("고침"), saved.withDraft(draft, clipId = 9).map { it.text })
+    }
+
+    @Test
+    fun 글이_비어_있는_새_초안은_아직_보이지_않는다() {
+        val saved = listOf(Subtitle(id = 1, clipId = 9, startMs = 0, endMs = 1_000, text = "처음"))
+
+        assertEquals(saved, saved.withDraft(SubtitleDraft(startMs = 0, endMs = 1_000), clipId = 9))
     }
 }

@@ -13,6 +13,9 @@ interface SubtitleDao {
     fun observeByClip(clipId: Long): Flow<List<SubtitleEntity>>
 
     @Query("SELECT * FROM subtitle WHERE clipId IN (:clipIds) ORDER BY startMs, id")
+    fun observeByClips(clipIds: List<Long>): Flow<List<SubtitleEntity>>
+
+    @Query("SELECT * FROM subtitle WHERE clipId IN (:clipIds) ORDER BY startMs, id")
     suspend fun byClips(clipIds: List<Long>): List<SubtitleEntity>
 
     @Upsert
