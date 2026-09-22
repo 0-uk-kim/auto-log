@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "slug": "42-camera-zoom",
+  "service": "autolog",
+  "feature": "camera",
+  "created": "2026-09-22T10:38:39+09:00",
+  "device": "SM-F971N Android 17",
+  "branch": "feature/42-camera-zoom",
+  "commit": "b95c922",
+  "items": [
+    {
+      "kind": "video",
+      "file": "42-camera-zoom.mp4",
+      "caption": "배율 버튼 전환 — 실기기 SM-F971N\n대기 중 2x → 0.6x → 1x 전환\n녹화 중 1x → 2x → 0.6x 전환, 녹화는 끊기지 않고 이어짐",
+      "compare": false,
+      "duration": 25.09,
+      "gif": "42-camera-zoom.gif",
+      "gif_width": 320,
+      "gif_height": 506,
+      "gif_duration": 25.09
+    },
+    {
+      "kind": "image",
+      "file": "42-recorded-zoom.png",
+      "caption": "녹화 중 배율을 바꾼 클립 한 개의 프레임\n배율 변경이 저장된 영상에도 그대로 반영",
+      "compare": false,
+      "width": 1110,
+      "height": 703
+    }
+  ]
+}
