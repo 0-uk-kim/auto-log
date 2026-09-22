@@ -74,7 +74,7 @@ fun CameraScreen(
         // 목록에서 지우고 돌아오거나 앱 밖에서 지워질 수 있다. 돌아올 때마다 다시 읽는다.
         LifecycleResumeEffect(Unit) {
             viewModel.refreshLatestClip()
-            onPauseOrDispose {}
+            onPauseOrDispose { viewModel.cancelCountdown() }
         }
 
         BoxWithConstraints(
@@ -128,7 +128,14 @@ fun CameraScreen(
                     .padding(Spacing.md),
             ) {
                 AnimatedVisibility(
-                    visible = !uiState.isRecording,
+                    visible = !uiState.isCapturing,
+                    modifier = Modifier.align(Alignment.TopStart),
+                ) {
+                    RecordTimerToggle(timer = uiState.timer, onClick = viewModel::cycleTimer)
+                }
+
+                AnimatedVisibility(
+                    visible = !uiState.isCapturing,
                     modifier = Modifier.align(Alignment.TopEnd),
                 ) {
                     OrientationToggle(
@@ -139,6 +146,7 @@ fun CameraScreen(
             }
 
             uiState.turnHint?.let { TurnDeviceHint(target = it, deviceRotation = uiState.deviceRotation) }
+            uiState.countdown?.let { CountdownNumber(secondsLeft = it, deviceRotation = uiState.deviceRotation) }
 
             Column(
                 modifier = Modifier
@@ -177,6 +185,7 @@ fun CameraScreen(
 
                     RecordButton(
                         isRecording = uiState.isRecording,
+                        isCountingDown = uiState.isCountingDown,
                         onClick = { viewModel.toggleRecording(context) },
                     )
 

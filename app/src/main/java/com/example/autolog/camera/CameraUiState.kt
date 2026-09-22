@@ -9,6 +9,9 @@ import kotlin.time.Duration.Companion.milliseconds
 
 data class CameraUiState(
     val isRecording: Boolean = false,
+    val timer: RecordTimer = RecordTimer.Off,
+    /** 타이머가 도는 동안 남은 초. 돌지 않으면 null이다 (#61). */
+    val countdown: Int? = null,
     val elapsed: Duration = Duration.ZERO,
     /** 직전 촬영본. 있을 때만 좌측 하단 썸네일을 노출한다 (planning 3-1). */
     val latestClip: Uri? = null,
@@ -23,16 +26,23 @@ data class CameraUiState(
     val zoomRange: ZoomRange? = null,
     val zoomRatio: Float = 1f,
 ) {
+    val isCountingDown: Boolean
+        get() = countdown != null
+
+    /** 녹화 중이거나 곧 시작될 참이다. 이때는 촬영 설정을 바꾸지 않는다. */
+    val isCapturing: Boolean
+        get() = isRecording || isCountingDown
+
     val isDeviceSideways: Boolean
         get() = isSideways(deviceRotation)
 
     /**
      * 고른 방향과 기기를 든 방향이 어긋나면 그쪽으로 돌리라고 알린다 — 그대로 찍으면 옆으로 누운
-     * 영상이 된다. 맞게 들고 있거나 녹화 중이면 null.
+     * 영상이 된다. 맞게 들고 있거나 녹화 중이면 null. 카운트다운 중에는 숫자가 그 자리를 쓴다.
      */
     val turnHint: CaptureOrientation?
         get() = when {
-            isRecording -> null
+            isCapturing -> null
             orientation == CaptureOrientation.Landscape && !isDeviceSideways -> CaptureOrientation.Landscape
             orientation == CaptureOrientation.Portrait && isDeviceSideways -> CaptureOrientation.Portrait
             else -> null

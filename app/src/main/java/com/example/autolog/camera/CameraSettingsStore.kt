@@ -28,10 +28,17 @@ class CameraSettingsStore @Inject constructor(
             ?: CameraLens.Back
         set(value) = prefs.edit().putString(KEY_LENS, value.name).apply()
 
+    var timer: RecordTimer
+        get() = prefs.getString(KEY_TIMER, null)
+            ?.let { saved -> RecordTimer.entries.firstOrNull { it.name == saved } }
+            ?: RecordTimer.Off
+        set(value) = prefs.edit().putString(KEY_TIMER, value.name).apply()
+
     private companion object {
         const val PREFS_NAME = "camera"
         const val KEY_ORIENTATION = "capture_orientation"
         const val KEY_MUTED = "muted"
         const val KEY_LENS = "lens"
+        const val KEY_TIMER = "record_timer"
     }
 }

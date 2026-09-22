@@ -28,7 +28,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import javax.inject.Inject
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -72,11 +75,13 @@ class CameraViewModel @Inject constructor(
             orientation = settingsStore.orientation,
             isMuted = settingsStore.isMuted,
             lens = settingsStore.lens,
+            timer = settingsStore.timer,
         ),
     )
     val uiState = _uiState.asStateFlow()
 
     private var recording: Recording? = null
+    private var countdown: Job? = null
     private var latestClip: Uri? = null
     private var deviceRotation = Surface.ROTATION_0
     private var camera: Camera? = null
@@ -104,7 +109,7 @@ class CameraViewModel @Inject constructor(
 
     /** 녹화 중에는 바꾸지 않는다 — 한 클립 안에서 방향이 바뀔 수 없다. */
     fun toggleOrientation() {
-        if (recording != null) return
+        if (_uiState.value.isCapturing) return
         val next = _uiState.value.orientation.toggled()
         settingsStore.orientation = next
         _uiState.update { it.copy(orientation = next) }
@@ -112,10 +117,25 @@ class CameraViewModel @Inject constructor(
 
     /** 녹화 중에는 바꾸지 않는다 — 다시 바인딩하면 진행 중인 녹화가 끊긴다. 바인딩은 화면이 lens를 보고 다시 건다. */
     fun toggleLens() {
-        if (recording != null || !_uiState.value.canSwitchLens) return
+        // 카운트다운 중에 다시 바인딩하면 끝나는 순간 녹화가 바인딩과 엇갈릴 수 있다.
+        if (_uiState.value.isCapturing || !_uiState.value.canSwitchLens) return
         val next = _uiState.value.lens.toggled()
         settingsStore.lens = next
         _uiState.update { it.copy(lens = next) }
+    }
+
+    fun cycleTimer() {
+        if (_uiState.value.isCapturing) return
+        val next = _uiState.value.timer.next()
+        settingsStore.timer = next
+        _uiState.update { it.copy(timer = next) }
+    }
+
+    /** 화면을 떠나면 카메라가 풀리므로, 돌던 타이머가 끝나도 찍을 수 없다. 그 전에 멈춘다. */
+    fun cancelCountdown() {
+        countdown?.cancel()
+        countdown = null
+        _uiState.update { it.copy(countdown = null) }
     }
 
     /** 녹화 중에도 바꿀 수 있다. 녹화는 이어지고 그 시점부터 소리만 꺼지거나 켜진다. */
@@ -146,13 +166,39 @@ class CameraViewModel @Inject constructor(
         _uiState.update { it.copy(zoomRatio = clamped) }
     }
 
-    /** 녹화 중이면 멈추고, 아니면 시작한다. 정지 결과는 Finalize 이벤트로 돌아온다. */
-    @SuppressLint("MissingPermission") // 권한이 있을 때만 그려지는 화면에서만 호출된다 (CameraPermissionGate)
+    /**
+     * 녹화 중이면 멈추고, 타이머가 돌고 있으면 취소한다. 아니면 타이머만큼 기다린 뒤 시작한다.
+     * 정지 결과는 Finalize 이벤트로 돌아온다.
+     */
     fun toggleRecording(context: Context) {
         recording?.let {
             it.stop()
             return
         }
+        if (countdown != null) {
+            cancelCountdown()
+            return
+        }
+        val seconds = _uiState.value.timer.seconds
+        if (seconds == 0) {
+            startRecording(context)
+            return
+        }
+        // 기다리는 동안 화면이 다시 만들어질 수 있다. 액티비티를 붙잡지 않는다.
+        val appContext = context.applicationContext
+        countdown = viewModelScope.launch {
+            for (left in seconds downTo 1) {
+                _uiState.update { it.copy(countdown = left) }
+                delay(1.seconds)
+            }
+            countdown = null
+            _uiState.update { it.copy(countdown = null) }
+            startRecording(appContext)
+        }
+    }
+
+    @SuppressLint("MissingPermission") // 권한이 있을 때만 그려지는 화면에서만 호출된다 (CameraPermissionGate)
+    private fun startRecording(context: Context) {
         // 방향은 녹화를 시작할 때 파일에 새겨진다. 녹화 중에 기기를 돌려도 바뀌지 않는다.
         videoCapture.targetRotation = _uiState.value.orientation.targetRotation(deviceRotation)
         recording = videoCapture.output
