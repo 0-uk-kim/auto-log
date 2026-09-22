@@ -22,7 +22,7 @@ import com.example.autolog.ui.theme.CameraScrim
 
 const val TAG_MUTE_TOGGLE = "mute-toggle"
 
-/** 좌측 상단 음소거 전환 (#44). 녹화 중에도 누를 수 있다 — 그 시점부터 소리가 꺼지거나 켜진다. */
+/** 음소거 전환 (#44). 최근 영상 썸네일 바로 위에 둔다 (#55). 녹화 중에도 누를 수 있다 — 그 시점부터 소리가 꺼지거나 켜진다. */
 @Composable
 fun MuteToggle(
     isMuted: Boolean,
@@ -31,7 +31,6 @@ fun MuteToggle(
 ) {
     val label = stringResource(if (isMuted) R.string.camera_sound_muted else R.string.camera_sound_on)
     val description = stringResource(R.string.camera_mute_toggle, label)
-    // 우측 방향 토글과 높이를 맞춘다 — 그쪽 글자 줄 높이(20dp) + 세로 여백 8dp.
     Box(
         modifier = modifier
             .clip(CircleShape)
