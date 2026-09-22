@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "51-turn-upright-hint",
+  "service": "auto-log",
+  "feature": "camera",
+  "created": "2026-09-22T16:12:31+09:00",
+  "device": "sdk_gphone64_arm64 (Android 16)",
+  "branch": "feature/51-turn-upright-hint",
+  "commit": "8ec500c",
+  "items": [
+    {
+      "kind": "video",
+      "file": "turn-upright-hint.mp4",
+      "caption": "세로 선택 후 기기를 눕혔을 때의 안내\n눕힌 채 가로 → 세로로 바꾸면 \"휴대폰을 세로로 세워 주세요\" 표시\n세우면 사라지고 다시 눕히면 다시 표시\n에뮬레이터 가속도 센서로 기울기 조작",
+      "compare": false,
+      "duration": 15.73,
+      "gif": "turn-upright-hint.gif",
+      "gif_width": 360,
+      "gif_height": 800,
+      "gif_duration": 15.73
+    }
+  ]
+}
