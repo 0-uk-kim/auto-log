@@ -2,16 +2,12 @@ package com.example.autolog.camera
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
@@ -23,7 +19,6 @@ import androidx.compose.ui.unit.dp
 import com.example.autolog.R
 import com.example.autolog.ui.theme.CameraControlTint
 import com.example.autolog.ui.theme.CameraScrim
-import com.example.autolog.ui.theme.Spacing
 
 const val TAG_MUTE_TOGGLE = "mute-toggle"
 
@@ -36,27 +31,21 @@ fun MuteToggle(
 ) {
     val label = stringResource(if (isMuted) R.string.camera_sound_muted else R.string.camera_sound_on)
     val description = stringResource(R.string.camera_mute_toggle, label)
-    Row(
+    // 우측 방향 토글과 높이를 맞춘다 — 그쪽 글자 줄 높이(20dp) + 세로 여백 8dp.
+    Box(
         modifier = modifier
-            .clip(RoundedCornerShape(50))
+            .clip(CircleShape)
             .background(CameraScrim)
             .clickable(onClick = onClick)
             .semantics { contentDescription = description }
-            .padding(horizontal = 14.dp, vertical = 8.dp)
+            .padding(8.dp)
             .testTag(TAG_MUTE_TOGGLE),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             painter = painterResource(if (isMuted) R.drawable.ic_mic_off else R.drawable.ic_mic),
             contentDescription = null,
             tint = CameraControlTint,
-            modifier = Modifier.size(16.dp),
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = CameraControlTint,
+            modifier = Modifier.size(20.dp),
         )
     }
 }
