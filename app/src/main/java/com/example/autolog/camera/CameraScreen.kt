@@ -35,6 +35,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.autolog.camera.permission.CameraPermissionGate
 import com.example.autolog.ui.theme.CameraBackground
+import com.example.autolog.ui.theme.CameraDimens
 import com.example.autolog.ui.theme.Spacing
 
 const val TAG_VIEWFINDER = "camera-viewfinder"
@@ -121,12 +122,6 @@ fun CameraScreen(
                     .safeDrawingPadding()
                     .padding(Spacing.md),
             ) {
-                MuteToggle(
-                    isMuted = uiState.isMuted,
-                    onClick = viewModel::toggleMute,
-                    modifier = Modifier.align(Alignment.TopStart),
-                )
-
                 AnimatedVisibility(
                     visible = !uiState.isRecording,
                     modifier = Modifier.align(Alignment.TopEnd),
@@ -149,8 +144,20 @@ fun CameraScreen(
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                uiState.zoomRange?.takeIf { it.isZoomable }?.let { range ->
-                    ZoomControl(range = range, ratio = uiState.zoomRatio, onSelect = viewModel::setZoom)
+                // 줌과 한 줄에 두어 하단 영역 높이를 늘리지 않는다. 음소거는 썸네일 폭 안 가운데에 맞춘다.
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .width(CameraDimens.cornerAction),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        MuteToggle(isMuted = uiState.isMuted, onClick = viewModel::toggleMute)
+                    }
+
+                    uiState.zoomRange?.takeIf { it.isZoomable }?.let { range ->
+                        ZoomControl(range = range, ratio = uiState.zoomRatio, onSelect = viewModel::setZoom)
+                    }
                 }
 
                 Row(
