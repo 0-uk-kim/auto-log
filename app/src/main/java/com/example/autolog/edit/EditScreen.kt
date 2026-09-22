@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Icon
@@ -33,6 +34,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.autolog.R
 import com.example.autolog.data.clip.Clip
+import com.example.autolog.data.subtitle.Subtitle
 import com.example.autolog.list.formatClipDuration
 import com.example.autolog.ui.VideoSurface
 import com.example.autolog.ui.rememberPlaybackPosition
@@ -89,14 +91,29 @@ fun EditScreen(
                 )
             }
 
-            is EditUiState.Ready -> ClipEditor(clip = state.clip)
+            is EditUiState.Ready -> {
+                val subtitles by viewModel.subtitles.collectAsStateWithLifecycle()
+                val draft by viewModel.draft.collectAsStateWithLifecycle()
+                ClipEditor(
+                    clip = state.clip,
+                    subtitles = subtitles,
+                    draft = draft,
+                    actions = viewModel,
+                )
+            }
         }
     }
 }
 
 @OptIn(UnstableApi::class)
 @Composable
-private fun ClipEditor(clip: Clip, modifier: Modifier = Modifier) {
+private fun ClipEditor(
+    clip: Clip,
+    subtitles: List<Subtitle>,
+    draft: SubtitleDraft?,
+    actions: EditViewModel,
+    modifier: Modifier = Modifier,
+) {
     val context = LocalContext.current
     val player = remember(clip.uri) {
         ExoPlayer.Builder(context).build().apply {
@@ -116,7 +133,7 @@ private fun ClipEditor(clip: Clip, modifier: Modifier = Modifier) {
     // 플레이어가 길이를 읽기 전에는 MediaStore 값으로 버틴다 — 둘은 수 ms 차이뿐이다.
     val duration = player.duration.takeIf { it > 0 } ?: clip.durationMs
 
-    Column(modifier = modifier.fillMaxSize()) {
+    Column(modifier = modifier.fillMaxSize().imePadding()) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
             VideoSurface(player = player)
         }
@@ -143,6 +160,32 @@ private fun ClipEditor(clip: Clip, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.labelLarge,
                 color = CameraControlTint,
             )
+
+            if (draft == null) {
+                SubtitleList(
+                    subtitles = subtitles,
+                    onAdd = {
+                        // 입력하는 동안 영상이 흘러가면 찍어 둔 위치를 놓친다.
+                        player.pause()
+                        actions.startNew(player.currentPosition, duration)
+                    },
+                    onSelect = { subtitle ->
+                        player.pause()
+                        player.seekTo(subtitle.startMs)
+                        actions.edit(subtitle)
+                    },
+                )
+            } else {
+                SubtitleEditor(
+                    draft = draft,
+                    onMarkStart = { actions.markStart(player.currentPosition, duration) },
+                    onMarkEnd = { actions.markEnd(player.currentPosition, duration) },
+                    onTextChange = actions::setText,
+                    onSave = actions::save,
+                    onCancel = actions::cancel,
+                    onDelete = actions::delete,
+                )
+            }
         }
     }
 }

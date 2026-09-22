@@ -30,3 +30,19 @@ data class VlogEntity(
     val mediaId: Long,
     val createdAt: Instant,
 )
+
+/**
+ * 클립 하나에 붙은 자막 한 줄 (2차). 원본 파일은 건드리지 않고, 브이로그를 병합할 때만 영상에 새긴다.
+ *
+ * 시각은 클립 안의 상대 위치(ms)다 — 병합 때 클립마다 효과를 따로 걸기 때문에 전체 타임라인으로
+ * 옮겨 적을 필요가 없고, 순서를 바꿔도 값이 그대로 맞는다.
+ */
+@Entity(tableName = "subtitle", indices = [Index("clipId")])
+data class SubtitleEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    /** MediaStore `_ID`. 원본이 사라지면 [ClipOrderEntity]와 같이 고아가 되어 정리된다. */
+    val clipId: Long,
+    val startMs: Long,
+    val endMs: Long,
+    val text: String,
+)
