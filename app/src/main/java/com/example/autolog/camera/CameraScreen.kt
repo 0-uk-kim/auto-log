@@ -138,7 +138,7 @@ fun CameraScreen(
                 }
             }
 
-            uiState.turnHint?.let { TurnDeviceHint(target = it) }
+            uiState.turnHint?.let { TurnDeviceHint(target = it, deviceRotation = uiState.deviceRotation) }
 
             Column(
                 modifier = Modifier

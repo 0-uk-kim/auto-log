@@ -128,7 +128,7 @@ class CameraViewModel @Inject constructor(
 
     fun onDeviceRotationChanged(rotation: Int) {
         deviceRotation = rotation
-        _uiState.update { it.copy(isDeviceSideways = isSideways(rotation)) }
+        _uiState.update { it.copy(deviceRotation = rotation) }
     }
 
     /** 핀치 한 번의 배율 변화량을 현재 배율에 곱한다. 녹화 중에도 막지 않는다 — 배율은 파일 규격과 무관하다. */

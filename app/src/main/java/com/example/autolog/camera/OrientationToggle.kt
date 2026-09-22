@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -71,8 +72,12 @@ private fun FrameGlyph(orientation: CaptureOrientation) {
     )
 }
 
+/**
+ * 화면은 세로로 고정돼 있어서, 눕혀 든 사람에게는 글자가 옆으로 누워 보인다. 기기를 든 방향만큼
+ * 거꾸로 돌려 그 사람이 바로 읽게 한다 — 세로로 세우라는 안내는 눕혀 든 채로 읽는다.
+ */
 @Composable
-fun TurnDeviceHint(target: CaptureOrientation, modifier: Modifier = Modifier) {
+fun TurnDeviceHint(target: CaptureOrientation, deviceRotation: Int, modifier: Modifier = Modifier) {
     Text(
         text = stringResource(
             if (target == CaptureOrientation.Landscape) R.string.camera_turn_sideways else R.string.camera_turn_upright,
@@ -80,6 +85,7 @@ fun TurnDeviceHint(target: CaptureOrientation, modifier: Modifier = Modifier) {
         style = MaterialTheme.typography.bodyLarge,
         color = CameraControlTint,
         modifier = modifier
+            .rotate(deviceRotation * 90f)
             .clip(RoundedCornerShape(12.dp))
             .background(CameraScrim)
             .padding(horizontal = Spacing.md, vertical = Spacing.sm)

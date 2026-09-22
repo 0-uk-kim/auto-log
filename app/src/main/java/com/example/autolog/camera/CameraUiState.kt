@@ -1,6 +1,7 @@
 package com.example.autolog.camera
 
 import android.net.Uri
+import android.view.Surface
 
 import java.util.Locale
 import kotlin.time.Duration
@@ -12,7 +13,8 @@ data class CameraUiState(
     /** 직전 촬영본. 있을 때만 좌측 하단 썸네일을 노출한다 (planning 3-1). */
     val latestClip: Uri? = null,
     val orientation: CaptureOrientation = CaptureOrientation.Portrait,
-    val isDeviceSideways: Boolean = false,
+    /** 기기를 든 방향 ([Surface.ROTATION_0] 등). 화면은 세로로 고정돼 있어 회전해도 레이아웃은 그대로다. */
+    val deviceRotation: Int = Surface.ROTATION_0,
     val isMuted: Boolean = false,
     val lens: CameraLens = CameraLens.Back,
     /** 반대쪽 렌즈가 있을 때만 전환 버튼을 보인다. 바인딩 전에는 모르므로 숨겨 둔다. */
@@ -21,6 +23,9 @@ data class CameraUiState(
     val zoomRange: ZoomRange? = null,
     val zoomRatio: Float = 1f,
 ) {
+    val isDeviceSideways: Boolean
+        get() = isSideways(deviceRotation)
+
     /**
      * 고른 방향과 기기를 든 방향이 어긋나면 그쪽으로 돌리라고 알린다 — 그대로 찍으면 옆으로 누운
      * 영상이 된다. 맞게 들고 있거나 녹화 중이면 null.
