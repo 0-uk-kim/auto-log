@@ -4,6 +4,7 @@ import android.view.OrientationEventListener
 import androidx.activity.compose.LocalActivity
 import androidx.camera.compose.CameraXViewfinder
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -24,6 +25,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -129,13 +131,6 @@ fun CameraScreen(
             ) {
                 AnimatedVisibility(
                     visible = !uiState.isCapturing,
-                    modifier = Modifier.align(Alignment.TopStart),
-                ) {
-                    RecordTimerToggle(timer = uiState.timer, onClick = viewModel::cycleTimer)
-                }
-
-                AnimatedVisibility(
-                    visible = !uiState.isCapturing,
                     modifier = Modifier.align(Alignment.TopEnd),
                 ) {
                     OrientationToggle(
@@ -157,6 +152,19 @@ fun CameraScreen(
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                // 음소거와 같은 세로줄에 쌓는다. 줌 줄에 넣으면 줌 버튼이 위아래로 밀린다.
+                // 촬영 중에는 자리를 비우지 않고 흐리게만 숨긴다 — 빠지면 아래 줄이 통째로 내려앉는다.
+                val timerAlpha by animateFloatAsState(if (uiState.isCapturing) 0f else 1f, label = "timerAlpha")
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Start)
+                        .width(CameraDimens.cornerAction)
+                        .alpha(timerAlpha),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RecordTimerToggle(timer = uiState.timer, onClick = viewModel::cycleTimer)
+                }
+
                 // 줌과 한 줄에 두어 하단 영역 높이를 늘리지 않는다. 음소거는 썸네일 폭 안 가운데에 맞춘다.
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Box(
