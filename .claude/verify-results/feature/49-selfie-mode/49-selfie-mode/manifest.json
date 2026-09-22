@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "slug": "49-selfie-mode",
+  "service": "auto-log",
+  "feature": "camera",
+  "created": "2026-09-22T12:13:29+09:00",
+  "device": "SM-F971N (Android 17)",
+  "branch": "feature/49-selfie-mode",
+  "commit": "f247296",
+  "items": [
+    {
+      "kind": "image",
+      "file": "49-lens-toggle.png",
+      "caption": "셔터 오른쪽의 셀카 전환 버튼\n녹화 중에는 숨김",
+      "compare": false,
+      "width": 1248,
+      "height": 1972,
+      "text_px": 30,
+      "text_lines": 3
+    }
+  ]
+}
