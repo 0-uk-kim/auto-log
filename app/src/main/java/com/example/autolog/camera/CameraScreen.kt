@@ -138,9 +138,7 @@ fun CameraScreen(
                 }
             }
 
-            if (uiState.shouldTurnSideways) {
-                TurnSidewaysHint()
-            }
+            uiState.turnHint?.let { TurnDeviceHint(target = it) }
 
             Column(
                 modifier = Modifier
