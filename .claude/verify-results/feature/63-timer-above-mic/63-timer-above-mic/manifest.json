@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "63-timer-above-mic",
+  "service": "auto-log",
+  "feature": "camera",
+  "created": "2026-09-22T23:04:11+09:00",
+  "device": "SM-F971N (Android 17)",
+  "branch": "feature/63-timer-above-mic",
+  "commit": "ec41545",
+  "items": [
+    {
+      "kind": "video",
+      "file": "timer-above-mic.mp4",
+      "caption": "타이머 버튼이 마이크 버튼 바로 위에 원형으로 위치 (좌측 상단 칩 없음)\n누를 때마다 1초 → 2초 → 3초 → 끔(아이콘)\n3초로 촬영 시작 시 3·2·1 뒤 녹화, 1초로는 1 뒤 녹화\n촬영 중에는 타이머 버튼만 숨고 마이크·줌 위치는 그대로\n좌측 하단 썸네일은 기존 촬영본이라 블러 처리, 후면 렌즈가 가려져 프리뷰는 검은 화면",
+      "compare": false,
+      "duration": 26.52,
+      "gif": "timer-above-mic.gif",
+      "gif_width": 360,
+      "gif_height": 569,
+      "gif_duration": 26.52
+    }
+  ]
+}

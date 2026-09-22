@@ -7,11 +7,11 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,12 +26,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.autolog.R
 import com.example.autolog.ui.theme.CameraControlTint
 import com.example.autolog.ui.theme.CameraScrim
-import com.example.autolog.ui.theme.Spacing
 
 const val TAG_TIMER_TOGGLE = "record-timer-toggle"
 const val TAG_COUNTDOWN = "record-countdown"
@@ -39,14 +39,15 @@ const val TAG_COUNTDOWN = "record-countdown"
 /** 촬영 버튼을 누른 뒤 녹화가 시작되기까지 기다리는 시간 (#61). 폰을 세워 두고 자리를 잡을 틈을 준다. */
 enum class RecordTimer(val seconds: Int) {
     Off(0),
+    One(1),
+    Two(2),
     Three(3),
-    Ten(10),
     ;
 
     fun next(): RecordTimer = entries[(ordinal + 1) % entries.size]
 }
 
-/** 좌측 상단 타이머 전환. 방향 전환과 같은 모양으로, 누를 때마다 끔 → 3초 → 10초를 돈다. */
+/** 타이머 전환 (#63). 음소거 버튼 바로 위에 같은 원형으로 둔다. 누를 때마다 끔 → 1초 → 2초 → 3초를 돈다. */
 @Composable
 fun RecordTimerToggle(
     timer: RecordTimer,
@@ -59,28 +60,33 @@ fun RecordTimerToggle(
         stringResource(R.string.camera_timer_seconds, timer.seconds)
     }
     val description = stringResource(R.string.camera_timer_toggle, label)
-    Row(
+    Box(
         modifier = modifier
-            .clip(RoundedCornerShape(50))
+            .clip(CircleShape)
             .background(CameraScrim)
             .clickable(onClick = onClick)
             .semantics { contentDescription = description }
-            .padding(horizontal = 14.dp, vertical = 8.dp)
+            .padding(8.dp)
             .testTag(TAG_TIMER_TOGGLE),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
+        contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            painter = painterResource(R.drawable.ic_timer),
-            contentDescription = null,
-            tint = CameraControlTint,
-            modifier = Modifier.size(16.dp),
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = CameraControlTint,
-        )
+        // 원 안이 좁아 켜져 있을 때는 아이콘 대신 초만 보인다. 꺼져 있을 때만 무엇을 하는 버튼인지 아이콘으로 알린다.
+        if (timer == RecordTimer.Off) {
+            Icon(
+                painter = painterResource(R.drawable.ic_timer),
+                contentDescription = null,
+                tint = CameraControlTint,
+                modifier = Modifier.size(20.dp),
+            )
+        } else {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = CameraControlTint,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.size(20.dp).wrapContentHeight(),
+            )
+        }
     }
 }
 
