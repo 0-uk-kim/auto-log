@@ -20,15 +20,15 @@ object ClipOutput {
     fun mediaStoreOptions(
         contentResolver: ContentResolver,
         now: LocalDateTime = LocalDateTime.now(),
-    ): MediaStoreOutputOptions {
-        val values = ContentValues().apply {
-            put(MediaStore.Video.Media.DISPLAY_NAME, now.format(NAME_FORMAT))
-            put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
-            put(MediaStore.Video.Media.RELATIVE_PATH, RELATIVE_PATH)
-        }
-        return MediaStoreOutputOptions
-            .Builder(contentResolver, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
-            .setContentValues(values)
-            .build()
+    ): MediaStoreOutputOptions = MediaStoreOutputOptions
+        .Builder(contentResolver, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
+        .setContentValues(contentValues(now))
+        .build()
+
+    /** 녹화를 시작한 시각으로 이름을 짓는다. 타임랩스처럼 나중에 직접 넣는 촬영본도 같은 규칙을 따른다. */
+    fun contentValues(startedAt: LocalDateTime): ContentValues = ContentValues().apply {
+        put(MediaStore.Video.Media.DISPLAY_NAME, startedAt.format(NAME_FORMAT))
+        put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
+        put(MediaStore.Video.Media.RELATIVE_PATH, RELATIVE_PATH)
     }
 }
