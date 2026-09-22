@@ -97,6 +97,15 @@ fun CameraScreen(
                 ElapsedIndicator(elapsed = uiState.elapsed.formatElapsed())
             }
 
+            MuteToggle(
+                isMuted = uiState.isMuted,
+                onClick = viewModel::toggleMute,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .safeDrawingPadding()
+                    .padding(Spacing.md),
+            )
+
             AnimatedVisibility(
                 visible = !uiState.isRecording,
                 modifier = Modifier

@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "slug": "44-mute-audio",
+  "service": "autolog",
+  "feature": "camera",
+  "created": "2026-09-22T11:06:17+09:00",
+  "device": "SM-F971N Android 17",
+  "branch": "feature/44-mute-audio",
+  "commit": "a789d5c",
+  "items": [
+    {
+      "kind": "video",
+      "file": "44-mute-toggle.mp4",
+      "caption": "음소거 토글 — 실기기 SM-F971N\n대기 중 소리 켬 → 음소거 → 소리 켬 전환\n소리 켬으로 녹화 시작, 녹화 중 음소거로 전환해도 녹화는 이어짐",
+      "compare": false,
+      "duration": 22.06,
+      "gif": "44-mute-toggle.gif",
+      "gif_width": 320,
+      "gif_height": 506,
+      "gif_duration": 22.05
+    },
+    {
+      "kind": "image",
+      "file": "44-recorded-audio.png",
+      "caption": "위 녹화로 저장된 클립의 오디오 파형\n한 파일 12.1초, 음소거 전환(6.1초) 이후 무음(-91 dB)",
+      "compare": false,
+      "width": 1200,
+      "height": 420,
+      "text_px": 87,
+      "text_lines": 5
+    }
+  ]
+}

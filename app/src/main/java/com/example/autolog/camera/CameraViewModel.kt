@@ -37,7 +37,7 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class CameraViewModel @Inject constructor(
     private val clipRepository: ClipRepository,
-    private val orientationStore: CaptureOrientationStore,
+    private val settingsStore: CameraSettingsStore,
 ) : ViewModel() {
 
     private val _surfaceRequest = MutableStateFlow<SurfaceRequest?>(null)
@@ -65,7 +65,7 @@ class CameraViewModel @Inject constructor(
 
     val videoCapture = VideoCapture.withOutput(recorder)
 
-    private val _uiState = MutableStateFlow(CameraUiState(orientation = orientationStore.orientation))
+    private val _uiState = MutableStateFlow(CameraUiState(orientation = settingsStore.orientation, isMuted = settingsStore.isMuted))
     val uiState = _uiState.asStateFlow()
 
     private var recording: Recording? = null
@@ -98,8 +98,16 @@ class CameraViewModel @Inject constructor(
     fun toggleOrientation() {
         if (recording != null) return
         val next = _uiState.value.orientation.toggled()
-        orientationStore.orientation = next
+        settingsStore.orientation = next
         _uiState.update { it.copy(orientation = next) }
+    }
+
+    /** 녹화 중에도 바꿀 수 있다. 녹화는 이어지고 그 시점부터 소리만 꺼지거나 켜진다. */
+    fun toggleMute() {
+        val next = !_uiState.value.isMuted
+        settingsStore.isMuted = next
+        recording?.mute(next)
+        _uiState.update { it.copy(isMuted = next) }
     }
 
     fun onDeviceRotationChanged(rotation: Int) {
@@ -133,6 +141,7 @@ class CameraViewModel @Inject constructor(
         videoCapture.targetRotation = _uiState.value.orientation.targetRotation(deviceRotation)
         recording = videoCapture.output
             .prepareRecording(context, ClipOutput.mediaStoreOptions(context.contentResolver))
+            // 음소거로 시작해도 오디오 트랙은 연다 — 열어 두지 않으면 녹화 도중 소리를 켤 수 없다.
             .withAudioEnabled()
             .start(ContextCompat.getMainExecutor(context)) { event ->
                 when (event) {
@@ -155,6 +164,7 @@ class CameraViewModel @Inject constructor(
                     }
                 }
             }
+            .apply { mute(_uiState.value.isMuted) }
     }
 
     override fun onCleared() {
