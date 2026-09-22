@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "59-landscape-swipe-flip",
+  "service": "auto-log",
+  "feature": "camera",
+  "created": "2026-09-22T22:48:44+09:00",
+  "device": "SM-F971N (Android 17)",
+  "branch": "feature/59-landscape-swipe-flip",
+  "commit": "640f3b7",
+  "items": [
+    {
+      "kind": "video",
+      "file": "landscape-swipe-flip.mp4",
+      "caption": "가로 모드에서 눕혀 든 기준 위·아래 스와이프로 렌즈 전환\n우측 하단 셀카 전환 버튼 없음\n세로 모드에서 화면 위로 쓸면 전면→후면 (0.6x 버튼 등장)\n가로 모드에서 화면 위아래로 쓸면 전환되지 않음\n가로 모드에서 화면 좌우로 쓸 때마다 후면·전면 전환\n후면은 렌즈가 가려져 검은 화면",
+      "compare": false,
+      "duration": 30.98,
+      "gif": "landscape-swipe-flip.gif",
+      "gif_width": 360,
+      "gif_height": 569,
+      "gif_duration": 30.98
+    }
+  ]
+}
