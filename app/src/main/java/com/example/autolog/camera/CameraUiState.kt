@@ -13,6 +13,9 @@ data class CameraUiState(
     val latestClip: Uri? = null,
     val orientation: CaptureOrientation = CaptureOrientation.Portrait,
     val isDeviceSideways: Boolean = false,
+    /** 카메라가 바인딩되기 전에는 모른다. 그동안은 배율 조작을 받지 않는다. */
+    val zoomRange: ZoomRange? = null,
+    val zoomRatio: Float = 1f,
 ) {
     /** 가로를 골랐는데 세워 들고 있으면 눕히라고 알린다 — 그대로 찍으면 옆으로 누운 영상이 된다. */
     val shouldTurnSideways: Boolean

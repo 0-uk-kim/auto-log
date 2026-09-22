@@ -4,7 +4,10 @@ import android.view.OrientationEventListener
 import androidx.camera.compose.CameraXViewfinder
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,6 +19,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -76,6 +80,9 @@ fun CameraScreen(
                     modifier = Modifier
                         // 화면이 9:16보다 납작하면 높이가, 길쭉하면 너비가 기준이 된다 — 프레임 전체가 항상 보인다.
                         .aspectRatio(9f / 16f, matchHeightConstraintsFirst = true)
+                        .pointerInput(Unit) {
+                            detectTransformGestures { _, _, zoom, _ -> viewModel.onPinch(zoom) }
+                        }
                         .testTag(TAG_VIEWFINDER),
                 )
             }
@@ -107,31 +114,39 @@ fun CameraScreen(
                 TurnSidewaysHint()
             }
 
-            Box(
+            Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .safeDrawingPadding()
                     .fillMaxWidth()
                     .padding(Spacing.md),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                uiState.latestClip?.let { clip ->
-                    LatestClipThumbnail(
-                        uri = clip,
-                        onClick = onOpenLatestClip,
-                        modifier = Modifier.align(Alignment.CenterStart),
-                    )
+                uiState.zoomRange?.takeIf { it.isZoomable }?.let { range ->
+                    ZoomControl(range = range, ratio = uiState.zoomRatio, onSelect = viewModel::setZoom)
                 }
 
-                RecordButton(
-                    isRecording = uiState.isRecording,
-                    onClick = { viewModel.toggleRecording(context) },
-                    modifier = Modifier.align(Alignment.Center),
-                )
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    uiState.latestClip?.let { clip ->
+                        LatestClipThumbnail(
+                            uri = clip,
+                            onClick = onOpenLatestClip,
+                            modifier = Modifier.align(Alignment.CenterStart),
+                        )
+                    }
 
-                ClipListButton(
-                    onClick = onOpenClipList,
-                    modifier = Modifier.align(Alignment.CenterEnd),
-                )
+                    RecordButton(
+                        isRecording = uiState.isRecording,
+                        onClick = { viewModel.toggleRecording(context) },
+                        modifier = Modifier.align(Alignment.Center),
+                    )
+
+                    ClipListButton(
+                        onClick = onOpenClipList,
+                        modifier = Modifier.align(Alignment.CenterEnd),
+                    )
+                }
             }
         }
     }
