@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.os.Handler
 import android.os.Looper
+import androidx.media3.common.Effect
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.effect.OverlayEffect
@@ -66,17 +67,17 @@ class ClipMerger @Inject constructor(
             val completion = CompletableDeferred<MergeResult>()
 
             // 효과는 클립마다 따로 건다 — 레터박스는 각 클립을 출력 크기에 맞춰 넣는 일이고,
-            // 자막은 그 클립의 시간에만 걸린다. 자막은 레터박스 뒤에 얹어야 출력 프레임 기준으로 자리 잡는다.
+            // 자막은 그 클립의 시간에만 걸린다. 자막을 레터박스보다 **먼저** 얹어야 클립 영상 위에
+            // 자리 잡는다. 뒤에 얹으면 가로 클립의 자막이 위아래 검은 띠에 떨어져, 편집 화면에서 본
+            // 자리와 어긋난다.
             val presentation = frame?.let {
                 Presentation.createForWidthAndHeight(it.width, it.height, Presentation.LAYOUT_SCALE_TO_FIT)
             }
             val sequence = EditedMediaItemSequence.Builder(
                 clips.map { clip ->
-                    val videoEffects = listOfNotNull(
-                        presentation,
-                        subtitles[clip.id]?.takeIf { it.isNotEmpty() }?.let {
-                            OverlayEffect(listOf(SubtitleBitmapOverlay(it)))
-                        },
+                    val videoEffects = videoEffectsFor(
+                        presentation = presentation,
+                        subtitles = subtitles[clip.id].orEmpty(),
                     )
                     EditedMediaItem.Builder(MediaItem.fromUri(clip.uri))
                         .apply { if (videoEffects.isNotEmpty()) setEffects(Effects(emptyList(), videoEffects)) }
@@ -131,6 +132,17 @@ class ClipMerger @Inject constructor(
             }
         }
     }
+
+    /**
+     * 클립 하나에 걸 영상 효과. **순서가 뜻을 가진다** — 자막을 먼저 얹어야 클립 영상 위에 자리 잡고,
+     * 그 뒤 레터박스가 자막까지 함께 출력 크기로 줄인다. 반대로 걸면 가로 클립의 자막이 위아래
+     * 검은 띠에 떨어져 편집 화면에서 본 자리와 어긋난다.
+     */
+    internal fun videoEffectsFor(presentation: Presentation?, subtitles: List<Subtitle>): List<Effect> =
+        listOfNotNull(
+            subtitles.takeIf { it.isNotEmpty() }?.let { OverlayEffect(listOf(SubtitleBitmapOverlay(it))) },
+            presentation,
+        )
 
     /** 회전 메타데이터까지 반영한, 보이는 그대로의 방향. */
     private fun orientationOf(clip: Clip): CaptureOrientation = MediaMetadataRetriever().use { retriever ->

@@ -10,11 +10,14 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.example.autolog.data.clip.Clip
 import com.example.autolog.data.clip.ClipMediaStoreSource
 import com.example.autolog.data.subtitle.Subtitle
+import androidx.media3.effect.OverlayEffect
+import androidx.media3.effect.Presentation
 import com.example.autolog.data.subtitle.SubtitleStyle
 import java.io.File
 import kotlin.math.abs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Before
@@ -58,6 +61,25 @@ class SubtitleBurnInTest {
         assertTrue("자막 구간 안인데 차이가 작다: $inside", inside > 25)
         assertTrue("자막 구간이 끝났는데 차이가 크다: $outside", outside < 10)
         assertTrue("자막이 없는 첫 클립에 차이가 크다: $firstClip", firstClip < 10)
+    }
+
+    @Test
+    fun 자막은_레터박스보다_먼저_걸린다() {
+        val presentation = Presentation.createForWidthAndHeight(1080, 1920, Presentation.LAYOUT_SCALE_TO_FIT)
+        val subtitle = Subtitle(clipId = 1, startMs = 0, endMs = 1_000, text = "자막")
+
+        val effects = ClipMerger(context).videoEffectsFor(presentation, listOf(subtitle))
+
+        // 순서가 뒤집히면 가로 클립의 자막이 영상이 아니라 검은 띠 위에 놓인다.
+        assertTrue("자막이 먼저여야 한다: $effects", effects.first() is OverlayEffect)
+        assertEquals(presentation, effects.last())
+    }
+
+    @Test
+    fun 자막이_없으면_오버레이를_걸지_않는다() {
+        val effects = ClipMerger(context).videoEffectsFor(presentation = null, subtitles = emptyList())
+
+        assertTrue("걸 효과가 없어야 한다: $effects", effects.isEmpty())
     }
 
     private suspend fun merge(clips: List<Clip>, name: String, subtitles: Map<Long, List<Subtitle>>): File {
