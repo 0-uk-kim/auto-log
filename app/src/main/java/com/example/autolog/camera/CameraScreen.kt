@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.core.view.WindowCompat
@@ -59,6 +60,8 @@ fun CameraScreen(
 
         val surfaceRequest by viewModel.surfaceRequest.collectAsStateWithLifecycle()
         val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+        KeepScreenOn(enabled = uiState.isCapturing)
 
         // 렌즈가 바뀌면 이전 바인딩을 풀고 새 렌즈로 다시 건다.
         LaunchedEffect(lifecycleOwner, uiState.lens) {
@@ -228,6 +231,16 @@ fun CameraScreen(
                 }
             }
         }
+    }
+}
+
+/** 찍는 동안에는 손대지 않아도 화면이 꺼지지 않게 한다 (#81). 꺼지면 액티비티가 멈춰 녹화도 끊긴다. */
+@Composable
+private fun KeepScreenOn(enabled: Boolean) {
+    val view = LocalView.current
+    DisposableEffect(view, enabled) {
+        view.keepScreenOn = enabled
+        onDispose { view.keepScreenOn = false }
     }
 }
 
