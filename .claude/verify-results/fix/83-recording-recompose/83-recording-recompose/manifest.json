@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "83-recording-recompose",
+  "service": "autolog",
+  "feature": "camera",
+  "created": "2026-09-23T15:55:10+09:00",
+  "device": "emulator-5554",
+  "branch": "fix/83-recording-recompose",
+  "commit": "22ddb27",
+  "items": [
+    {
+      "kind": "video",
+      "file": "recording-timer.mp4",
+      "caption": "경과 시간을 초 단위로 내린 뒤에도 녹화 타이머가 1초마다 올라간다",
+      "compare": false,
+      "duration": 19.27,
+      "gif": "recording-timer.gif",
+      "gif_width": 300,
+      "gif_height": 667,
+      "gif_duration": 19.27
+    }
+  ]
+}

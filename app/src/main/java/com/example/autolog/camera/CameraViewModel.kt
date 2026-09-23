@@ -230,7 +230,7 @@ class CameraViewModel @Inject constructor(
 
                     is VideoRecordEvent.Status ->
                         _uiState.update {
-                            it.copy(elapsed = event.recordingStats.recordedDurationNanos.nanosToDuration())
+                            it.copy(elapsed = event.recordingStats.recordedDurationNanos.nanosToWholeSeconds())
                         }
 
                     is VideoRecordEvent.Finalize -> {

@@ -6,6 +6,7 @@ import android.view.Surface
 import java.util.Locale
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 data class CameraUiState(
     val isRecording: Boolean = false,
@@ -54,3 +55,9 @@ fun Duration.formatElapsed(): String = toComponents { hours, minutes, seconds, _
 }
 
 fun Long.nanosToDuration(): Duration = (this / 1_000_000).milliseconds
+
+/**
+ * 화면에 보일 경과 시간. 녹화 상태 이벤트는 초당 수십 번 오는데 화면은 초까지만 보인다 —
+ * 초 아래를 버려야 같은 값이 이어져 상태가 갱신되지 않고, 카메라 화면이 매번 다시 그려지지 않는다 (#83).
+ */
+fun Long.nanosToWholeSeconds(): Duration = (this / 1_000_000_000).seconds
