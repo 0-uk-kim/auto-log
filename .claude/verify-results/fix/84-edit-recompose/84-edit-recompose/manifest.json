@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "84-edit-recompose",
+  "service": "autolog",
+  "feature": "edit",
+  "created": "2026-09-23T16:02:59+09:00",
+  "device": "emulator-5554",
+  "branch": "fix/84-edit-recompose",
+  "commit": "81f217b",
+  "items": [
+    {
+      "kind": "video",
+      "file": "edit-playback.mp4",
+      "caption": "재생 위치를 자막·시크바에서만 읽어도 자막이 0:01.8~0:03.8 구간에만 뜨고 시크바가 따라간다",
+      "compare": false,
+      "duration": 11.02,
+      "gif": "edit-playback.gif",
+      "gif_width": 300,
+      "gif_height": 667,
+      "gif_duration": 11.02
+    }
+  ]
+}
