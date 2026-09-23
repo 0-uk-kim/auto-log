@@ -18,7 +18,6 @@ data class CameraUiState(
     val timelapseProgress: Int? = null,
     /** 직전 촬영본. 있을 때만 좌측 하단 썸네일을 노출한다 (planning 3-1). */
     val latestClip: Uri? = null,
-    val orientation: CaptureOrientation = CaptureOrientation.Portrait,
     /** 기기를 든 방향 ([Surface.ROTATION_0] 등). 화면은 세로로 고정돼 있어 회전해도 레이아웃은 그대로다. */
     val deviceRotation: Int = Surface.ROTATION_0,
     val isMuted: Boolean = false,
@@ -43,21 +42,6 @@ data class CameraUiState(
     /** 타임랩스에는 소리를 담지 않으므로 음소거 전환이 뜻이 없다. */
     val canToggleMute: Boolean
         get() = !timelapse.isOn
-
-    val isDeviceSideways: Boolean
-        get() = isSideways(deviceRotation)
-
-    /**
-     * 고른 방향과 기기를 든 방향이 어긋나면 그쪽으로 돌리라고 알린다 — 그대로 찍으면 옆으로 누운
-     * 영상이 된다. 맞게 들고 있거나 녹화 중이면 null. 카운트다운 중에는 숫자가 그 자리를 쓴다.
-     */
-    val turnHint: CaptureOrientation?
-        get() = when {
-            isCapturing -> null
-            orientation == CaptureOrientation.Landscape && !isDeviceSideways -> CaptureOrientation.Landscape
-            orientation == CaptureOrientation.Portrait && isDeviceSideways -> CaptureOrientation.Portrait
-            else -> null
-        }
 }
 
 /** 녹화 경과 시간. 한 시간을 넘기면 자리를 하나 더 쓴다 — 클립 길이에 제한이 없다 (planning 6). */
