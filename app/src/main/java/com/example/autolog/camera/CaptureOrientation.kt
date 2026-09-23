@@ -7,20 +7,14 @@ import android.view.Surface
 enum class CaptureOrientation {
     Portrait,
     Landscape,
-    ;
-
-    fun toggled(): CaptureOrientation = if (this == Portrait) Landscape else Portrait
 }
 
 /**
- * 녹화에 줄 target rotation. 세로는 기기를 어떻게 들든 세로로 남기고, 가로는 기기가 눕혀진 쪽을
- * 따른다 — 반대쪽으로 눕히면 위아래가 뒤집혀 찍힌다. 아직 세워 들고 있으면 왼쪽으로 눕힌 것으로 본다.
+ * 녹화에 줄 target rotation (#79). 눕혀 들었으면 눕혀진 쪽을 따라 가로로, 아니면 세로로 찍는다.
+ * 거꾸로 든 것은 세로로 본다 — 책상에 놓인 기기가 뒤집힌 것으로 읽히면 영상이 거꾸로 남는다.
  */
-fun CaptureOrientation.targetRotation(deviceRotation: Int): Int = when (this) {
-    CaptureOrientation.Portrait -> Surface.ROTATION_0
-    CaptureOrientation.Landscape ->
-        if (deviceRotation == Surface.ROTATION_270) Surface.ROTATION_270 else Surface.ROTATION_90
-}
+fun recordingRotation(deviceRotation: Int): Int =
+    if (isSideways(deviceRotation)) deviceRotation else Surface.ROTATION_0
 
 /**
  * [OrientationEventListener]의 기울기(도)를 화면 회전값으로 바꾼다. 기기를 시계 방향으로 돌리면

@@ -8,16 +8,15 @@ import org.junit.Test
 class CaptureOrientationTest {
 
     @Test
-    fun `세로는 기기를 어떻게 들든 세로로 찍는다`() {
-        assertEquals(Surface.ROTATION_0, CaptureOrientation.Portrait.targetRotation(Surface.ROTATION_90))
+    fun `세워 들면 세로로 찍는다`() {
+        assertEquals(Surface.ROTATION_0, recordingRotation(Surface.ROTATION_0))
+        assertEquals(Surface.ROTATION_0, recordingRotation(Surface.ROTATION_180))
     }
 
     @Test
-    fun `가로는 기기가 눕혀진 쪽을 따르고 세워 들면 왼쪽으로 본다`() {
-        val landscape = CaptureOrientation.Landscape
-        assertEquals(Surface.ROTATION_270, landscape.targetRotation(Surface.ROTATION_270))
-        assertEquals(Surface.ROTATION_90, landscape.targetRotation(Surface.ROTATION_90))
-        assertEquals(Surface.ROTATION_90, landscape.targetRotation(Surface.ROTATION_0))
+    fun `눕혀 들면 눕혀진 쪽을 따라 가로로 찍는다`() {
+        assertEquals(Surface.ROTATION_90, recordingRotation(Surface.ROTATION_90))
+        assertEquals(Surface.ROTATION_270, recordingRotation(Surface.ROTATION_270))
     }
 
     @Test

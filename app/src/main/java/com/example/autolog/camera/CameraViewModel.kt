@@ -79,7 +79,6 @@ class CameraViewModel @Inject constructor(
         .build()
 
     private val _uiState = MutableStateFlow(CameraUiState(
-            orientation = settingsStore.orientation,
             isMuted = settingsStore.isMuted,
             lens = settingsStore.lens,
             timer = settingsStore.timer,
@@ -113,14 +112,6 @@ class CameraViewModel @Inject constructor(
             latestClip = latest
             _uiState.update { it.copy(latestClip = latest) }
         }
-    }
-
-    /** 녹화 중에는 바꾸지 않는다 — 한 클립 안에서 방향이 바뀔 수 없다. */
-    fun toggleOrientation() {
-        if (_uiState.value.isCapturing) return
-        val next = _uiState.value.orientation.toggled()
-        settingsStore.orientation = next
-        _uiState.update { it.copy(orientation = next) }
     }
 
     /** 녹화 중에는 바꾸지 않는다 — 다시 바인딩하면 진행 중인 녹화가 끊긴다. 바인딩은 화면이 lens를 보고 다시 건다. */
@@ -217,8 +208,8 @@ class CameraViewModel @Inject constructor(
 
     @SuppressLint("MissingPermission") // 권한이 있을 때만 그려지는 화면에서만 호출된다 (CameraPermissionGate)
     private fun startRecording(context: Context) {
-        // 방향은 녹화를 시작할 때 파일에 새겨진다. 녹화 중에 기기를 돌려도 바뀌지 않는다.
-        videoCapture.targetRotation = _uiState.value.orientation.targetRotation(deviceRotation)
+        // 방향은 녹화를 시작할 때 든 방향으로 파일에 새겨진다. 녹화 중에 기기를 돌려도 바뀌지 않는다.
+        videoCapture.targetRotation = recordingRotation(deviceRotation)
         val timelapse = _uiState.value.timelapse
         val startedAt = LocalDateTime.now()
         // 타임랩스는 원본을 캐시에 찍어 두고 끝난 뒤 배속을 올려 갤러리에 넣는다. 소리는 담지 않는다.

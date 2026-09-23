@@ -12,12 +12,6 @@ class CameraSettingsStore @Inject constructor(
 ) {
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    var orientation: CaptureOrientation
-        get() = prefs.getString(KEY_ORIENTATION, null)
-            ?.let { saved -> CaptureOrientation.entries.firstOrNull { it.name == saved } }
-            ?: CaptureOrientation.Portrait
-        set(value) = prefs.edit().putString(KEY_ORIENTATION, value.name).apply()
-
     var isMuted: Boolean
         get() = prefs.getBoolean(KEY_MUTED, false)
         set(value) = prefs.edit().putBoolean(KEY_MUTED, value).apply()
@@ -42,7 +36,6 @@ class CameraSettingsStore @Inject constructor(
 
     private companion object {
         const val PREFS_NAME = "camera"
-        const val KEY_ORIENTATION = "capture_orientation"
         const val KEY_MUTED = "muted"
         const val KEY_LENS = "lens"
         const val KEY_TIMER = "record_timer"

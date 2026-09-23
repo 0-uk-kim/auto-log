@@ -10,7 +10,6 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -30,7 +29,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.min
 import androidx.core.view.WindowCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -84,15 +82,12 @@ fun CameraScreen(
             onPauseOrDispose { viewModel.cancelCountdown() }
         }
 
-        BoxWithConstraints(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(CameraBackground),
             contentAlignment = Alignment.Center,
         ) {
-            // 프리뷰 틀의 폭. 9:16보다 넓은 화면에서는 양옆이 검은띠라, 상단 칩은 띠가 아니라 틀 끝에 붙인다.
-            val frameWidth = min(maxWidth, maxHeight * 9f / 16f)
-
             // 촬영 규격이 9:16이므로 프리뷰도 같은 비율로 가둔다 — 보이는 것과 찍히는 것을 맞춘다.
             // 가로 촬영은 기기를 눕혀 찍으므로 이 프레임이 그대로 16:9 가로 영상이 된다.
             surfaceRequest?.let { request ->
@@ -144,25 +139,6 @@ fun CameraScreen(
                 )
             }
 
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .width(frameWidth)
-                    .safeDrawingPadding()
-                    .padding(Spacing.md),
-            ) {
-                AnimatedVisibility(
-                    visible = !uiState.isCapturing,
-                    modifier = Modifier.align(Alignment.TopEnd),
-                ) {
-                    OrientationToggle(
-                        orientation = uiState.orientation,
-                        onClick = viewModel::toggleOrientation,
-                    )
-                }
-            }
-
-            uiState.turnHint?.let { TurnDeviceHint(target = it, deviceRotation = uiState.deviceRotation) }
             uiState.countdown?.let { CountdownNumber(secondsLeft = it, deviceRotation = uiState.deviceRotation) }
 
             Column(
