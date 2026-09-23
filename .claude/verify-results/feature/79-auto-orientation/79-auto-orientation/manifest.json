@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "79-auto-orientation",
+  "service": "autolog",
+  "feature": "camera",
+  "created": "2026-09-23T13:28:24+09:00",
+  "device": "emulator-5554",
+  "branch": "feature/79-auto-orientation",
+  "commit": "da4df6a",
+  "items": [
+    {
+      "kind": "image",
+      "file": "auto-orientation.png",
+      "caption": "가로/세로 토글 없이 기기를 든 방향대로 저장",
+      "compare": false,
+      "panels": 3,
+      "width": 1600,
+      "height": 1221,
+      "text_px": 18,
+      "text_lines": 9
+    }
+  ]
+}
