@@ -108,11 +108,6 @@ fun CameraScreen(
                         .pointerInput(Unit) {
                             detectTapGestures(onDoubleTap = { viewModel.toggleLens() })
                         }
-                        .lensSwipe(
-                            // 가로 모드는 눕혀 드므로, 든 사람 기준 위아래가 화면의 좌우다.
-                            alongScreenWidth = uiState.orientation == CaptureOrientation.Landscape,
-                            onSwipe = viewModel::toggleLens,
-                        )
                         .testTag(TAG_VIEWFINDER),
                 )
             }
@@ -202,7 +197,7 @@ fun CameraScreen(
                     RecordTimerToggle(timer = uiState.timer, onClick = viewModel::cycleTimer)
                 }
 
-                // 줌과 한 줄에 두어 하단 영역 높이를 늘리지 않는다. 음소거는 썸네일 폭 안 가운데에 맞춘다.
+                // 줌과 한 줄에 두어 하단 영역 높이를 늘리지 않는다. 음소거는 썸네일 폭 안 가운데, 렌즈 전환은 목록 버튼 바로 위에 맞춘다.
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Box(
                         modifier = Modifier
@@ -219,6 +214,18 @@ fun CameraScreen(
 
                     uiState.zoomRange?.takeIf { it.isZoomable }?.let { range ->
                         ZoomControl(range = range, ratio = uiState.zoomRatio, onSelect = viewModel::setZoom)
+                    }
+
+                    // 녹화 중에는 바꿀 수 없으니 숨긴다.
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .width(CameraDimens.cornerAction),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        androidx.compose.animation.AnimatedVisibility(visible = uiState.canSwitchLens && !uiState.isCapturing) {
+                            LensToggle(lens = uiState.lens, onClick = viewModel::toggleLens)
+                        }
                     }
                 }
 
