@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "slug": "77-subtitle-letterbox",
+  "service": "auto-log",
+  "feature": "vlog",
+  "created": "2026-09-23T12:10:41+09:00",
+  "device": "emupool-api35-1 (Android 15)",
+  "branch": "fix/77-subtitle-letterbox",
+  "commit": "1842833",
+  "items": [
+    {
+      "kind": "image",
+      "file": "landscape-subtitle.png",
+      "caption": "가로 클립이 섞인 날의 브이로그 결과물 — AS-IS(좌) / TO-BE(우)\nAS-IS는 자막이 영상 아래 검은 띠에 떨어져 상자 배경도 묻힘\nTO-BE는 클립 영상 안 하단 중앙 — 영상 높이 기준 아래여백 7.9%, 편집 화면과 같은 자리",
+      "compare": true,
+      "width": 708,
+      "height": 620
+    },
+    {
+      "kind": "image",
+      "file": "edit-screen-position.png",
+      "caption": "회전 메타데이터(-90)가 붙은 카메라 촬영 클립의 편집 화면 자막 위치\n영상 프레임 하단 중앙 — 아래여백 8.09%, 폭 46.0%",
+      "compare": false,
+      "width": 1080,
+      "height": 2400,
+      "text_px": 34,
+      "text_lines": 7
+    }
+  ]
+}
