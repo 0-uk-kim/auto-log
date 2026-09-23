@@ -15,6 +15,9 @@
     <string name="camera_orientation_toggle">촬영 방향 %s — 눌러서 바꾸기</string>
     <string name="camera_zoom_preset">%s 배율로 바꾸기</string>
     <string name="camera_sound_on">소리 켬</string>
+    <string name="camera_lens_back">후면 카메라</string>
+    <string name="camera_lens_front">셀카</string>
+    <string name="camera_lens_toggle">%s — 눌러서 바꾸기</string>
     <string name="camera_sound_muted">음소거</string>
     <string name="camera_mute_toggle">녹음 %s — 눌러서 바꾸기</string>
     <string name="camera_turn_sideways">휴대폰을 가로로 눕혀 주세요</string>
