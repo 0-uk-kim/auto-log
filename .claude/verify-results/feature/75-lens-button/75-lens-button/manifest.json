@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "75-lens-button",
+  "service": "auto-log",
+  "feature": "camera",
+  "created": "2026-09-23T10:01:08+09:00",
+  "device": "SM-F971N (Android 17)",
+  "branch": "feature/75-lens-button",
+  "commit": "936b443",
+  "items": [
+    {
+      "kind": "video",
+      "file": "lens-button.mp4",
+      "caption": "목록 버튼 위 셀카 버튼으로 렌즈 전환\n위로 쓸어도 전환되지 않음\n버튼을 누르면 전면으로 전환 — 0.6x 버튼이 사라짐\n아래로 쓸어도 그대로 전면\n다시 누르면 후면으로 복귀",
+      "compare": false,
+      "duration": 22.03,
+      "gif": "lens-button.gif",
+      "gif_width": 320,
+      "gif_height": 506,
+      "gif_duration": 22.03
+    }
+  ]
+}
