@@ -51,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.autolog.R
 import com.example.autolog.calendar.CalendarSheet
 import com.example.autolog.data.clip.Clip
+import com.example.autolog.diagnostics.DiagnosticsMenu
 import com.example.autolog.permission.MediaAccess
 import com.example.autolog.permission.openAppSettings
 import com.example.autolog.permission.rememberMediaAccessRequest
@@ -139,6 +140,7 @@ fun ClipListScreen(
                                 contentDescription = stringResource(R.string.clip_list_open_calendar),
                             )
                         }
+                        DiagnosticsMenu()
                     },
                 )
             }

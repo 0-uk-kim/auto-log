@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 내보낼 zip만 연다. 모아 둔 트레이스(filesDir/anr)는 zip에 담겨서만 나간다 (#88). -->
+<paths>
+    <cache-path
+        name="diagnostics"
+        path="diagnostics/" />
+</paths>

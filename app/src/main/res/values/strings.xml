@@ -40,6 +40,10 @@
     <string name="clip_list_selected_count">%d개 선택</string>
     <string name="clip_list_delete_selected">선택한 영상 삭제</string>
     <string name="clip_list_swipe_delete">밀어서 삭제</string>
+    <string name="diagnostics_more">더보기</string>
+    <string name="diagnostics_send">진단 정보 보내기</string>
+    <string name="diagnostics_empty">보낼 진단 정보가 없어요</string>
+    <string name="diagnostics_subject">AutoLog 진단 정보</string>
 
     <!-- 달력 (#19) -->
     <string name="calendar_month_title">%1$d년 %2$d월</string>
