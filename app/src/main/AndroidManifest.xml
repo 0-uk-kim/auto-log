@@ -45,6 +45,17 @@
                 tools:node="remove" />
         </provider>
 
+        <!-- 진단 정보 zip을 공유 시트로 넘긴다 (#88). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.diagnostics"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/diagnostics_paths" />
+        </provider>
+
         <!-- 1차는 9:16 세로 촬영 고정이라 화면도 세로로 잠근다 (planning 6-1). -->
         <activity
             android:name=".MainActivity"
