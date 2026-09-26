@@ -18,7 +18,6 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -132,28 +131,38 @@ private fun ClipEditor(
         onPauseOrDispose { player.pause() }
     }
 
-    // 위치는 50ms마다 바뀐다. 여기서 읽으면 자막 입력창까지 편집 화면 전체가 그때마다 다시 그려지므로
-    // 위치를 실제로 그리는 자막과 시크바에서만 읽는다 (#84).
-    val position = rememberPlaybackPosition(player)
+    val position by rememberPlaybackPosition(player)
     // 플레이어가 길이를 읽기 전에는 MediaStore 값으로 버틴다 — 둘은 수 ms 차이뿐이다.
-    // 상태가 아니라서 쓰는 순간에 읽는다 — 이 화면은 이제 위치가 바뀌어도 다시 그려지지 않는다.
-    val duration = { player.duration.takeIf { it > 0 } ?: clip.durationMs }
+    val duration = player.duration.takeIf { it > 0 } ?: clip.durationMs
 
     Column(modifier = modifier.fillMaxSize().imePadding()) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
             VideoSurface(player = player) {
-                val shown = remember(subtitles, draft) { subtitles.withDraft(draft, clip.id) }
-                // 자막은 구간이 바뀔 때만 바뀐다. 위치가 바뀔 때마다 다시 그리지 않는다.
-                val text by remember(shown) { derivedStateOf { shown.textAt(position.value) } }
-                SubtitleOverlay(text)
+                SubtitleOverlay(subtitles.withDraft(draft, clip.id).textAt(position))
             }
         }
 
         Column(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
-            SeekBar(
-                position = { position.value },
-                duration = duration,
-                onSeek = player::seekTo,
+            Slider(
+                value = position.coerceIn(0, duration).toFloat(),
+                onValueChange = { player.seekTo(it.toLong()) },
+                valueRange = 0f..duration.coerceAtLeast(1).toFloat(),
+                colors = SliderDefaults.colors(
+                    thumbColor = CameraControlTint,
+                    activeTrackColor = CameraControlTint,
+                    inactiveTrackColor = CameraControlTint.copy(alpha = 0.3f),
+                    inactiveTickColor = CameraControlTint.copy(alpha = 0.3f),
+                ),
+                modifier = Modifier.testTag(TAG_EDIT_SEEK),
+            )
+            Text(
+                text = stringResource(
+                    R.string.edit_position,
+                    formatClipDuration(position),
+                    formatClipDuration(duration),
+                ),
+                style = MaterialTheme.typography.labelLarge,
+                color = CameraControlTint,
             )
 
             if (draft == null) {
@@ -162,7 +171,7 @@ private fun ClipEditor(
                     onAdd = {
                         // 입력하는 동안 영상이 흘러가면 찍어 둔 위치를 놓친다.
                         player.pause()
-                        actions.startNew(player.currentPosition, duration())
+                        actions.startNew(player.currentPosition, duration)
                     },
                     onSelect = { subtitle ->
                         player.pause()
@@ -173,8 +182,8 @@ private fun ClipEditor(
             } else {
                 SubtitleEditor(
                     draft = draft,
-                    onMarkStart = { actions.markStart(player.currentPosition, duration()) },
-                    onMarkEnd = { actions.markEnd(player.currentPosition, duration()) },
+                    onMarkStart = { actions.markStart(player.currentPosition, duration) },
+                    onMarkEnd = { actions.markEnd(player.currentPosition, duration) },
                     onTextChange = actions::setText,
                     onSave = actions::save,
                     onCancel = actions::cancel,
@@ -183,31 +192,4 @@ private fun ClipEditor(
             }
         }
     }
-}
-
-@Composable
-private fun SeekBar(position: () -> Long, duration: () -> Long, onSeek: (Long) -> Unit) {
-    val current = position()
-    val total = duration()
-    Slider(
-        value = current.coerceIn(0, total).toFloat(),
-        onValueChange = { onSeek(it.toLong()) },
-        valueRange = 0f..total.coerceAtLeast(1).toFloat(),
-        colors = SliderDefaults.colors(
-            thumbColor = CameraControlTint,
-            activeTrackColor = CameraControlTint,
-            inactiveTrackColor = CameraControlTint.copy(alpha = 0.3f),
-            inactiveTickColor = CameraControlTint.copy(alpha = 0.3f),
-        ),
-        modifier = Modifier.testTag(TAG_EDIT_SEEK),
-    )
-    Text(
-        text = stringResource(
-            R.string.edit_position,
-            formatClipDuration(current),
-            formatClipDuration(total),
-        ),
-        style = MaterialTheme.typography.labelLarge,
-        color = CameraControlTint,
-    )
 }
