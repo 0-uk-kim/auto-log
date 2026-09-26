@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "88-anr-report",
+  "service": "autolog",
+  "feature": "diagnostics",
+  "created": "2026-09-26T21:57:17+09:00",
+  "device": "emulator-5554",
+  "branch": "feature/88-anr-report",
+  "commit": "d34d628",
+  "items": [
+    {
+      "kind": "video",
+      "file": "anr-report.mp4",
+      "caption": "ANR로 앱을 닫은 뒤 다시 켜면 트레이스가 모이고, 목록 메뉴의 진단 정보 보내기로 zip이 공유 시트에 뜬다",
+      "compare": false,
+      "duration": 31.3,
+      "gif": "anr-report.gif",
+      "gif_width": 300,
+      "gif_height": 667,
+      "gif_duration": 31.3
+    }
+  ]
+}
