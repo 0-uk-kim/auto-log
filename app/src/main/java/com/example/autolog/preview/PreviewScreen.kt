@@ -41,10 +41,6 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.autolog.R
 import com.example.autolog.data.clip.Clip
-import com.example.autolog.data.subtitle.Subtitle
-import com.example.autolog.data.subtitle.textAt
-import com.example.autolog.ui.SubtitleOverlay
-import com.example.autolog.ui.rememberPlaybackPosition
 import com.example.autolog.ui.VideoSurface
 import com.example.autolog.ui.rememberClipThumbnail
 import com.example.autolog.ui.theme.CameraBackground
@@ -71,7 +67,6 @@ fun PreviewScreen(
     viewModel: PreviewViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val subtitles by viewModel.subtitles.collectAsStateWithLifecycle()
 
     Box(
         modifier = modifier
@@ -93,7 +88,6 @@ fun PreviewScreen(
             is PreviewUiState.Ready -> ClipPager(
                 clips = state.clips,
                 startIndex = state.startIndex,
-                subtitles = subtitles,
                 onEdit = onEdit,
             )
         }
@@ -125,7 +119,6 @@ fun PreviewScreen(
 private fun ClipPager(
     clips: List<Clip>,
     startIndex: Int,
-    subtitles: Map<Long, List<Subtitle>>,
     onEdit: (clipId: Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -168,12 +161,7 @@ private fun ClipPager(
     Box(modifier = modifier.fillMaxSize()) {
         HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
             if (page == pagerState.settledPage) {
-                VideoSurface(player = player) {
-                    val position by rememberPlaybackPosition(player)
-                    // 페이지가 확정된 뒤 플레이어가 그 클립으로 옮겨 가기 전 잠깐은 앞 클립 위치다 — 그때는 비운다.
-                    val showing = player.currentMediaItemIndex == page
-                    SubtitleOverlay(if (showing) subtitles[clips[page].id].orEmpty().textAt(position) else null)
-                }
+                VideoSurface(player = player)
             } else {
                 // 넘기는 중 옆 페이지는 썸네일로 채운다 — 표면은 하나뿐이라 여기에 붙일 것이 없다.
                 NeighbourClip(clip = clips[page])

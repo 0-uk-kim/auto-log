@@ -35,9 +35,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import com.example.autolog.R
 import com.example.autolog.data.clip.Clip
 import com.example.autolog.data.subtitle.Subtitle
-import com.example.autolog.data.subtitle.textAt
 import com.example.autolog.list.formatClipDuration
-import com.example.autolog.ui.SubtitleOverlay
 import com.example.autolog.ui.VideoSurface
 import com.example.autolog.ui.rememberPlaybackPosition
 import com.example.autolog.ui.theme.CameraBackground
@@ -137,9 +135,7 @@ private fun ClipEditor(
 
     Column(modifier = modifier.fillMaxSize().imePadding()) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            VideoSurface(player = player) {
-                SubtitleOverlay(subtitles.withDraft(draft, clip.id).textAt(position))
-            }
+            VideoSurface(player = player)
         }
 
         Column(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
