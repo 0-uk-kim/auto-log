@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "phase-2-rollback",
+  "service": "auto-log",
+  "feature": "preview",
+  "created": "2026-09-26T21:35:48+09:00",
+  "device": "emupool-api36-1 (Android 16)",
+  "branch": "revert/phase-2-subtitles",
+  "commit": "da84bd6",
+  "items": [
+    {
+      "kind": "video",
+      "file": "rollback.mp4",
+      "caption": "미리보기에 편집 버튼이 없어 자막 화면으로 갈 길이 사라짐 (뒤로·위치 표시만)\n좌우 스와이프와 재생은 그대로\n브이로그 생성·결과 재생·공유는 자막 없이 그대로 동작",
+      "compare": false,
+      "duration": 40.02,
+      "gif": "rollback.gif",
+      "gif_width": 360,
+      "gif_height": 800,
+      "gif_duration": 40.02
+    }
+  ]
+}

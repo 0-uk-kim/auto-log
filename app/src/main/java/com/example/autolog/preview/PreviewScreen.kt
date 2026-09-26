@@ -41,10 +41,6 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.autolog.R
 import com.example.autolog.data.clip.Clip
-import com.example.autolog.data.subtitle.Subtitle
-import com.example.autolog.data.subtitle.textAt
-import com.example.autolog.ui.SubtitleOverlay
-import com.example.autolog.ui.rememberPlaybackPosition
 import com.example.autolog.ui.VideoSurface
 import com.example.autolog.ui.rememberClipThumbnail
 import com.example.autolog.ui.theme.CameraBackground
@@ -53,25 +49,21 @@ import com.example.autolog.ui.theme.CameraScrim
 import com.example.autolog.ui.theme.Spacing
 
 const val TAG_POSITION = "preview-position"
-const val TAG_PREVIEW_EDIT = "preview-edit"
 
 /**
  * 목록 순서를 따라 클립을 재생한다 (planning 6 "미리보기 재생 범위").
  *
  * 단일 클립 플레이어가 아니라 **페이저**다 — 좌우로 넘기면 이전·다음 클립으로 간다.
- * 우측 상단 편집 버튼은 지금 보고 있는 클립의 편집 화면을 연다 (planning 5 "2차").
  */
 @Composable
 fun PreviewScreen(
     date: String,
     clipIndex: Int,
     onBack: () -> Unit,
-    onEdit: (clipId: Long) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PreviewViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val subtitles by viewModel.subtitles.collectAsStateWithLifecycle()
 
     Box(
         modifier = modifier
@@ -93,8 +85,6 @@ fun PreviewScreen(
             is PreviewUiState.Ready -> ClipPager(
                 clips = state.clips,
                 startIndex = state.startIndex,
-                subtitles = subtitles,
-                onEdit = onEdit,
             )
         }
 
@@ -122,13 +112,7 @@ fun PreviewScreen(
  */
 @OptIn(UnstableApi::class)
 @Composable
-private fun ClipPager(
-    clips: List<Clip>,
-    startIndex: Int,
-    subtitles: Map<Long, List<Subtitle>>,
-    onEdit: (clipId: Long) -> Unit,
-    modifier: Modifier = Modifier,
-) {
+private fun ClipPager(clips: List<Clip>, startIndex: Int, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val player = remember {
         ExoPlayer.Builder(context)
@@ -168,12 +152,7 @@ private fun ClipPager(
     Box(modifier = modifier.fillMaxSize()) {
         HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
             if (page == pagerState.settledPage) {
-                VideoSurface(player = player) {
-                    val position by rememberPlaybackPosition(player)
-                    // 페이지가 확정된 뒤 플레이어가 그 클립으로 옮겨 가기 전 잠깐은 앞 클립 위치다 — 그때는 비운다.
-                    val showing = player.currentMediaItemIndex == page
-                    SubtitleOverlay(if (showing) subtitles[clips[page].id].orEmpty().textAt(position) else null)
-                }
+                VideoSurface(player = player)
             } else {
                 // 넘기는 중 옆 페이지는 썸네일로 채운다 — 표면은 하나뿐이라 여기에 붙일 것이 없다.
                 NeighbourClip(clip = clips[page])
@@ -189,21 +168,6 @@ private fun ClipPager(
                 .safeDrawingPadding()
                 .padding(top = Spacing.md),
         )
-
-        IconButton(
-            onClick = { onEdit(clips[pagerState.currentPage].id) },
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .safeDrawingPadding()
-                .padding(Spacing.sm)
-                .testTag(TAG_PREVIEW_EDIT),
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_edit),
-                contentDescription = stringResource(R.string.preview_edit),
-                tint = CameraControlTint,
-            )
-        }
     }
 }
 

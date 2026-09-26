@@ -3,7 +3,6 @@ package com.example.autolog.data.clip
 import android.content.IntentSender
 import com.example.autolog.data.db.ClipOrderDao
 import com.example.autolog.data.db.ClipOrderEntity
-import com.example.autolog.data.db.SubtitleDao
 import com.example.autolog.data.db.VlogDao
 import java.time.LocalDate
 import java.time.ZoneId
@@ -21,7 +20,6 @@ class ClipRepository @Inject constructor(
     private val mediaStoreSource: ClipMediaStoreSource,
     private val clipOrderDao: ClipOrderDao,
     private val vlogDao: VlogDao,
-    private val subtitleDao: SubtitleDao,
 ) {
 
     suspend fun clipsByDate(): Map<LocalDate, List<Clip>> {
@@ -72,22 +70,18 @@ class ClipRepository @Inject constructor(
      * 그대로 둬도 [applySavedOrder]가 position 순으로 읽어 유지된다.
      */
     suspend fun forgetDeleted(clips: List<Clip>) {
-        val ids = clips.map { it.id }
-        clipOrderDao.deleteByIds(ids)
-        subtitleDao.deleteByClips(ids)
+        clipOrderDao.deleteByIds(clips.map { it.id })
     }
 
     /**
-     * 앱 밖에서 지워진 클립의 순서 행과 자막을 걷어낸다.
+     * 앱 밖에서 지워진 클립의 순서 행을 걷어낸다.
      *
      * 스캔 결과가 비었을 때는 건드리지 않는다 — 진짜로 클립이 없는 것과 권한이 없어 못 읽은 것을
      * 여기서 구분할 수 없어서, 한 번의 빈 조회로 사용자가 정한 순서를 날리지 않게 한다.
      */
     private suspend fun removeOrphanOrders(clips: List<Clip>) {
         if (clips.isEmpty()) return
-        val ids = clips.map { it.id }
-        clipOrderDao.deleteMissing(ids)
-        subtitleDao.deleteMissing(ids)
+        clipOrderDao.deleteMissing(clips.map { it.id })
     }
 }
 
