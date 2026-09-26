@@ -49,20 +49,17 @@ import com.example.autolog.ui.theme.CameraScrim
 import com.example.autolog.ui.theme.Spacing
 
 const val TAG_POSITION = "preview-position"
-const val TAG_PREVIEW_EDIT = "preview-edit"
 
 /**
  * 목록 순서를 따라 클립을 재생한다 (planning 6 "미리보기 재생 범위").
  *
  * 단일 클립 플레이어가 아니라 **페이저**다 — 좌우로 넘기면 이전·다음 클립으로 간다.
- * 우측 상단 편집 버튼은 지금 보고 있는 클립의 편집 화면을 연다 (planning 5 "2차").
  */
 @Composable
 fun PreviewScreen(
     date: String,
     clipIndex: Int,
     onBack: () -> Unit,
-    onEdit: (clipId: Long) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PreviewViewModel = hiltViewModel(),
 ) {
@@ -88,7 +85,6 @@ fun PreviewScreen(
             is PreviewUiState.Ready -> ClipPager(
                 clips = state.clips,
                 startIndex = state.startIndex,
-                onEdit = onEdit,
             )
         }
 
@@ -116,12 +112,7 @@ fun PreviewScreen(
  */
 @OptIn(UnstableApi::class)
 @Composable
-private fun ClipPager(
-    clips: List<Clip>,
-    startIndex: Int,
-    onEdit: (clipId: Long) -> Unit,
-    modifier: Modifier = Modifier,
-) {
+private fun ClipPager(clips: List<Clip>, startIndex: Int, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val player = remember {
         ExoPlayer.Builder(context)
@@ -177,21 +168,6 @@ private fun ClipPager(
                 .safeDrawingPadding()
                 .padding(top = Spacing.md),
         )
-
-        IconButton(
-            onClick = { onEdit(clips[pagerState.currentPage].id) },
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .safeDrawingPadding()
-                .padding(Spacing.sm)
-                .testTag(TAG_PREVIEW_EDIT),
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_edit),
-                contentDescription = stringResource(R.string.preview_edit),
-                tint = CameraControlTint,
-            )
-        }
     }
 }
 
