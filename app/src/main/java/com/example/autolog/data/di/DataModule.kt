@@ -6,7 +6,6 @@ import androidx.room.Room
 import androidx.work.WorkManager
 import com.example.autolog.data.db.AutoLogDatabase
 import com.example.autolog.data.db.ClipOrderDao
-import com.example.autolog.data.db.SubtitleDao
 import com.example.autolog.data.db.VlogDao
 import dagger.Module
 import dagger.Provides
@@ -39,7 +38,4 @@ object DataModule {
 
     @Provides
     fun provideVlogDao(database: AutoLogDatabase): VlogDao = database.vlogDao()
-
-    @Provides
-    fun provideSubtitleDao(database: AutoLogDatabase): SubtitleDao = database.subtitleDao()
 }
