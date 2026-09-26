@@ -6,7 +6,6 @@ import android.os.Handler
 import android.os.Looper
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
-import androidx.media3.effect.OverlayEffect
 import androidx.media3.effect.Presentation
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
@@ -18,7 +17,6 @@ import androidx.media3.transformer.ProgressHolder
 import androidx.media3.transformer.Transformer
 import com.example.autolog.camera.CaptureOrientation
 import com.example.autolog.data.clip.Clip
-import com.example.autolog.data.subtitle.Subtitle
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -37,7 +35,7 @@ data class MergeResult(val durationMs: Long, val fileSizeBytes: Long)
  *
  * 클립 방향이 모두 같으면 회전 보정도 레터박스도 필요 없어 Transformer가 대부분 구간을
  * 다시 인코딩하지 않고 그대로 옮겨 담는다. 세로·가로가 섞이면 [mergeFrameFor]가 정한 크기로
- * 모두 다시 그린다 (#40). 자막이 있는 클립도 그 위에 글을 새기느라 다시 그린다 (2차).
+ * 모두 다시 그린다 (#40).
  * 출력 코덱은 공유 대상 플랫폼이 공통으로 요구하는 H.264 + AAC로 못 박는다.
  */
 @Singleton
@@ -47,7 +45,6 @@ class ClipMerger @Inject constructor(
 
     /**
      * [clips]를 받은 순서 그대로 [outputPath]에 이어붙이고, 진행률을 [onProgress]로 흘린다.
-     * [subtitles]는 클립 id → 그 클립의 자막이다.
      *
      * Transformer는 Looper가 있는 스레드에서만 시작할 수 있어 메인에서 띄우고, 실제 작업은
      * 자기 내부 스레드에서 돈다. 호출이 취소되면 진행 중인 내보내기도 같이 접는다.
@@ -55,7 +52,6 @@ class ClipMerger @Inject constructor(
     suspend fun merge(
         clips: List<Clip>,
         outputPath: String,
-        subtitles: Map<Long, List<Subtitle>> = emptyMap(),
         onProgress: (percent: Int) -> Unit = {},
     ): MergeResult {
         require(clips.isNotEmpty()) { "이어붙일 클립이 없다" }
@@ -65,21 +61,17 @@ class ClipMerger @Inject constructor(
         return withContext(Dispatchers.Main) {
             val completion = CompletableDeferred<MergeResult>()
 
-            // 효과는 클립마다 따로 건다 — 레터박스는 각 클립을 출력 크기에 맞춰 넣는 일이고,
-            // 자막은 그 클립의 시간에만 걸린다. 자막은 레터박스 뒤에 얹어야 출력 프레임 기준으로 자리 잡는다.
-            val presentation = frame?.let {
-                Presentation.createForWidthAndHeight(it.width, it.height, Presentation.LAYOUT_SCALE_TO_FIT)
+            // 효과는 클립마다 따로 건다 — 레터박스는 각 클립을 출력 크기에 맞춰 넣는 일이다.
+            val effects = frame?.let {
+                Effects(
+                    emptyList(),
+                    listOf(Presentation.createForWidthAndHeight(it.width, it.height, Presentation.LAYOUT_SCALE_TO_FIT)),
+                )
             }
             val sequence = EditedMediaItemSequence.Builder(
                 clips.map { clip ->
-                    val videoEffects = listOfNotNull(
-                        presentation,
-                        subtitles[clip.id]?.takeIf { it.isNotEmpty() }?.let {
-                            OverlayEffect(listOf(SubtitleBitmapOverlay(it)))
-                        },
-                    )
                     EditedMediaItem.Builder(MediaItem.fromUri(clip.uri))
-                        .apply { if (videoEffects.isNotEmpty()) setEffects(Effects(emptyList(), videoEffects)) }
+                        .apply { effects?.let(::setEffects) }
                         .build()
                 },
             ).build()

@@ -10,7 +10,6 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.example.autolog.data.clip.ClipRepository
-import com.example.autolog.data.subtitle.SubtitleRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.io.File
@@ -31,7 +30,6 @@ class VlogWorker @AssistedInject constructor(
     @Assisted params: WorkerParameters,
     private val clipRepository: ClipRepository,
     private val clipMerger: ClipMerger,
-    private val subtitleRepository: SubtitleRepository,
     private val vlogStore: VlogStore,
 ) : CoroutineWorker(appContext, params) {
 
@@ -50,8 +48,7 @@ class VlogWorker @AssistedInject constructor(
         }
 
         return runCatching {
-            val subtitles = subtitleRepository.byClips(clips.map { it.id })
-            val merged = clipMerger.merge(clips, output.absolutePath, subtitles) { percent ->
+            val merged = clipMerger.merge(clips, output.absolutePath) { percent ->
                 setProgressAsync(workDataOf(KEY_PROGRESS to percent))
             }
             vlogStore.save(date, output) to merged
