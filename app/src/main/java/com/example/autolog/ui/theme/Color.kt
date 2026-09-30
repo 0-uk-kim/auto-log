@@ -16,6 +16,13 @@ val Danger = Color(0xFFFF6B5E)
 val DangerContainer = Color(0xFF3B1714)
 val OnDangerContainer = Color(0xFFFFB4AB)
 
+/** 주 버튼의 그라데이션 끝. 노랑에서 호박색으로 내려가 평평한 단색보다 눌리는 면이 도드라진다. */
+val AccentDeep = Color(0xFFFFA41B)
+
+// 검은 바탕 위에 떠 있는 반투명 유리 면. 영상 위에 겹쳐도, 빈 바탕 위에 놓여도 같은 버튼으로 읽힌다.
+val Glass = Color(0x1FFFFFFF)
+val GlassBorder = Color(0x1AFFFFFF)
+
 /** 달력의 토요일. 한국 달력 관례대로 파랑으로 가른다. */
 val Saturday = Color(0xFF7AA7FF)
 

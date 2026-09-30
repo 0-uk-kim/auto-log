@@ -7,11 +7,10 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -22,10 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -35,9 +31,6 @@ import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.SwipeToDismissBoxDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,7 +42,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
@@ -68,8 +60,13 @@ import com.example.autolog.diagnostics.DiagnosticsMenu
 import com.example.autolog.permission.MediaAccess
 import com.example.autolog.permission.openAppSettings
 import com.example.autolog.permission.rememberMediaAccessRequest
+import com.example.autolog.ui.ActionButton
+import com.example.autolog.ui.ActionStyle
+import com.example.autolog.ui.BottomDock
+import com.example.autolog.ui.GlassIconButton
+import com.example.autolog.ui.GlassPill
+import com.example.autolog.ui.ScreenTopBar
 import com.example.autolog.ui.UndoDeletionEffect
-import com.example.autolog.ui.theme.ListDimens
 import com.example.autolog.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -141,99 +138,101 @@ fun ClipListScreen(
                     onToggleAll = viewModel::toggleSelectAll,
                 )
             } else {
-                TopAppBar(
-                    title = {},
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
-                    ),
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_arrow_back),
-                                contentDescription = stringResource(R.string.clip_list_back),
-                            )
-                        }
+                ScreenTopBar(
+                    modifier = Modifier.statusBarsPadding(),
+                    navigation = {
+                        GlassIconButton(
+                            icon = R.drawable.ic_arrow_back,
+                            contentDescription = stringResource(R.string.clip_list_back),
+                            onClick = onBack,
+                        )
                     },
                     actions = {
                         if (uiState is ClipListUiState.Clips) {
-                            TextButton(
+                            GlassPill(
+                                text = stringResource(R.string.clip_list_start_selection),
                                 onClick = viewModel::startSelection,
                                 modifier = Modifier.testTag(TAG_START_SELECTION),
-                            ) {
-                                Text(stringResource(R.string.clip_list_start_selection))
-                            }
+                            )
                         }
                         DiagnosticsMenu()
                     },
                 )
             }
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        bottomBar = {
-            // 버튼은 엄지가 닿는 아래 한 자리만 쓴다 — 평소엔 브이로그, 고르는 중엔 삭제.
-            // 이어붙일 것이 없으면 둘 다 할 일이 없어 비운다.
-            if (uiState is ClipListUiState.Clips) {
-                val selected = selection
-                if (selected != null) {
-                    BottomAction(
-                        text = stringResource(R.string.clip_list_delete_selected, selected.size),
-                        onClick = viewModel::deleteSelected,
-                        enabled = selected.isNotEmpty(),
-                        destructive = true,
-                        modifier = Modifier.testTag(TAG_DELETE_SELECTED),
+        // 아래 버튼이 목록 위에 떠 있어 스낵바가 그 위로 올라서야 한다 — 기본 자리는 버튼에 가린다.
+        snackbarHost = {
+            SnackbarHost(
+                snackbarHostState,
+                modifier = Modifier.padding(bottom = if (uiState is ClipListUiState.Clips) DOCK_CLEARANCE else 0.dp),
+            )
+        },
+    ) { padding ->
+        Box(Modifier.padding(top = padding.calculateTopPadding()).fillMaxSize()) {
+            Column {
+                DateHeader(
+                    title = rememberDateTitle(date),
+                    isToday = viewModel.date == LocalDate.now(),
+                    clips = (uiState as? ClipListUiState.Clips)?.clips,
+                    // 삭제 모드에서는 날짜를 바꾸면 고르던 것이 사라진다.
+                    onOpenCalendar = { showCalendar = true }.takeIf { selection == null },
+                )
+                when (val state = uiState) {
+                    ClipListUiState.Loading -> ClipListLoading()
+
+                    is ClipListUiState.Empty -> ClipListEmpty(
+                        access = state.access,
+                        onRequestAccess = requestAccess,
+                        onOpenSettings = { context.openAppSettings() },
+                        // 카메라는 늘 오늘로 찍는다. 지난 날짜의 빈 목록에서 권하면 엉뚱한 날에 쌓인다.
+                        onShoot = onBack.takeIf { viewModel.date == LocalDate.now() },
                     )
-                } else {
-                    val marks by viewModel.calendarMarks.collectAsStateWithLifecycle()
-                    // 이미 만든 날은 새로 만드는 게 아니라 보러 가는 것이다 — 들어가면 기존 결과물이 뜬다.
-                    val hasVlog = viewModel.date in marks.datesWithVlog
-                    BottomAction(
-                        text = stringResource(
-                            if (hasVlog) R.string.clip_list_open_vlog else R.string.clip_list_create_vlog,
-                        ),
-                        onClick = onCreateVlog,
+
+                    is ClipListUiState.Clips -> ClipList(
+                        clips = state.clips,
+                        access = state.access,
+                        onRequestAccess = requestAccess,
+                        selection = selection,
+                        awaitingConfirmationIds = awaitingConfirmation.mapTo(mutableSetOf()) { it.id },
+                        awaitingUndoIds = awaitingUndo.mapTo(mutableSetOf()) { it.id },
+                        onOpenClip = onOpenClip,
+                        onToggleClip = viewModel::toggleSelection,
+                        onLongPressClip = viewModel::startSelection,
+                        onSwipeDelete = { clip -> viewModel.delete(listOf(clip)) },
+                        onMoveClip = viewModel::moveClip,
+                        onOrderSettled = viewModel::persistOrder,
                     )
                 }
             }
-        },
-    ) { padding ->
-        Column(Modifier.padding(padding)) {
-            DateHeader(
-                title = rememberDateTitle(date),
-                summary = (uiState as? ClipListUiState.Clips)?.clips?.let { clips ->
-                    stringResource(
-                        R.string.clip_list_summary,
-                        clips.size,
-                        formatClipDuration(clips.sumOf { it.playedDurationMs }),
-                    )
-                },
-                // 삭제 모드에서는 날짜를 바꾸면 고르던 것이 사라진다.
-                onOpenCalendar = { showCalendar = true }.takeIf { selection == null },
-            )
-            when (val state = uiState) {
-                ClipListUiState.Loading -> ClipListLoading()
 
-                is ClipListUiState.Empty -> ClipListEmpty(
-                    access = state.access,
-                    onRequestAccess = requestAccess,
-                    onOpenSettings = { context.openAppSettings() },
-                    // 카메라는 늘 오늘로 찍는다. 지난 날짜의 빈 목록에서 권하면 엉뚱한 날에 쌓인다.
-                    onShoot = onBack.takeIf { viewModel.date == LocalDate.now() },
-                )
-
-                is ClipListUiState.Clips -> ClipList(
-                    clips = state.clips,
-                    access = state.access,
-                    onRequestAccess = requestAccess,
-                    selection = selection,
-                    awaitingConfirmationIds = awaitingConfirmation.mapTo(mutableSetOf()) { it.id },
-                    awaitingUndoIds = awaitingUndo.mapTo(mutableSetOf()) { it.id },
-                    onOpenClip = onOpenClip,
-                    onToggleClip = viewModel::toggleSelection,
-                    onLongPressClip = viewModel::startSelection,
-                    onSwipeDelete = { clip -> viewModel.delete(listOf(clip)) },
-                    onMoveClip = viewModel::moveClip,
-                    onOrderSettled = viewModel::persistOrder,
-                )
+            // 버튼은 엄지가 닿는 아래 한 자리만 쓴다 — 평소엔 브이로그, 고르는 중엔 삭제.
+            // 이어붙일 것이 없으면 둘 다 할 일이 없어 비운다.
+            if (uiState is ClipListUiState.Clips) {
+                BottomDock(Modifier.align(Alignment.BottomCenter)) {
+                    val selected = selection
+                    if (selected != null) {
+                        ActionButton(
+                            text = stringResource(R.string.clip_list_delete_selected, selected.size),
+                            icon = R.drawable.ic_delete,
+                            onClick = viewModel::deleteSelected,
+                            enabled = selected.isNotEmpty(),
+                            style = ActionStyle.Destructive,
+                            modifier = Modifier.weight(1f).testTag(TAG_DELETE_SELECTED),
+                        )
+                    } else {
+                        val marks by viewModel.calendarMarks.collectAsStateWithLifecycle()
+                        // 이미 만든 날은 새로 만드는 게 아니라 보러 가는 것이다 — 들어가면 기존 결과물이 뜬다.
+                        val hasVlog = viewModel.date in marks.datesWithVlog
+                        ActionButton(
+                            text = stringResource(
+                                if (hasVlog) R.string.clip_list_open_vlog else R.string.clip_list_create_vlog,
+                            ),
+                            icon = if (hasVlog) R.drawable.ic_movie else R.drawable.ic_sparkle,
+                            onClick = onCreateVlog,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
             }
         }
     }
@@ -280,7 +279,8 @@ private fun ClipList(
 
         LazyColumn(
             state = lazyListState,
-            contentPadding = PaddingValues(vertical = Spacing.xs),
+            // 마지막 줄이 떠 있는 아래 버튼에 가리지 않도록 그만큼 더 내려 쓴다.
+            contentPadding = PaddingValues(top = Spacing.xs, bottom = DOCK_CLEARANCE),
         ) {
             itemsIndexed(clips, key = { _, clip -> clip.id }) { position, clip ->
                 val isDragging = position == dragDropState.draggingItemIndex
@@ -346,7 +346,6 @@ private fun ClipList(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SelectionTopBar(
     selectedCount: Int,
@@ -354,21 +353,27 @@ private fun SelectionTopBar(
     onClose: () -> Unit,
     onToggleAll: () -> Unit,
 ) {
-    TopAppBar(
-        title = { Text(stringResource(R.string.clip_list_selected_count, selectedCount)) },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
-        navigationIcon = {
-            IconButton(onClick = onClose) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_close),
-                    contentDescription = stringResource(R.string.clip_list_end_selection),
-                )
-            }
+    ScreenTopBar(
+        modifier = Modifier.statusBarsPadding(),
+        navigation = {
+            GlassIconButton(
+                icon = R.drawable.ic_close,
+                contentDescription = stringResource(R.string.clip_list_end_selection),
+                onClick = onClose,
+            )
+        },
+        title = {
+            Text(
+                text = stringResource(R.string.clip_list_selected_count, selectedCount),
+                style = MaterialTheme.typography.titleMedium,
+            )
         },
         actions = {
-            TextButton(onClick = onToggleAll, modifier = Modifier.testTag(TAG_SELECT_ALL)) {
-                Text(stringResource(if (allSelected) R.string.clip_list_deselect_all else R.string.clip_list_select_all))
-            }
+            GlassPill(
+                text = stringResource(if (allSelected) R.string.clip_list_deselect_all else R.string.clip_list_select_all),
+                onClick = onToggleAll,
+                modifier = Modifier.testTag(TAG_SELECT_ALL),
+            )
         },
     )
 }
@@ -382,7 +387,7 @@ private fun SwipeDeleteBackground(state: SwipeToDismissBoxState) {
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = Spacing.md, vertical = Spacing.xs)
-            .clip(MaterialTheme.shapes.medium)
+            .clip(MaterialTheme.shapes.large)
             .background(MaterialTheme.colorScheme.errorContainer)
             .padding(horizontal = Spacing.lg),
         contentAlignment = Alignment.CenterEnd,
@@ -396,77 +401,79 @@ private fun SwipeDeleteBackground(state: SwipeToDismissBoxState) {
 }
 
 /**
- * 이 목록이 어느 날짜인지 크게 보여 준다. 날짜를 누르면 달력이 열린다 — 아래 화살표가 바꿀 수 있다는 표시다.
+ * 이 목록이 어느 날짜인지 크게 보여 준다. 날짜나 옆 달력 버튼을 누르면 달력이 열린다.
+ * 아래 칩은 브이로그에 들어갈 분량이다 — 몇 개를, 모두 합쳐 얼마나 이어붙이는지.
  */
 @Composable
-private fun DateHeader(title: String, summary: String?, onOpenCalendar: (() -> Unit)?) {
-    Column(modifier = Modifier.padding(horizontal = Spacing.md).padding(bottom = Spacing.sm)) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .clip(MaterialTheme.shapes.small)
-                .then(
-                    if (onOpenCalendar != null) {
-                        Modifier.clickable(
-                            onClickLabel = stringResource(R.string.clip_list_open_calendar),
-                            onClick = onOpenCalendar,
-                        )
-                    } else {
-                        Modifier
-                    },
-                )
-                .padding(vertical = Spacing.xs)
-                .testTag(TAG_OPEN_CALENDAR),
-        ) {
-            Text(text = title, style = MaterialTheme.typography.headlineSmall)
+private fun DateHeader(title: String, isToday: Boolean, clips: List<Clip>?, onOpenCalendar: (() -> Unit)?) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        modifier = Modifier.padding(start = Spacing.lg, end = Spacing.md, top = Spacing.xs, bottom = Spacing.md),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(MaterialTheme.shapes.small)
+                    .then(
+                        if (onOpenCalendar != null) {
+                            Modifier.clickable(
+                                onClickLabel = stringResource(R.string.clip_list_open_calendar),
+                                onClick = onOpenCalendar,
+                            )
+                        } else {
+                            Modifier
+                        },
+                    )
+                    .testTag(TAG_OPEN_CALENDAR),
+            ) {
+                // 지난 날짜를 보고 있으면 이 줄이 빠진다 — "오늘"이 없는 것만으로 다른 날이라는 걸 안다.
+                if (isToday) {
+                    Text(
+                        text = stringResource(R.string.clip_list_today),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                }
+                Text(text = title, style = MaterialTheme.typography.headlineMedium)
+            }
             if (onOpenCalendar != null) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_chevron),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .padding(start = Spacing.xs)
-                        .size(20.dp)
-                        .rotate(-90f),
+                GlassIconButton(
+                    icon = R.drawable.ic_calendar,
+                    contentDescription = stringResource(R.string.clip_list_open_calendar),
+                    onClick = onOpenCalendar,
                 )
             }
         }
-        Text(
-            text = summary.orEmpty(),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (clips != null) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                StatChip(stringResource(R.string.clip_list_clip_count, clips.size))
+                StatChip(formatClipDuration(clips.sumOf { it.playedDurationMs }))
+                Text(
+                    text = stringResource(R.string.clip_list_order_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = Spacing.xs),
+                )
+            }
+        }
     }
 }
 
 @Composable
-private fun BottomAction(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    destructive: Boolean = false,
-) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        colors = if (destructive) {
-            ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.error,
-                contentColor = MaterialTheme.colorScheme.onError,
-            )
-        } else {
-            ButtonDefaults.buttonColors()
-        },
-        modifier = modifier
-            .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(horizontal = Spacing.md, vertical = Spacing.sm + Spacing.xs)
-            .height(ListDimens.primaryButton),
-    ) {
-        Text(text, style = MaterialTheme.typography.titleMedium)
-    }
+private fun StatChip(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelMedium,
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .padding(horizontal = Spacing.sm + Spacing.xs, vertical = Spacing.xs + 1.dp),
+    )
 }
+
+/** 떠 있는 아래 버튼(56dp)과 그 위아래 여백만큼. 목록 끝과 스낵바가 이만큼 비켜 선다. */
+private val DOCK_CLEARANCE = 104.dp
 
 @Composable
 private fun rememberDateTitle(date: String): String {

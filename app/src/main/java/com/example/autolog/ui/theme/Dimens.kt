@@ -18,8 +18,12 @@ object CameraDimens {
 
 object ListDimens {
     /** 9:16 세로 촬영 고정이라 썸네일도 세로로 세운다 (planning 6-1). */
-    val clipThumbnail = 80.dp
-    val clipThumbnailWidth = 45.dp
-    val orderNumber = 20.dp
+    val clipThumbnail = 96.dp
+    val clipThumbnailWidth = 54.dp
+    val orderNumber = 22.dp
     val primaryButton = 56.dp
+    /** 위 바의 원형 유리 버튼. 48dp 터치 영역은 [androidx.compose.material3.minimumInteractiveComponentSize]가 채운다. */
+    val glassButton = 44.dp
+    val glassPill = 40.dp
+    val topBar = 64.dp
 }

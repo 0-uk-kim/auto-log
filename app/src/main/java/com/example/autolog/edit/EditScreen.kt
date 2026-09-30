@@ -7,6 +7,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,14 +23,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -59,11 +57,19 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.compose.state.rememberPlayPauseButtonState
 import com.example.autolog.R
+import com.example.autolog.ui.ActionButton
+import com.example.autolog.ui.GlassIconButton
+import com.example.autolog.ui.GlassPill
+import com.example.autolog.ui.ScreenTopBar
 import com.example.autolog.ui.VideoSurface
 import com.example.autolog.ui.rememberPlaybackPosition
 import com.example.autolog.ui.theme.CameraBackground
 import com.example.autolog.ui.theme.CameraControlTint
 import com.example.autolog.ui.theme.CameraHighlight
+import com.example.autolog.ui.theme.Danger
+import com.example.autolog.ui.theme.Glass
+import com.example.autolog.ui.theme.GlassBorder
+import com.example.autolog.ui.theme.ListDimens
 import com.example.autolog.ui.theme.Spacing
 import java.util.Locale
 import kotlin.math.abs
@@ -110,38 +116,37 @@ fun EditScreen(
             .background(CameraBackground)
             .safeDrawingPadding(),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onDone, modifier = Modifier.padding(Spacing.sm)) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_arrow_back),
+        // 나가기는 왼쪽 위, 클립을 통째로 버리는 삭제는 오른쪽 위, 저장은 엄지가 닿는 맨 아래다.
+        // 저장과 삭제를 멀리 떼어 놓아 잘못 누를 일이 없다.
+        ScreenTopBar(
+            navigation = {
+                GlassIconButton(
+                    icon = R.drawable.ic_arrow_back,
                     contentDescription = stringResource(R.string.preview_back),
+                    onClick = onDone,
                     tint = CameraControlTint,
                 )
-            }
-            Text(
-                text = stringResource(R.string.edit_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = CameraControlTint,
-                modifier = Modifier.weight(1f),
-            )
-            if (uiState is EditUiState.Ready) {
-                // 찍자마자 들어오는 화면이라 마음에 안 들면 여기서 바로 버린다 (#102).
-                IconButton(onClick = viewModel::delete, modifier = Modifier.testTag(TAG_EDIT_DELETE_CLIP)) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_delete),
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.edit_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = CameraControlTint,
+                )
+            },
+            actions = {
+                if (uiState is EditUiState.Ready) {
+                    // 찍자마자 들어오는 화면이라 마음에 안 들면 여기서 바로 버린다 (#102).
+                    GlassIconButton(
+                        icon = R.drawable.ic_delete,
                         contentDescription = stringResource(R.string.edit_delete_clip),
-                        tint = CameraControlTint,
+                        onClick = viewModel::delete,
+                        tint = Danger,
+                        modifier = Modifier.testTag(TAG_EDIT_DELETE_CLIP),
                     )
                 }
-                Button(
-                    onClick = viewModel::save,
-                    colors = ButtonDefaults.buttonColors(containerColor = CameraHighlight, contentColor = CameraBackground),
-                    modifier = Modifier.padding(end = Spacing.sm).testTag(TAG_EDIT_SAVE),
-                ) {
-                    Text(stringResource(R.string.edit_save))
-                }
-            }
-        }
+            },
+        )
 
         when (val state = uiState) {
             EditUiState.Loading -> Unit
@@ -155,7 +160,12 @@ fun EditScreen(
                 )
             }
 
-            is EditUiState.Ready -> ClipTrimmer(state = state, actions = viewModel, onReset = viewModel::reset)
+            is EditUiState.Ready -> ClipTrimmer(
+                state = state,
+                actions = viewModel,
+                onReset = viewModel::reset,
+                onSave = viewModel::save,
+            )
         }
     }
 }
@@ -166,6 +176,7 @@ private fun ClipTrimmer(
     state: EditUiState.Ready,
     actions: EditViewModel,
     onReset: () -> Unit,
+    onSave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val clip = state.clip
@@ -213,11 +224,18 @@ private fun ClipTrimmer(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        Box(Modifier.weight(1f).fillMaxWidth()) {
+        Box(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.sm)
+                .clip(MaterialTheme.shapes.extraLarge)
+                .border(1.dp, GlassBorder, MaterialTheme.shapes.extraLarge),
+        ) {
             VideoSurface(player = player)
         }
 
-        Column(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
+        Column(Modifier.padding(start = Spacing.md, end = Spacing.md, top = Spacing.md, bottom = Spacing.sm)) {
             TrimBar(
                 uri = clip.uri,
                 durationMs = clip.durationMs,
@@ -248,7 +266,7 @@ private fun ClipTrimmer(
             val cut = !state.segments.coversWhole(clip.durationMs)
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.fillMaxWidth().height(44.dp),
+                modifier = Modifier.fillMaxWidth().height(52.dp),
             ) {
                 if (cut) {
                     // 되돌리는 버튼은 바뀐 결과 바로 옆에 둔다 — 무엇을 되돌리는지 눈으로 이어진다.
@@ -263,12 +281,13 @@ private fun ClipTrimmer(
                             color = CameraHighlight,
                             modifier = Modifier.testTag(TAG_EDIT_LENGTH),
                         )
-                        TextButton(
+                        Spacer(Modifier.width(Spacing.sm))
+                        GlassPill(
+                            text = stringResource(R.string.edit_reset),
+                            icon = R.drawable.ic_refresh,
                             onClick = onReset,
-                            colors = ButtonDefaults.textButtonColors(contentColor = CameraControlTint),
-                        ) {
-                            Text(stringResource(R.string.edit_reset))
-                        }
+                            contentColor = CameraControlTint,
+                        )
                     }
                 } else {
                     Text(
@@ -316,11 +335,21 @@ private fun ClipTrimmer(
                     modifier = Modifier.weight(1f).testTag(TAG_EDIT_UNDO),
                 )
             }
+
+            Spacer(Modifier.height(Spacing.sm))
+            ActionButton(
+                text = stringResource(R.string.edit_save),
+                onClick = onSave,
+                modifier = Modifier.fillMaxWidth().testTag(TAG_EDIT_SAVE),
+            )
         }
     }
 }
 
-/** 아이콘 위, 글자 아래의 큰 도구 버튼. 무엇을 하는지 글자로도 말한다 — 가위 아이콘만으로는 뜻이 갈린다. */
+/**
+ * 유리 원 안의 아이콘과 그 아래 글자. 무엇을 하는지 글자로도 말한다 — 가위 아이콘만으로는 뜻이 갈린다.
+ * 누르는 영역은 원이 아니라 칸 전체다 — 줄 하나에 넷이 서서 원만 누르게 하면 겨냥이 빠듯하다.
+ */
 @Composable
 private fun ToolButton(
     @DrawableRes icon: Int,
@@ -333,19 +362,28 @@ private fun ToolButton(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(MaterialTheme.shapes.medium)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .defaultMinSize(minHeight = 64.dp)
+            .defaultMinSize(minHeight = 72.dp)
             .alpha(if (enabled) 1f else 0.35f)
             .padding(vertical = Spacing.sm),
     ) {
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = null,
-            tint = CameraControlTint,
-            modifier = Modifier.size(26.dp),
-        )
-        Spacer(Modifier.height(Spacing.xs))
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(ListDimens.glassButton)
+                .clip(CircleShape)
+                .background(Glass)
+                .border(1.dp, GlassBorder, CircleShape),
+        ) {
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = null,
+                tint = CameraControlTint,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        Spacer(Modifier.height(Spacing.xs + 2.dp))
         Text(text = label, style = MaterialTheme.typography.labelMedium, color = CameraControlTint)
     }
 }

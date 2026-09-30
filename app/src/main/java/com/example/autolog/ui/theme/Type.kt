@@ -12,6 +12,12 @@ private const val TabularNumbers = "tnum"
 private val Base = Typography()
 
 val Typography = Base.copy(
+    headlineMedium = Base.headlineMedium.copy(
+        fontWeight = FontWeight.Bold,
+        fontSize = 30.sp,
+        lineHeight = 36.sp,
+        letterSpacing = (-0.8).sp,
+    ),
     headlineSmall = Base.headlineSmall.copy(
         fontWeight = FontWeight.Bold,
         fontSize = 26.sp,

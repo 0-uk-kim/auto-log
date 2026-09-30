@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.compose.PlayerSurface
-import androidx.media3.ui.compose.SURFACE_TYPE_SURFACE_VIEW
+import androidx.media3.ui.compose.SURFACE_TYPE_TEXTURE_VIEW
 import androidx.media3.ui.compose.state.rememberPlayPauseButtonState
 import androidx.media3.ui.compose.state.rememberPresentationState
 import com.example.autolog.R
@@ -66,7 +66,8 @@ fun VideoSurface(player: Player, modifier: Modifier = Modifier) {
             ?: (9f / 16f)
         PlayerSurface(
             player = player,
-            surfaceType = SURFACE_TYPE_SURFACE_VIEW,
+            // 영상은 둥근 카드 안에 담긴다. SurfaceView는 별도 창에 그려져 Compose의 clip을 무시하고 모서리가 삐져나온다.
+            surfaceType = SURFACE_TYPE_TEXTURE_VIEW,
             modifier = Modifier
                 // 프레임 전체가 항상 보이게 영상 비율대로 가둔다.
                 .aspectRatio(aspectRatio, matchHeightConstraintsFirst = aspectRatio < 1f)

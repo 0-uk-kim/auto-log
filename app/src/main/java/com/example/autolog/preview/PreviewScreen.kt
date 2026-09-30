@@ -1,21 +1,18 @@
 package com.example.autolog.preview
 
 import androidx.annotation.OptIn
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.media3.common.Player
@@ -30,8 +27,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,7 +41,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -58,24 +52,28 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import com.example.autolog.R
 import com.example.autolog.data.clip.Clip
+import com.example.autolog.ui.GlassIconButton
+import com.example.autolog.ui.GlassPill
+import com.example.autolog.ui.GlowIcon
+import com.example.autolog.ui.ScreenTopBar
 import com.example.autolog.ui.VideoSurface
 import com.example.autolog.ui.rememberClipThumbnail
 import com.example.autolog.ui.theme.CameraBackground
 import com.example.autolog.ui.theme.CameraControlTint
-import com.example.autolog.ui.theme.CameraScrim
+import com.example.autolog.ui.theme.CameraHighlight
+import com.example.autolog.ui.theme.Glass
+import com.example.autolog.ui.theme.GlassBorder
+import androidx.compose.ui.text.style.TextAlign
 import com.example.autolog.ui.theme.Spacing
 
 const val TAG_POSITION = "preview-position"
 const val TAG_PREVIEW_EDIT = "preview-edit"
 
-/** 뒤로 버튼(48dp + 여백)과 같은 높이 — 위치 표시가 뒤로 버튼과 한 줄에 선다. */
-private val TOP_BAR_HEIGHT = 64.dp
-
 /**
  * 목록 순서를 따라 클립을 재생한다 (planning 6 "미리보기 재생 범위").
  *
  * 단일 클립 플레이어가 아니라 **페이저**다 — 좌우로 넘기면 이전·다음 클립으로 간다.
- * 아래 편집 버튼은 지금 보고 있는 클립의 편집 화면을 연다 (planning 5 "3차: 구간 자르기").
+ * 오른쪽 위 편집 버튼은 지금 보고 있는 클립의 편집 화면을 연다 (planning 5 "3차: 구간 자르기").
  */
 @Composable
 fun PreviewScreen(
@@ -104,33 +102,29 @@ fun PreviewScreen(
             // 읽는 사이 한 프레임은 검은 화면이다 — 촬영 화면에서 바로 넘어오므로 눈에 띄지 않는다.
             PreviewUiState.Loading -> Unit
 
-            PreviewUiState.Empty -> Text(
-                text = stringResource(R.string.preview_empty),
-                style = MaterialTheme.typography.bodyLarge,
-                color = CameraControlTint,
-                modifier = Modifier.padding(Spacing.xl),
-            )
+            PreviewUiState.Empty -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                GlowIcon(icon = R.drawable.ic_movie)
+                Text(
+                    text = stringResource(R.string.preview_empty),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = CameraControlTint,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(Spacing.xl),
+                )
+            }
 
             is PreviewUiState.Ready -> ClipPager(
                 clips = state.clips,
                 startIndex = state.startIndex,
+                onBack = onBack,
                 onEdit = onEdit,
             )
         }
 
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .safeDrawingPadding()
-                .padding(Spacing.sm),
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_arrow_back),
-                contentDescription = stringResource(R.string.preview_back),
-                tint = CameraControlTint,
-            )
+        if (uiState !is PreviewUiState.Ready) {
+            PreviewTopBar(onBack = onBack, modifier = Modifier.align(Alignment.TopCenter).safeDrawingPadding())
         }
+
     }
 }
 
@@ -145,6 +139,7 @@ fun PreviewScreen(
 private fun ClipPager(
     clips: List<Clip>,
     startIndex: Int,
+    onBack: () -> Unit,
     onEdit: (clipId: Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -189,93 +184,112 @@ private fun ClipPager(
 
     // 위아래 바를 영상 위에 겹치지 않고 따로 둔다 — 밝은 장면에서 흰 글자가 묻힌다.
     Column(modifier = modifier.fillMaxSize().safeDrawingPadding()) {
-        Box(
-            modifier = Modifier.fillMaxWidth().height(TOP_BAR_HEIGHT),
-            contentAlignment = Alignment.Center,
-        ) {
-            // 넘기다 보면 하루치 중 어디쯤인지 잃는다. 목록에서 본 번호와 같은 값을 보여 준다.
-            PagePosition(page = pagerState.currentPage, total = clips.size)
-        }
+        // 넘기다 보면 하루치 중 어디쯤인지 잃는다. 목록에서 본 번호와 같은 값을 가운데에 둔다.
+        PreviewTopBar(
+            onBack = onBack,
+            position = { PagePosition(page = pagerState.currentPage, total = clips.size) },
+            onEdit = { onEdit(clips[pagerState.currentPage].id) },
+        )
 
-        HorizontalPager(state = pagerState, modifier = Modifier.weight(1f).fillMaxWidth()) { page ->
-            if (page == pagerState.settledPage) {
-                VideoSurface(player = player)
-            } else {
-                // 넘기는 중 옆 페이지는 썸네일로 채운다 — 표면은 하나뿐이라 여기에 붙일 것이 없다.
-                NeighbourClip(clip = clips[page])
+        HorizontalPager(
+            state = pagerState,
+            pageSpacing = Spacing.sm,
+            contentPadding = PaddingValues(horizontal = Spacing.sm),
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        ) { page ->
+            // 영상을 둥근 카드에 담아 넘길 때 이웃 클립과의 경계가 보이게 한다.
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .clip(MaterialTheme.shapes.extraLarge)
+                    .border(1.dp, GlassBorder, MaterialTheme.shapes.extraLarge),
+            ) {
+                if (page == pagerState.settledPage) {
+                    VideoSurface(player = player)
+                } else {
+                    // 넘기는 중 옆 페이지는 썸네일로 채운다 — 표면은 하나뿐이라 여기에 붙일 것이 없다.
+                    NeighbourClip(clip = clips[page])
+                }
             }
         }
 
-        ClipInfoBar(
-            clip = clips[pagerState.currentPage],
-            player = player,
-            onEdit = { onEdit(clips[pagerState.currentPage].id) },
-        )
+        ClipInfoBar(clip = clips[pagerState.currentPage], player = player)
+        PageDots(page = pagerState.currentPage, total = clips.size)
     }
 }
 
 /**
- * 지금 보는 클립이 언제 찍은 것인지, 어디쯤 재생 중인지, 그리고 할 수 있는 일(편집)을 아래에 모은다.
- * 편집은 이 화면의 주된 다음 동작이라 모서리 아이콘이 아니라 글자가 붙은 버튼으로 둔다.
+ * 나가기는 왼쪽, 편집은 오른쪽 위. 이 화면은 보는 곳이라 아래를 비워 두고, 편집은 다른 화면의 부가 동작과 같은
+ * 자리에 글자가 붙은 알약으로 둔다 — 가위 아이콘만으로는 뜻이 갈린다.
  */
 @Composable
-private fun ClipInfoBar(
-    clip: Clip,
-    player: Player,
-    onEdit: () -> Unit,
+private fun PreviewTopBar(
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    position: @Composable () -> Unit = {},
+    onEdit: (() -> Unit)? = null,
 ) {
+    ScreenTopBar(
+        modifier = modifier,
+        navigation = {
+            GlassIconButton(
+                icon = R.drawable.ic_arrow_back,
+                contentDescription = stringResource(R.string.preview_back),
+                onClick = onBack,
+                tint = CameraControlTint,
+            )
+        },
+        title = position,
+        actions = {
+            if (onEdit != null) {
+                GlassPill(
+                    text = stringResource(R.string.preview_edit),
+                    icon = R.drawable.ic_cut,
+                    onClick = onEdit,
+                    contentColor = CameraControlTint,
+                    modifier = Modifier.testTag(TAG_PREVIEW_EDIT),
+                )
+            }
+        },
+    )
+}
+
+/** 지금 보는 클립이 언제 찍은 것인지, 어디쯤 재생 중인지. */
+@Composable
+private fun ClipInfoBar(clip: Clip, player: Player, modifier: Modifier = Modifier) {
     val position = rememberPlaybackPosition(player)
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(Spacing.md),
+            .padding(start = Spacing.lg, end = Spacing.lg, top = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm + Spacing.xs),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = formatClipTime(clip.endedAt),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = CameraControlTint,
-                )
-                Text(
-                    text = formatClipDuration(clip.playedDurationMs),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = CameraControlTint.copy(alpha = 0.7f),
-                )
-            }
-            Button(
-                onClick = onEdit,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = CameraControlTint.copy(alpha = 0.18f),
-                    contentColor = CameraControlTint,
-                ),
-                contentPadding = PaddingValues(horizontal = Spacing.md),
-                modifier = Modifier.testTag(TAG_PREVIEW_EDIT),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_cut),
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(Spacing.sm))
-                Text(stringResource(R.string.preview_edit))
-            }
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+                text = formatClipTime(clip.endedAt),
+                style = MaterialTheme.typography.titleLarge,
+                color = CameraControlTint,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = formatClipDuration(clip.playedDurationMs),
+                style = MaterialTheme.typography.labelLarge,
+                color = CameraControlTint.copy(alpha = 0.7f),
+            )
         }
         LinearProgressIndicator(
             progress = {
                 val duration = player.duration
                 if (duration > 0) (position.value.toFloat() / duration).coerceIn(0f, 1f) else 0f
             },
-            color = CameraControlTint,
-            trackColor = CameraControlTint.copy(alpha = 0.25f),
+            color = CameraHighlight,
+            trackColor = CameraControlTint.copy(alpha = 0.18f),
             strokeCap = StrokeCap.Round,
             gapSize = 0.dp,
             drawStopIndicator = {},
             modifier = Modifier
                 .fillMaxWidth()
-                .height(3.dp),
+                .height(4.dp),
         )
     }
 }
@@ -288,11 +302,38 @@ private fun PagePosition(page: Int, total: Int, modifier: Modifier = Modifier) {
         color = CameraControlTint,
         modifier = modifier
             .clip(CircleShape)
-            .background(CameraControlTint.copy(alpha = 0.12f))
-            .padding(horizontal = Spacing.md, vertical = Spacing.xs)
+            .background(Glass)
+            .padding(horizontal = Spacing.md, vertical = Spacing.xs + 2.dp)
             .testTag(TAG_POSITION),
     )
 }
+
+/** 좌우로 넘길 수 있다는 표시. 지금 클립은 길게 늘려 노랗게 칠한다. 너무 많으면 점이 줄을 넘쳐 숨긴다. */
+@Composable
+private fun PageDots(page: Int, total: Int, modifier: Modifier = Modifier) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(Spacing.xl),
+    ) {
+        if (total in 2..MAX_DOTS) {
+            repeat(total) { index ->
+                val current = index == page
+                val width by animateDpAsState(if (current) 18.dp else 6.dp, label = "dot")
+                Box(
+                    Modifier
+                        .size(width = width, height = 6.dp)
+                        .clip(CircleShape)
+                        .background(if (current) CameraHighlight else CameraControlTint.copy(alpha = 0.3f)),
+                )
+            }
+        }
+    }
+}
+
+private const val MAX_DOTS = 12
 
 @Composable
 private fun NeighbourClip(clip: Clip, modifier: Modifier = Modifier) {

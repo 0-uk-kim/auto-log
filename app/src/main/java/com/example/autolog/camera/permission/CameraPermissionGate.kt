@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,6 +16,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import com.example.autolog.R
+import com.example.autolog.ui.ActionButton
+import com.example.autolog.ui.GlowIcon
 import com.example.autolog.ui.theme.CameraBackground
 import com.example.autolog.ui.theme.CameraControlTint
 import com.example.autolog.ui.theme.Spacing
@@ -86,13 +87,14 @@ private fun PermissionRecovery(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
+            GlowIcon(icon = R.drawable.ic_flip_camera)
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyLarge,
                 color = CameraControlTint,
                 textAlign = TextAlign.Center,
             )
-            Button(onClick = onAction) { Text(actionLabel) }
+            ActionButton(text = actionLabel, onClick = onAction)
         }
     }
 }

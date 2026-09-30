@@ -1,6 +1,8 @@
 package com.example.autolog.list
 
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -24,8 +25,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.example.autolog.R
 import com.example.autolog.permission.MediaAccess
+import com.example.autolog.ui.ActionButton
+import com.example.autolog.ui.GlowIcon
 import com.example.autolog.ui.theme.Spacing
 
 const val TAG_LIST_LOADING = "clip-list-loading"
@@ -42,7 +46,7 @@ fun ClipListLoading(modifier: Modifier = Modifier) {
             .testTag(TAG_LIST_LOADING),
         contentAlignment = Alignment.Center,
     ) {
-        CircularProgressIndicator()
+        CircularProgressIndicator(color = MaterialTheme.colorScheme.secondary)
     }
 }
 
@@ -62,40 +66,40 @@ fun ClipListEmpty(
 ) {
     when (access) {
         MediaAccess.Full -> EmptyMessage(
+            icon = R.drawable.ic_movie,
             title = R.string.clip_list_empty_title,
             hint = if (onShoot != null) R.string.clip_list_empty_hint else R.string.clip_list_empty_hint_past,
             testTag = TAG_EMPTY_NONE,
             modifier = modifier,
         ) {
             if (onShoot != null) {
-                Button(onClick = onShoot) {
-                    Text(stringResource(R.string.clip_list_action_shoot))
-                }
+                ActionButton(text = stringResource(R.string.clip_list_action_shoot), onClick = onShoot)
             }
         }
 
         MediaAccess.Partial -> EmptyMessage(
+            icon = R.drawable.ic_clip_list,
             title = R.string.clip_list_partial_title,
             hint = R.string.clip_list_partial_hint,
             testTag = TAG_EMPTY_PARTIAL,
             modifier = modifier,
         ) {
-            Button(onClick = onRequestAccess) {
-                Text(stringResource(R.string.clip_list_action_select_more))
-            }
+            ActionButton(text = stringResource(R.string.clip_list_action_select_more), onClick = onRequestAccess)
         }
 
         MediaAccess.Denied -> EmptyMessage(
+            icon = R.drawable.ic_clip_list,
             title = R.string.clip_list_denied_title,
             hint = R.string.clip_list_denied_hint,
             testTag = TAG_EMPTY_DENIED,
             modifier = modifier,
         ) {
-            Button(onClick = onRequestAccess) {
-                Text(stringResource(R.string.clip_list_action_allow))
-            }
+            ActionButton(text = stringResource(R.string.clip_list_action_allow), onClick = onRequestAccess)
             // 영구 거부면 요청 다이얼로그가 아예 안 뜬다. 설정으로 가는 길을 항상 같이 둔다.
-            TextButton(onClick = onOpenSettings) {
+            TextButton(
+                onClick = onOpenSettings,
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
+            ) {
                 Text(stringResource(R.string.clip_list_action_settings))
             }
         }
@@ -118,8 +122,9 @@ fun MediaAccessBanner(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.md, vertical = Spacing.xs)
-            .clip(MaterialTheme.shapes.medium)
+            .clip(MaterialTheme.shapes.large)
             .background(MaterialTheme.colorScheme.secondaryContainer)
+            .border(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f), MaterialTheme.shapes.large)
             .padding(start = Spacing.md, end = Spacing.xs)
             .testTag(TAG_ACCESS_BANNER),
         verticalAlignment = Alignment.CenterVertically,
@@ -156,6 +161,7 @@ fun MediaAccessBanner(
 
 @Composable
 private fun EmptyMessage(
+    @DrawableRes icon: Int,
     @StringRes title: Int,
     @StringRes hint: Int,
     testTag: String,
@@ -173,6 +179,7 @@ private fun EmptyMessage(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
+            GlowIcon(icon = icon)
             Text(
                 text = stringResource(title),
                 style = MaterialTheme.typography.titleLarge,
@@ -184,7 +191,7 @@ private fun EmptyMessage(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(Spacing.sm))
+            Spacer(Modifier.height(Spacing.md))
             actions()
         }
     }
