@@ -32,9 +32,14 @@ class ClipSegmentsTest {
 
     @Test
     fun 최소_길이보다_짧은_조각이_생기는_자리는_나누지_않는다() {
-        assertFalse(whole.canSplitAt(500, duration))
+        assertFalse(whole.canSplitAt(400, duration))
         assertFalse(whole.canSplitAt(9_600, duration))
-        assertEquals(whole, whole.splitAt(500, duration))
+        assertEquals(whole, whole.splitAt(400, duration))
+    }
+
+    @Test
+    fun 짧은_클립도_가운데에서_나눌_수_있다() {
+        assertTrue(ClipSegments.whole(1_500).canSplitAt(750, 1_500))
     }
 
     @Test
@@ -62,7 +67,7 @@ class ClipSegmentsTest {
     fun 손잡이는_자기_조각을_최소_길이_아래로_줄이지_못한다() {
         val moved = whole.withEnd(0, 6_000, duration).withStart(0, 5_900, duration)
 
-        assertEquals(ClipSegment(5_000, 6_000), moved.items.single())
+        assertEquals(ClipSegment(5_500, 6_000), moved.items.single())
     }
 
     @Test
@@ -87,10 +92,10 @@ class ClipSegmentsTest {
 
     @Test
     fun 최소_길이보다_짧은_클립은_전체가_한_조각이다() {
-        val short = ClipSegments.whole(600)
+        val short = ClipSegments.whole(300)
 
-        assertFalse(short.canSplitAt(300, 600))
-        assertEquals(ClipSegment(0, 600), short.withStart(0, 300, 600).items.single())
+        assertFalse(short.canSplitAt(150, 300))
+        assertEquals(ClipSegment(0, 300), short.withStart(0, 150, 300).items.single())
     }
 
     @Test

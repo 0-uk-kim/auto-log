@@ -77,8 +77,11 @@ data class ClipSegments private constructor(val items: List<ClipSegment>) {
         ClipSegments(items.toMutableList().apply { set(index, segment) })
 
     companion object {
-        /** 이보다 짧으면 브이로그에서 한 컷으로 알아보기 어렵다. */
-        const val MIN_LENGTH_MS = 1_000L
+        /**
+         * 이보다 짧으면 브이로그에서 한 컷으로 알아보기 어렵다. 1초였을 때는 조각 양 끝 1초씩 자르기가 막혀
+         * 2~7초짜리 클립에서 자를 곳이 거의 남지 않았다.
+         */
+        const val MIN_LENGTH_MS = 500L
 
         fun whole(clipDurationMs: Long): ClipSegments =
             ClipSegments(listOf(ClipSegment(0, clipDurationMs.coerceAtLeast(0))))
