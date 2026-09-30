@@ -11,23 +11,23 @@
     {
       "kind": "image",
       "file": "look-and-feel.png",
-      "caption": "목록·달력·편집·브이로그 화면 — AS-IS(위) / TO-BE(아래)\n핑크 틴트 라이트 테마 → 카메라와 같은 검정 무채색, 켜진 상태만 노랑\n목록: 파일명 제거, 카드형 줄, 순서 번호는 썸네일 위, 날짜를 누르면 달력\n하단 전체폭 「브이로그 만들기」 버튼으로 FAB 대체\n편집 저장 버튼·자르기 테두리 코랄 → 노랑",
+      "caption": "목록·달력·미리보기·편집·브이로그 — AS-IS(위) / TO-BE(아래)\n핑크 틴트 라이트 테마 → 카메라와 같은 검정 무채색, 켜진 상태만 노랑\n목록: 파일명 제거, 카드형 줄, 휴지통 아이콘 → 「선택」, 날짜를 누르면 달력, 이미 만든 날은 「브이로그 보기」\n미리보기: 연필 아이콘 → 아래 촬영 시각·진행 바·「편집」 버튼\n편집: 「원래대로」를 상단에서 길이 변화 옆으로",
       "compare": true,
       "width": 1600,
-      "height": 1835,
-      "text_px": 26,
-      "text_lines": 32
+      "height": 1467,
+      "text_px": 16,
+      "text_lines": 35
     },
     {
       "kind": "video",
       "file": "look-and-feel-flow.mp4",
-      "caption": "카메라 → 목록 → 달력 → 미리보기 → 편집 → 브이로그 흐름 (TO-BE)\n화면이 바뀌어도 바탕이 검정으로 이어짐",
+      "caption": "카메라 → 목록 → 선택 모드 → 달력 → 미리보기 → 편집 → 브이로그 흐름 (TO-BE)\n선택 모드에서는 하단 버튼이 빨간 「N개 삭제」로 바뀜",
       "compare": false,
-      "duration": 37.33,
+      "duration": 48.73,
       "gif": "look-and-feel-flow.gif",
       "gif_width": 360,
       "gif_height": 800,
-      "gif_duration": 37.33
+      "gif_duration": 48.73
     }
   ]
 }
