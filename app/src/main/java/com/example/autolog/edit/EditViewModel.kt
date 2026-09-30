@@ -28,6 +28,12 @@ class EditViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<EditUiState>(EditUiState.Loading)
     val uiState = _uiState.asStateFlow()
 
+    /**
+     * 되돌리기용 이전 상태들. 손잡이 끌기는 한 번 끄는 것 전체가 한 단계다 — 움직일 때마다 쌓으면
+     * 되돌리기를 수십 번 눌러야 한다. 화면 회전을 넘길 만큼 중요하지 않아 저장하지 않는다.
+     */
+    private val history = ArrayDeque<Pair<ClipSegments, Int>>()
+
     /** 저장이 끝나면 한 번 흘린다 — 화면은 그때 닫는다. 저장 전에 닫으면 미리보기가 옛 조각을 읽는다. */
     private val _saved = Channel<Unit>(Channel.CONFLATED)
     val saved = _saved.receiveAsFlow()
@@ -49,18 +55,30 @@ class EditViewModel @Inject constructor(
         }
     }
 
+    /** 손잡이를 잡을 때 한 번 부른다 — 끄는 동안의 움직임을 되돌리기 한 단계로 묶는다. */
+    fun beginHandleDrag() {
+        val state = _uiState.value as? EditUiState.Ready ?: return
+        remember(state)
+        _uiState.value = state.copy(canUndo = true)
+    }
+
+    fun undo() {
+        val (segments, selected) = history.removeLastOrNull() ?: return
+        update(record = false) { it.copy(segments = segments, selected = selected) }
+    }
+
     /** 옮긴 뒤의 시작 시각을 돌려준다 — 화면이 다시 그려지기 전에 플레이어를 손잡이 자리로 보내야 해서다. */
-    fun moveStart(positionMs: Long): Long? = update { state ->
+    fun moveStart(positionMs: Long): Long? = update(record = false) { state ->
         state.copy(segments = state.segments.withStart(state.selected, positionMs, state.clip.durationMs))
     }?.let { it.segments.items[it.selected].startMs }
 
-    fun moveEnd(positionMs: Long): Long? = update { state ->
+    fun moveEnd(positionMs: Long): Long? = update(record = false) { state ->
         state.copy(segments = state.segments.withEnd(state.selected, positionMs, state.clip.durationMs))
     }?.let { it.segments.items[it.selected].endMs }
 
     /** 조각 안을 탭하면 그 조각을 고른다. 빈 곳이면 선택은 그대로다. */
     fun select(positionMs: Long) {
-        update { state ->
+        update(record = false) { state ->
             val index = state.segments.indexAt(positionMs)
             if (index < 0) state else state.copy(selected = index)
         }
@@ -68,14 +86,16 @@ class EditViewModel @Inject constructor(
 
     /** 재생 위치에서 조각을 둘로 나누고, 뒤쪽 조각을 고른다 — 이어서 그 뒤를 잘라내기 쉽다. */
     fun split(positionMs: Long) {
+        val current = _uiState.value as? EditUiState.Ready ?: return
+        if (!current.segments.canSplitAt(positionMs, current.clip.durationMs)) return
         update { state ->
-            if (!state.segments.canSplitAt(positionMs, state.clip.durationMs)) return@update state
             val segments = state.segments.splitAt(positionMs, state.clip.durationMs)
             state.copy(segments = segments, selected = segments.indexAt(positionMs))
         }
     }
 
     fun removeSelected() {
+        if ((_uiState.value as? EditUiState.Ready)?.segments?.canRemove != true) return
         update { state ->
             val segments = state.segments.remove(state.selected)
             state.copy(segments = segments, selected = state.selected.coerceAtMost(segments.items.lastIndex))
@@ -94,16 +114,27 @@ class EditViewModel @Inject constructor(
         }
     }
 
-    private fun update(transform: (EditUiState.Ready) -> EditUiState.Ready): EditUiState.Ready? {
+    /** [record]면 바꾸기 전 상태를 되돌리기에 쌓는다. 선택·손잡이 이동처럼 잘게 이어지는 것은 쌓지 않는다. */
+    private fun update(
+        record: Boolean = true,
+        transform: (EditUiState.Ready) -> EditUiState.Ready,
+    ): EditUiState.Ready? {
         val state = _uiState.value as? EditUiState.Ready ?: return null
-        val next = transform(state)
+        if (record) remember(state)
+        val next = transform(state).copy(canUndo = history.isNotEmpty())
         savedStateHandle[KEY_SEGMENTS] = next.segments.items.flatMap { listOf(it.startMs, it.endMs) }.toLongArray()
         savedStateHandle[KEY_SELECTED] = next.selected
         _uiState.value = next
         return next
     }
 
+    private fun remember(state: EditUiState.Ready) {
+        history.addLast(state.segments to state.selected)
+        if (history.size > MAX_UNDO) history.removeFirst()
+    }
+
     private companion object {
+        const val MAX_UNDO = 50
         const val KEY_SEGMENTS = "segments"
         const val KEY_SELECTED = "selectedSegment"
     }

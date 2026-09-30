@@ -6,7 +6,6 @@ import android.graphics.Matrix
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -15,7 +14,9 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,8 +29,12 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -37,27 +42,53 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.example.autolog.data.clip.ClipSegment
 import com.example.autolog.data.clip.ClipSegments
 import com.example.autolog.ui.theme.CameraControlTint
-import com.example.autolog.ui.theme.CameraScrim
 import com.example.autolog.ui.theme.Coral80
+import com.example.autolog.ui.theme.OnCoralDark
 import kotlin.math.abs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 const val TAG_TRIM_BAR = "edit-trim-bar"
 
-private val BarHeight = 56.dp
-private val HandleWidth = 14.dp
+private val StripHeight = 52.dp
+/** 재생 위치 손잡이와 선택 테두리가 띠 위아래로 삐져나올 자리. */
+private val Overhang = 8.dp
+private val HandleWidth = 16.dp
+/** 손잡이는 눈에 보이는 폭보다 넓게 잡힌다 — 손가락이 손잡이를 가려 정확히 겨냥할 수 없다. */
+private val HandleReach = 28.dp
 private const val FRAME_COUNT = 8
 
-private enum class Handle { Start, End }
+private val RemovedScrim = Color(0xCC000000)
+private val RemovedHatch = Color(0x33FFFFFF)
+
+enum class TrimDrag { Start, End, Scrub }
 
 /**
- * 클립 전체를 프레임 띠로 깔고 남길 조각들을 테두리로 감싼다. 조각 사이 잘려 나갈 곳은 어둡게 덮는다.
+ * 끌기를 시작한 자리로 무엇을 움직일지 정한다. 선택한 조각의 손잡이에서 [reachMs] 안이면 그 손잡이,
+ * 아니면 재생 위치를 옮긴다(탐색). 조각이 짧아 두 손잡이가 다 닿으면 가까운 쪽이다.
+ */
+internal fun trimDragFor(selected: ClipSegment?, touchMs: Long, reachMs: Long): TrimDrag {
+    if (selected == null) return TrimDrag.Scrub
+    val toStart = abs(touchMs - selected.startMs)
+    val toEnd = abs(touchMs - selected.endMs)
+    return when {
+        toStart > reachMs && toEnd > reachMs -> TrimDrag.Scrub
+        toStart <= toEnd -> TrimDrag.Start
+        else -> TrimDrag.End
+    }
+}
+
+/**
+ * 클립 전체를 프레임 띠로 깔고, 남길 조각은 테두리로 감싸고 잘라낼 곳은 빗금으로 덮는다.
  *
- * 띠 위의 가로 위치가 곧 클립 안의 시각이다. 조각을 탭하면 선택되고, 끌면 **선택한 조각**의
- * 가까운 손잡이가 움직인다 — 맞닿은 조각의 경계가 겹쳐도 어느 쪽을 잡을지 헷갈리지 않는다.
+ * - 탭: 그 자리로 재생 위치를 옮기고, 조각 안이면 그 조각을 고른다.
+ * - 끌기: 선택한 조각의 손잡이 근처에서 시작하면 손잡이를, 그 밖이면 재생 위치를 옮긴다.
+ *
+ * 띠는 화면 가장자리까지 닿으므로 시스템 뒤로가기 제스처에서 뺀다 — 빼지 않으면 양 끝 손잡이를
+ * 끌 때 화면이 닫힌다 (#90 녹화 때 실측).
  * [position]은 재생 위치(ms)로, 그리는 단계에서만 읽는다 — 재생 중 이 컴포저블 전체를 다시 구성하지 않는다.
  */
 @Composable
@@ -68,9 +99,10 @@ fun TrimBar(
     selected: Int,
     position: () -> Long,
     onTap: (Long) -> Unit,
+    onScrub: (Long) -> Unit,
+    onHandleDragStart: () -> Unit,
     onMoveStart: (Long) -> Unit,
     onMoveEnd: (Long) -> Unit,
-    onDragEnd: () -> Unit,
     contentDescription: String,
     modifier: Modifier = Modifier,
 ) {
@@ -78,87 +110,59 @@ fun TrimBar(
     val currentSegments by rememberUpdatedState(segments)
     val currentSelected by rememberUpdatedState(selected)
     val tap by rememberUpdatedState(onTap)
+    val scrub by rememberUpdatedState(onScrub)
+    val handleDragStart by rememberUpdatedState(onHandleDragStart)
     val moveStart by rememberUpdatedState(onMoveStart)
     val moveEnd by rememberUpdatedState(onMoveEnd)
-    val dragEnd by rememberUpdatedState(onDragEnd)
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(BarHeight)
-            .clip(RoundedCornerShape(8.dp))
-            .background(CameraScrim)
+            .height(StripHeight + Overhang * 2)
+            .systemGestureExclusion()
             .semantics { this.contentDescription = contentDescription }
             .testTag(TAG_TRIM_BAR)
             .pointerInput(durationMs) {
-                detectTapGestures { offset -> tap((offset.x / size.width * durationMs).toLong()) }
+                detectTapGestures { offset -> tap(timeAt(offset.x, size.width, durationMs)) }
             }
             .pointerInput(durationMs) {
-                var handle = Handle.Start
+                var drag = TrimDrag.Scrub
                 var x = 0f
-                fun timeAt(x: Float) = (x / size.width * durationMs).toLong()
                 detectHorizontalDragGestures(
                     onDragStart = { offset ->
                         x = offset.x
-                        val segment = currentSegments.items.getOrNull(currentSelected) ?: return@detectHorizontalDragGestures
-                        val t = timeAt(x)
-                        handle = if (abs(t - segment.startMs) <= abs(t - segment.endMs)) Handle.Start else Handle.End
+                        val reachMs = (HandleReach.toPx() / size.width * durationMs).toLong()
+                        drag = trimDragFor(
+                            currentSegments.items.getOrNull(currentSelected),
+                            timeAt(x, size.width, durationMs),
+                            reachMs,
+                        )
+                        if (drag == TrimDrag.Scrub) scrub(timeAt(x, size.width, durationMs)) else handleDragStart()
                     },
-                    onDragEnd = { dragEnd() },
-                    onDragCancel = { dragEnd() },
                     onHorizontalDrag = { change, dragAmount ->
                         change.consume()
                         x = (x + dragAmount).coerceIn(0f, size.width.toFloat())
-                        when (handle) {
-                            Handle.Start -> moveStart(timeAt(x))
-                            Handle.End -> moveEnd(timeAt(x))
+                        val t = timeAt(x, size.width, durationMs)
+                        when (drag) {
+                            TrimDrag.Start -> moveStart(t)
+                            TrimDrag.End -> moveEnd(t)
+                            TrimDrag.Scrub -> scrub(t)
                         }
                     },
                 )
             }
             .drawWithContent {
                 drawContent()
-                val total = durationMs.coerceAtLeast(1).toFloat()
-                fun xOf(ms: Long) = ms / total * size.width
-
-                // 조각 사이와 양 끝, 잘려 나갈 곳을 어둡게 덮는다.
-                var gapStart = 0f
-                segments.items.forEach { segment ->
-                    drawRect(CameraScrim, topLeft = Offset(gapStart, 0f), size = Size(xOf(segment.startMs) - gapStart, size.height))
-                    gapStart = xOf(segment.endMs)
-                }
-                drawRect(CameraScrim, topLeft = Offset(gapStart, 0f), size = Size(size.width - gapStart, size.height))
-
-                segments.items.forEachIndexed { index, segment ->
-                    val startX = xOf(segment.startMs)
-                    val endX = xOf(segment.endMs)
-                    val isSelected = index == selected
-                    val border = (if (isSelected) 3.dp else 1.5.dp).toPx()
-                    drawRoundRect(
-                        color = if (isSelected) Coral80 else Coral80.copy(alpha = 0.6f),
-                        topLeft = Offset(startX + border / 2, border / 2),
-                        size = Size((endX - startX - border).coerceAtLeast(0f), size.height - border),
-                        cornerRadius = CornerRadius(4.dp.toPx()),
-                        style = Stroke(border),
-                    )
-                    if (isSelected) {
-                        // 손잡이는 조각 안쪽으로 그린다 — 양 끝에 붙어도 띠 밖으로 잘려 나가지 않는다.
-                        val handleWidth = HandleWidth.toPx()
-                        drawRect(Coral80, topLeft = Offset(startX, 0f), size = Size(handleWidth, size.height))
-                        drawRect(Coral80, topLeft = Offset(endX - handleWidth, 0f), size = Size(handleWidth, size.height))
-                    }
-                }
-
-                val playheadX = xOf(position().coerceIn(0, durationMs))
-                drawLine(
-                    color = CameraControlTint,
-                    start = Offset(playheadX, 0f),
-                    end = Offset(playheadX, size.height),
-                    strokeWidth = 2.dp.toPx(),
-                )
+                drawSegments(segments, selected, durationMs)
+                drawPlayhead(position().coerceIn(0, durationMs), durationMs)
             },
     ) {
-        Row(Modifier.fillMaxSize()) {
+        Row(
+            Modifier
+                .fillMaxSize()
+                .padding(vertical = Overhang)
+                .clip(RoundedCornerShape(6.dp)),
+        ) {
             frames.forEach { frame ->
                 Box(Modifier.weight(1f).fillMaxHeight()) {
                     frame?.let {
@@ -173,6 +177,80 @@ fun TrimBar(
             }
         }
     }
+}
+
+private fun timeAt(x: Float, width: Int, durationMs: Long): Long =
+    (x / width.coerceAtLeast(1) * durationMs).toLong().coerceIn(0, durationMs)
+
+private fun DrawScope.drawSegments(segments: ClipSegments, selected: Int, durationMs: Long) {
+    val total = durationMs.coerceAtLeast(1).toFloat()
+    fun xOf(ms: Long) = ms / total * size.width
+    val top = Overhang.toPx()
+    val bottom = size.height - Overhang.toPx()
+
+    // 잘라낼 곳: 어둡게 덮고 빗금을 친다 — 어둡기만으로는 "조금 어두운 장면"과 구분되지 않는다.
+    var gapStart = 0f
+    (segments.items.map { xOf(it.startMs) to xOf(it.endMs) } + (size.width to size.width)).forEach { (start, end) ->
+        if (start > gapStart) drawRemoved(gapStart, start, top, bottom)
+        gapStart = end
+    }
+
+    segments.items.forEachIndexed { index, segment ->
+        if (index == selected) return@forEachIndexed
+        val border = 1.5.dp.toPx()
+        drawRoundRect(
+            color = CameraControlTint.copy(alpha = 0.8f),
+            topLeft = Offset(xOf(segment.startMs) + border / 2, top + border / 2),
+            size = Size(xOf(segment.endMs) - xOf(segment.startMs) - border, bottom - top - border),
+            cornerRadius = CornerRadius(4.dp.toPx()),
+            style = Stroke(border),
+        )
+    }
+    segments.items.getOrNull(selected)?.let { drawSelected(xOf(it.startMs), xOf(it.endMs), top, bottom) }
+}
+
+private fun DrawScope.drawRemoved(left: Float, right: Float, top: Float, bottom: Float) {
+    drawRect(RemovedScrim, topLeft = Offset(left, top), size = Size(right - left, bottom - top))
+    clipRect(left, top, right, bottom) {
+        val step = 8.dp.toPx()
+        val height = bottom - top
+        var x = left - height
+        while (x < right) {
+            drawLine(RemovedHatch, Offset(x, bottom), Offset(x + height, top), strokeWidth = 1.5.dp.toPx())
+            x += step
+        }
+    }
+}
+
+/** 선택한 조각: 위아래 굵은 테두리와 양 끝의 잡기 좋은 손잡이. 손잡이는 조각 안쪽으로 그린다. */
+private fun DrawScope.drawSelected(startX: Float, endX: Float, top: Float, bottom: Float) {
+    val handle = HandleWidth.toPx()
+    val edge = 3.dp.toPx()
+    val radius = CornerRadius(6.dp.toPx())
+    drawRect(Coral80, topLeft = Offset(startX, top - edge), size = Size(endX - startX, edge))
+    drawRect(Coral80, topLeft = Offset(startX, bottom), size = Size(endX - startX, edge))
+    listOf(startX, endX - handle).forEach { left ->
+        drawRoundRect(Coral80, topLeft = Offset(left, top - edge), size = Size(handle, bottom - top + edge * 2), cornerRadius = radius)
+        // 그립 표시 — 끌 수 있는 것임을 알린다.
+        val center = left + handle / 2
+        val gripTop = (top + bottom) / 2 - 8.dp.toPx()
+        val gripBottom = (top + bottom) / 2 + 8.dp.toPx()
+        listOf(center - 2.5.dp.toPx(), center + 2.5.dp.toPx()).forEach { gx ->
+            drawLine(OnCoralDark, Offset(gx, gripTop), Offset(gx, gripBottom), strokeWidth = 1.5.dp.toPx(), cap = StrokeCap.Round)
+        }
+    }
+}
+
+private fun DrawScope.drawPlayhead(positionMs: Long, durationMs: Long) {
+    val x = positionMs / durationMs.coerceAtLeast(1).toFloat() * size.width
+    drawLine(
+        color = CameraControlTint,
+        start = Offset(x, Overhang.toPx() / 2),
+        end = Offset(x, size.height - Overhang.toPx() / 2),
+        strokeWidth = 3.dp.toPx(),
+        cap = StrokeCap.Round,
+    )
+    drawCircle(CameraControlTint, radius = 5.dp.toPx(), center = Offset(x, Overhang.toPx() / 2 + 2.dp.toPx()))
 }
 
 /** 클립 전체에 고르게 흩은 프레임들. 앞에서부터 하나씩 채워진다. */
@@ -208,7 +286,7 @@ private fun MediaMetadataRetriever.frameAt(
     rotation: Int,
     codedLandscape: Boolean,
 ): Bitmap? {
-    val sizePx = (BarHeight.value * context.resources.displayMetrics.density).toInt()
+    val sizePx = (StripHeight.value * context.resources.displayMetrics.density).toInt()
     val frame = getScaledFrameAtTime(timeUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC, sizePx, sizePx)
         ?: return null
     return frame.uprightFor(rotation, codedLandscape)

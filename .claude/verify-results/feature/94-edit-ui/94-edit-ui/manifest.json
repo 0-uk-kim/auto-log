@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "94-edit-ui",
+  "service": "autolog",
+  "feature": "edit",
+  "created": "2026-09-30T09:55:20+09:00",
+  "device": "emulator-5554",
+  "branch": "feature/94-edit-ui",
+  "commit": "6c7c3e8",
+  "items": [
+    {
+      "kind": "video",
+      "file": "edit-ui.mp4",
+      "caption": "띠를 끌어 7초·14초를 찾아 자르기 버튼으로 나누고, 가운데 조각을 삭제 → 되돌리기 → 다시 삭제\n화면 왼쪽 끝의 시작 손잡이를 끌어도 뒤로가기로 닫히지 않고 0:02.4로 당겨짐\n재생 버튼으로 남긴 조각만 이어 재생 (7초 → 14초로 건너뜀)\n저장 후 다시 열어도 조각 그대로, 목록 길이 0:22 → 0:13 · 총 1:50 → 1:41",
+      "compare": false,
+      "duration": 61.58,
+      "gif": "edit-ui.gif",
+      "gif_width": 360,
+      "gif_height": 800,
+      "gif_duration": 61.58
+    }
+  ]
+}
