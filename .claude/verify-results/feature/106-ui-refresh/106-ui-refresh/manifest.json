@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "slug": "106-ui-refresh",
+  "service": "autolog",
+  "feature": "ui-refresh",
+  "created": "2026-09-30T14:49:42+09:00",
+  "device": "sdk_gphone64_arm64 (Android 16, emulator-5554)",
+  "branch": "feature/106-ui-refresh",
+  "commit": "1aebc12",
+  "items": [
+    {
+      "kind": "image",
+      "file": "ui-refresh.png",
+      "caption": "목록·달력·미리보기·편집·브이로그 — AS-IS(위) / TO-BE(아래)\n버튼 자리 통일: 위 왼쪽 나가기, 위 오른쪽 부가 동작(선택·편집·삭제), 아래 주 동작(브이로그·저장·공유)\n유리 원형·알약 버튼, 노랑 그라데이션 주 버튼, 둥근 영상 카드",
+      "compare": true,
+      "panels": 5,
+      "width": 1600,
+      "height": 1467,
+      "text_px": 30,
+      "text_lines": 32
+    },
+    {
+      "kind": "video",
+      "file": "ui-refresh-flow.mp4",
+      "caption": "카메라 → 목록 → 선택 모드 → 달력 → 미리보기(점 페이지 표시) → 편집(저장이 아래로) → 브이로그 다시 만들기(진행 고리) 흐름 (TO-BE)",
+      "compare": false,
+      "duration": 48.41,
+      "gif": "ui-refresh-flow.gif",
+      "gif_width": 360,
+      "gif_height": 800,
+      "gif_duration": 48.41
+    }
+  ]
+}

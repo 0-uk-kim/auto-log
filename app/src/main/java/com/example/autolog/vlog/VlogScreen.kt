@@ -1,23 +1,27 @@
 package com.example.autolog.vlog
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -26,8 +30,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -42,7 +44,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -56,7 +57,15 @@ import androidx.media3.exoplayer.ExoPlayer
 import com.example.autolog.R
 import com.example.autolog.data.vlog.VlogFailure
 import com.example.autolog.list.formatClipDuration
+import com.example.autolog.ui.ActionButton
+import com.example.autolog.ui.ActionStyle
+import com.example.autolog.ui.GlassIconButton
+import com.example.autolog.ui.GlowIcon
+import com.example.autolog.ui.ScreenTopBar
 import com.example.autolog.ui.VideoSurface
+import com.example.autolog.ui.theme.AccentDeep
+import com.example.autolog.ui.theme.CameraHighlight
+import com.example.autolog.ui.theme.GlassBorder
 import com.example.autolog.ui.theme.CameraBackground
 import com.example.autolog.ui.theme.ListDimens
 import com.example.autolog.ui.theme.Spacing
@@ -120,19 +129,24 @@ fun VlogScreen(
 
     Scaffold(
         modifier = modifier,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        // 완성 화면은 버튼이 맨 아래에 붙어 있다 — 기본 자리에 뜨면 「공유」를 가린다.
+        snackbarHost = {
+            SnackbarHost(
+                snackbarHostState,
+                modifier = Modifier.padding(bottom = ListDimens.primaryButton + Spacing.md),
+            )
+        },
         topBar = {
-            TopAppBar(
-                title = { Text(rememberDateTitle(date)) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_arrow_back),
-                            contentDescription = stringResource(R.string.vlog_back),
-                        )
-                    }
+            ScreenTopBar(
+                modifier = Modifier.statusBarsPadding(),
+                navigation = {
+                    GlassIconButton(
+                        icon = R.drawable.ic_arrow_back,
+                        contentDescription = stringResource(R.string.vlog_back),
+                        onClick = onBack,
+                    )
                 },
+                title = { Text(rememberDateTitle(date), style = MaterialTheme.typography.titleMedium) },
             )
         },
     ) { padding ->
@@ -140,7 +154,7 @@ fun VlogScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                .padding(horizontal = Spacing.md),
             contentAlignment = Alignment.Center,
         ) {
             when (val state = uiState) {
@@ -172,8 +186,11 @@ fun VlogScreen(
     }
 }
 
+/** 가운데 큰 고리가 차오르며 진행률을 보여 준다. 숫자는 고리 안에 둬 눈이 한곳에 머문다. */
 @Composable
 private fun Merging(percent: Int) {
+    val progress by animateFloatAsState(percent / 100f, label = "merge-progress")
+    val track = MaterialTheme.colorScheme.surfaceContainerHighest
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -181,34 +198,48 @@ private fun Merging(percent: Int) {
             .padding(horizontal = Spacing.lg)
             .testTag(TAG_VLOG_PROGRESS),
     ) {
-        Text(
-            text = stringResource(R.string.vlog_percent, percent),
-            style = MaterialTheme.typography.displayMedium.copy(fontFeatureSettings = "tnum"),
-            fontWeight = FontWeight.Bold,
-        )
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(RING_SIZE)
+                .drawBehind {
+                    val stroke = RING_STROKE.toPx()
+                    val inset = stroke / 2
+                    val arcSize = Size(size.width - stroke, size.height - stroke)
+                    drawArc(track, 0f, 360f, false, Offset(inset, inset), arcSize, style = Stroke(stroke))
+                    drawArc(
+                        brush = Brush.sweepGradient(listOf(AccentDeep, CameraHighlight, AccentDeep)),
+                        startAngle = -90f,
+                        sweepAngle = 360f * progress,
+                        useCenter = false,
+                        topLeft = Offset(inset, inset),
+                        size = arcSize,
+                        style = Stroke(stroke, cap = StrokeCap.Round),
+                    )
+                },
+        ) {
+            Text(
+                text = stringResource(R.string.vlog_percent, percent),
+                style = MaterialTheme.typography.displayMedium.copy(fontFeatureSettings = "tnum"),
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        Spacer(Modifier.height(Spacing.sm))
         Text(
             text = stringResource(R.string.vlog_merging),
-            style = MaterialTheme.typography.titleMedium,
-        )
-        LinearProgressIndicator(
-            progress = { percent / 100f },
-            color = MaterialTheme.colorScheme.secondary,
-            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-            strokeCap = StrokeCap.Round,
-            gapSize = 0.dp,
-            drawStopIndicator = {},
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(6.dp),
+            style = MaterialTheme.typography.titleLarge,
         )
         Text(
             text = stringResource(R.string.vlog_keep_running),
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
     }
 }
+
+private val RING_SIZE = 200.dp
+private val RING_STROKE = 12.dp
 
 /**
  * 완성된 브이로그를 그 자리에서 확인한다 (planning 3-5 "생성 결과를 미리보기로 확인").
@@ -222,8 +253,6 @@ private fun Done(
     onShare: () -> Unit,
 ) {
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         modifier = Modifier
             .fillMaxSize()
             .testTag(TAG_VLOG_DONE),
@@ -233,40 +262,50 @@ private fun Done(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .clip(MaterialTheme.shapes.large)
-                .background(CameraBackground),
+                .clip(MaterialTheme.shapes.extraLarge)
+                .background(CameraBackground)
+                .border(1.dp, GlassBorder, MaterialTheme.shapes.extraLarge),
         )
-        Spacer(Modifier.height(Spacing.xs))
-        Text(
-            text = stringResource(
-                R.string.vlog_done_duration,
-                formatClipDuration(state.durationMs),
-            ),
-            style = MaterialTheme.typography.titleMedium,
-        )
-        // 저장은 만들 때 이미 끝나 있다 — 어디에 있는지 알려 주는 줄이다 (planning 3-6).
-        Text(
-            text = stringResource(R.string.vlog_gallery_location),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(Spacing.sm))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.md),
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(
+                        R.string.vlog_done_duration,
+                        formatClipDuration(state.durationMs),
+                    ),
+                    style = MaterialTheme.typography.titleLarge,
+                )
+                // 저장은 만들 때 이미 끝나 있다 — 어디에 있는지 알려 주는 줄이다 (planning 3-6).
+                Text(
+                    text = stringResource(R.string.vlog_gallery_location),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        // 공유가 이 화면을 끝내는 동작이라 넓게, 되돌릴 수 없는 다시 만들기는 좁은 보조 버튼으로 둔다.
         Row(
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = Spacing.sm + Spacing.xs),
         ) {
-            FilledTonalButton(
+            ActionButton(
+                text = stringResource(R.string.vlog_regenerate),
+                icon = R.drawable.ic_refresh,
                 onClick = onRegenerate,
-                modifier = Modifier.weight(1f).height(ListDimens.primaryButton),
-            ) {
-                Text(stringResource(R.string.vlog_regenerate), style = MaterialTheme.typography.titleMedium)
-            }
-            Button(
+                style = ActionStyle.Secondary,
+                modifier = Modifier.weight(1f),
+            )
+            ActionButton(
+                text = stringResource(R.string.vlog_share),
+                icon = R.drawable.ic_share,
                 onClick = onShare,
-                modifier = Modifier.weight(1f).height(ListDimens.primaryButton).testTag(TAG_VLOG_SHARE),
-            ) {
-                Text(stringResource(R.string.vlog_share), style = MaterialTheme.typography.titleMedium)
-            }
+                modifier = Modifier.weight(1.4f).testTag(TAG_VLOG_SHARE),
+            )
         }
     }
 }
@@ -331,6 +370,7 @@ private fun Failed(reason: VlogFailure, onRetry: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
         modifier = Modifier.testTag(TAG_VLOG_FAILED),
     ) {
+        GlowIcon(icon = R.drawable.ic_movie, tint = MaterialTheme.colorScheme.error)
         Text(
             text = stringResource(
                 when (reason) {
@@ -343,7 +383,7 @@ private fun Failed(reason: VlogFailure, onRetry: () -> Unit) {
             textAlign = TextAlign.Center,
         )
         if (reason != VlogFailure.NoClips) {
-            Button(onClick = onRetry) { Text(stringResource(R.string.vlog_retry)) }
+            ActionButton(text = stringResource(R.string.vlog_retry), icon = R.drawable.ic_refresh, onClick = onRetry)
         }
     }
 }

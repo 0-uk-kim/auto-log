@@ -25,6 +25,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -35,7 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.example.autolog.R
 import com.example.autolog.data.clip.Clip
 import com.example.autolog.ui.rememberClipThumbnail
-import com.example.autolog.ui.theme.CameraControlTint
+import com.example.autolog.ui.theme.GlassBorder
 import com.example.autolog.ui.theme.CameraScrim
 import com.example.autolog.ui.theme.ListDimens
 import com.example.autolog.ui.theme.Spacing
@@ -70,20 +72,25 @@ fun ClipRow(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.md, vertical = Spacing.xs),
-        shape = MaterialTheme.shapes.medium,
+        shape = MaterialTheme.shapes.large,
         color = if (isDragging) {
             MaterialTheme.colorScheme.surfaceContainerHigh
         } else {
             MaterialTheme.colorScheme.surfaceContainer
         },
-        border = if (selected == true) BorderStroke(1.5.dp, MaterialTheme.colorScheme.secondary) else null,
+        // 고른 줄은 노란 테두리, 끄는 줄은 밝은 테두리로 — 나머지 줄은 바탕과 겨우 갈리는 가는 선만 둔다.
+        border = when {
+            selected == true -> BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
+            isDragging -> BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+            else -> BorderStroke(1.dp, GlassBorder)
+        },
         shadowElevation = if (isDragging) 12.dp else 0.dp,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .combinedClickable(onLongClick = onLongClick, onClick = onClick)
-                .padding(Spacing.sm)
+                .padding(start = Spacing.sm, top = Spacing.sm, bottom = Spacing.sm, end = Spacing.xs)
                 .testTag(clipRowTag(position)),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -96,7 +103,7 @@ fun ClipRow(
             ) {
                 Text(
                     text = formatClipTime(clip.endedAt),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                 )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -157,7 +164,7 @@ private fun EditedBadge(modifier: Modifier = Modifier) {
 
 /**
  * 9:16 세로 촬영 고정이라(planning 6-1) 썸네일도 세로 비율로 둔다.
- * 왼쪽 위 숫자는 장식이 아니라 브이로그에 이어붙는 순서다.
+ * 왼쪽 아래 숫자는 장식이 아니라 브이로그에 이어붙는 순서다.
  */
 @Composable
 private fun ClipThumbnail(clip: Clip, order: Int, modifier: Modifier = Modifier) {
@@ -165,7 +172,7 @@ private fun ClipThumbnail(clip: Clip, order: Int, modifier: Modifier = Modifier)
         modifier = modifier
             .width(ListDimens.clipThumbnailWidth)
             .height(ListDimens.clipThumbnail)
-            .clip(MaterialTheme.shapes.small)
+            .clip(MaterialTheme.shapes.medium)
             .background(MaterialTheme.colorScheme.surfaceContainerHighest),
     ) {
         // 썸네일을 읽어오는 동안에는 자리만 잡아둔다 — 행 높이가 뒤늦게 바뀌면 목록이 출렁인다.
@@ -178,19 +185,26 @@ private fun ClipThumbnail(clip: Clip, order: Int, modifier: Modifier = Modifier)
             )
         }
 
+        // 아래로 갈수록 어둡게 깔아 밝은 장면에서도 순서 번호가 떠 보인다.
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(Brush.verticalGradient(0.55f to Color.Transparent, 1f to CameraScrim)),
+        )
         Box(
             modifier = Modifier
+                .align(Alignment.BottomStart)
                 .padding(Spacing.xs)
                 .size(ListDimens.orderNumber)
                 .clip(CircleShape)
-                .background(CameraScrim),
+                .background(MaterialTheme.colorScheme.secondary),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = "$order",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
-                color = CameraControlTint,
+                color = MaterialTheme.colorScheme.onSecondary,
             )
         }
     }

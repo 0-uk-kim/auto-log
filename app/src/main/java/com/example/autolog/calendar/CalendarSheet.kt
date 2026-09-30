@@ -6,16 +6,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -31,13 +31,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.autolog.R
 import com.example.autolog.data.clip.CalendarMarks
+import com.example.autolog.ui.GlassIconButton
 import com.example.autolog.ui.theme.Saturday
 import com.example.autolog.ui.theme.Spacing
 import java.time.DayOfWeek
@@ -70,10 +70,12 @@ fun CalendarSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(),
+        // 반만 펼치면 마지막 주와 범례가 잘린다 — 달력은 한 번에 다 보여야 고를 수 있다.
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         modifier = modifier.testTag(TAG_CALENDAR_SHEET),
     ) {
-        Column(modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
+        Column(modifier = Modifier.navigationBarsPadding().padding(horizontal = Spacing.md)) {
             MonthHeader(
                 month = month,
                 onPreviousMonth = { month = month.minusMonths(1) },
@@ -98,29 +100,28 @@ private fun MonthHeader(
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
 ) {
+    // 달 이름은 왼쪽에 크게, 넘기는 버튼은 오른쪽에 모은다 — 앞뒤로 여러 번 넘길 때 손가락이 옮겨 다니지 않는다.
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(start = Spacing.sm, bottom = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        IconButton(onClick = onPreviousMonth) {
-            Icon(
-                painter = painterResource(R.drawable.ic_chevron),
-                contentDescription = stringResource(R.string.calendar_previous_month),
-            )
-        }
         Text(
             text = stringResource(R.string.calendar_month_title, month.year, month.monthValue),
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.testTag(TAG_CALENDAR_MONTH),
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.weight(1f).testTag(TAG_CALENDAR_MONTH),
         )
-        IconButton(onClick = onNextMonth) {
-            Icon(
-                painter = painterResource(R.drawable.ic_chevron),
-                contentDescription = stringResource(R.string.calendar_next_month),
-                modifier = Modifier.rotate(180f),
-            )
-        }
+        GlassIconButton(
+            icon = R.drawable.ic_chevron,
+            contentDescription = stringResource(R.string.calendar_previous_month),
+            onClick = onPreviousMonth,
+        )
+        GlassIconButton(
+            icon = R.drawable.ic_chevron,
+            contentDescription = stringResource(R.string.calendar_next_month),
+            onClick = onNextMonth,
+            modifier = Modifier.rotate(180f),
+        )
     }
 }
 
@@ -179,7 +180,7 @@ private fun MonthGrid(
 /**
  * 날짜 한 칸. 숫자 아래 점 두 종류가 "영상이 있는 날"과 "브이로그를 만든 날"을 가른다 (#20).
  *
- * 보고 있는 날짜는 흰 원으로 채우고, 오늘은 노란 글자로 — 둘이 겹칠 수 있으므로 표시 수단을 다르게 둔다.
+ * 보고 있는 날짜는 노란 원으로 채우고, 오늘은 노란 테두리로 — 둘이 겹칠 수 있으므로 표시 수단을 다르게 둔다.
  */
 @Composable
 private fun DayCell(
@@ -203,7 +204,12 @@ private fun DayCell(
             modifier = Modifier
                 .size(DayCircle)
                 .clip(CircleShape)
-                .background(if (isViewed) MaterialTheme.colorScheme.primary else Color.Transparent),
+                .background(if (isViewed) MaterialTheme.colorScheme.secondary else Color.Transparent)
+                .border(
+                    width = 1.5.dp,
+                    color = if (isToday && !isViewed) MaterialTheme.colorScheme.secondary else Color.Transparent,
+                    shape = CircleShape,
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -211,7 +217,7 @@ private fun DayCell(
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = if (isToday || isViewed) FontWeight.Bold else FontWeight.Normal,
                 color = when {
-                    isViewed -> MaterialTheme.colorScheme.onPrimary
+                    isViewed -> MaterialTheme.colorScheme.onSecondary
                     isToday -> MaterialTheme.colorScheme.secondary
                     else -> date.dayOfWeek.labelColor()
                 },
@@ -245,8 +251,8 @@ private fun MarkerLegend() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = Spacing.sm, bottom = Spacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md, Alignment.CenterHorizontally),
+            .padding(top = Spacing.md, bottom = Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         LegendItem(MaterialTheme.colorScheme.onSurfaceVariant, R.string.calendar_legend_clips)
@@ -257,8 +263,12 @@ private fun MarkerLegend() {
 @Composable
 private fun LegendItem(color: Color, @StringRes labelRes: Int) {
     Row(
-        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs + 2.dp),
         verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .padding(horizontal = Spacing.sm + Spacing.xs, vertical = Spacing.xs + 2.dp),
     ) {
         Marker(visible = true, color = color)
         Text(
