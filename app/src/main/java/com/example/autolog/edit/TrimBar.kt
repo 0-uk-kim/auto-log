@@ -51,8 +51,8 @@ import com.example.autolog.data.clip.ClipSegment
 import com.example.autolog.data.clip.ClipSegments
 import com.example.autolog.ui.theme.CameraBackground
 import com.example.autolog.ui.theme.CameraControlTint
-import com.example.autolog.ui.theme.Coral80
-import com.example.autolog.ui.theme.OnCoralDark
+import com.example.autolog.ui.theme.CameraBackground
+import com.example.autolog.ui.theme.CameraHighlight
 import kotlin.math.abs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -237,16 +237,16 @@ private fun DrawScope.drawSelected(startX: Float, endX: Float, top: Float, botto
     val handle = HandleWidth.toPx()
     val edge = 3.dp.toPx()
     val radius = CornerRadius(6.dp.toPx())
-    drawRect(Coral80, topLeft = Offset(startX, top - edge), size = Size(endX - startX, edge))
-    drawRect(Coral80, topLeft = Offset(startX, bottom), size = Size(endX - startX, edge))
+    drawRect(CameraHighlight, topLeft = Offset(startX, top - edge), size = Size(endX - startX, edge))
+    drawRect(CameraHighlight, topLeft = Offset(startX, bottom), size = Size(endX - startX, edge))
     listOf(startX, endX - handle).forEach { left ->
-        drawRoundRect(Coral80, topLeft = Offset(left, top - edge), size = Size(handle, bottom - top + edge * 2), cornerRadius = radius)
+        drawRoundRect(CameraHighlight, topLeft = Offset(left, top - edge), size = Size(handle, bottom - top + edge * 2), cornerRadius = radius)
         // 그립 표시 — 끌 수 있는 것임을 알린다.
         val center = left + handle / 2
         val gripTop = (top + bottom) / 2 - 8.dp.toPx()
         val gripBottom = (top + bottom) / 2 + 8.dp.toPx()
         listOf(center - 2.5.dp.toPx(), center + 2.5.dp.toPx()).forEach { gx ->
-            drawLine(OnCoralDark, Offset(gx, gripTop), Offset(gx, gripBottom), strokeWidth = 1.5.dp.toPx(), cap = StrokeCap.Round)
+            drawLine(CameraBackground, Offset(gx, gripTop), Offset(gx, gripBottom), strokeWidth = 1.5.dp.toPx(), cap = StrokeCap.Round)
         }
     }
 }

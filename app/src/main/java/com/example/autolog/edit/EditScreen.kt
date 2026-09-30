@@ -63,8 +63,7 @@ import com.example.autolog.ui.VideoSurface
 import com.example.autolog.ui.rememberPlaybackPosition
 import com.example.autolog.ui.theme.CameraBackground
 import com.example.autolog.ui.theme.CameraControlTint
-import com.example.autolog.ui.theme.Coral80
-import com.example.autolog.ui.theme.OnCoralDark
+import com.example.autolog.ui.theme.CameraHighlight
 import com.example.autolog.ui.theme.Spacing
 import java.util.Locale
 import kotlin.math.abs
@@ -135,12 +134,16 @@ fun EditScreen(
                         tint = CameraControlTint,
                     )
                 }
-                TextButton(onClick = viewModel::reset, enabled = ready.isTrimmed) {
+                TextButton(
+                    onClick = viewModel::reset,
+                    enabled = ready.isTrimmed,
+                    colors = ButtonDefaults.textButtonColors(contentColor = CameraControlTint),
+                ) {
                     Text(stringResource(R.string.edit_reset))
                 }
                 Button(
                     onClick = viewModel::save,
-                    colors = ButtonDefaults.buttonColors(containerColor = Coral80, contentColor = OnCoralDark),
+                    colors = ButtonDefaults.buttonColors(containerColor = CameraHighlight, contentColor = CameraBackground),
                     modifier = Modifier.padding(end = Spacing.sm).testTag(TAG_EDIT_SAVE),
                 ) {
                     Text(stringResource(R.string.edit_save))
@@ -262,7 +265,7 @@ private fun ClipTrimmer(
                             formatTrimTime(state.segments.lengthMs),
                         ),
                         style = MaterialTheme.typography.titleSmall,
-                        color = Coral80,
+                        color = CameraHighlight,
                         modifier = Modifier.testTag(TAG_EDIT_LENGTH),
                     )
                 } else {

@@ -2,34 +2,24 @@ package com.example.autolog.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// 브랜드 시드: 일몰 코럴. 카메라 프리뷰 위에서도 눈에 띄는 난색 계열.
-val Coral80 = Color(0xFFFFB59D)
-val Coral40 = Color(0xFF9A4522)
-val CoralContainerDark = Color(0xFF862200)
-val CoralContainerLight = Color(0xFFFFDBD1)
-val OnCoralDark = Color(0xFF5F1600)
-val OnCoralContainerLight = Color(0xFF3B0A00)
+// 앱 전체가 카메라와 같은 검정 바탕 위에 선다. 영상이 주인공이라 틴트 없는 무채색만 쓰고,
+// 강조는 카메라에서 쓰던 노랑 하나로 모은다.
+val Ink = Color(0xFF000000)
+val Surface1 = Color(0xFF141416)
+val Surface2 = Color(0xFF1E1E21)
+val Surface3 = Color(0xFF2A2A2E)
+val Outline = Color(0xFF3A3A3F)
+val TextPrimary = Color(0xFFF5F5F7)
+val TextSecondary = Color(0xFF9B9BA1)
 
-val Clay80 = Color(0xFFE7BDB2)
-val Clay40 = Color(0xFF77574E)
-val Sand80 = Color(0xFFD8C58D)
-val Sand40 = Color(0xFF6C5D2F)
+val Danger = Color(0xFFFF6B5E)
+val DangerContainer = Color(0xFF3B1714)
+val OnDangerContainer = Color(0xFFFFB4AB)
 
-val NeutralDark = Color(0xFF12100F)
-val OnNeutralDark = Color(0xFFEDE0DD)
-val NeutralVariantDark = Color(0xFF53433F)
-val OnNeutralVariantDark = Color(0xFFD8C2BC)
+/** 달력의 토요일. 한국 달력 관례대로 파랑으로 가른다. */
+val Saturday = Color(0xFF7AA7FF)
 
-val NeutralLight = Color(0xFFFFF8F6)
-val OnNeutralLight = Color(0xFF231917)
-val NeutralVariantLight = Color(0xFFF5DED8)
-val OnNeutralVariantLight = Color(0xFF53433F)
-
-val ErrorDark = Color(0xFFFFB4AB)
-val OnErrorDark = Color(0xFF690005)
-val ErrorLight = Color(0xFFBA1A1A)
-
-// 카메라 화면은 라이트/다크와 무관하게 항상 검은 배경 위에 얹히므로 스킴 밖에 둔다.
+// 카메라 화면은 스킴과 무관하게 항상 검은 배경 위에 얹히므로 스킴 밖에 둔다.
 val RecordRed = Color(0xFFE5342B)
 val CameraBackground = Color(0xFF000000)
 val CameraScrim = Color(0x99000000)
