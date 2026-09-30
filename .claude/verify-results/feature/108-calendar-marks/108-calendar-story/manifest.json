@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "slug": "108-calendar-story",
+  "service": "autolog",
+  "feature": "calendar-story",
+  "created": "2026-09-30T15:35:25+09:00",
+  "device": "sdk_gphone64_arm64 (Android 16, emulator-5554)",
+  "branch": "feature/108-calendar-marks",
+  "commit": "11ea755",
+  "items": [
+    {
+      "kind": "image",
+      "file": "calendar-story.png",
+      "caption": "달력·목록·미리보기 — AS-IS(위) / TO-BE(아래)\n달력: 점 두 개 → 촬영한 날은 그날 첫 클립 썸네일, 브이로그 완성은 노란 영상 배지, 달 요약(며칠 촬영 · 브이로그 몇 편)\n목록: 「전체 보기」 추가 · 미리보기: 점 → 스토리식 진행 막대",
+      "compare": true,
+      "panels": 3,
+      "width": 1600,
+      "height": 2448,
+      "text_px": 17,
+      "text_lines": 39
+    },
+    {
+      "kind": "video",
+      "file": "calendar-story-flow.mp4",
+      "caption": "달력(썸네일·배지) → 9/23 → 「전체 보기」 → 클립 끝나면 다음 클립 자동 재생 → 오른쪽/왼쪽 누르기로 다음/이전 → 가운데 누르기로 일시정지 → 스와이프 (TO-BE)",
+      "compare": false,
+      "duration": 38.02,
+      "gif": "calendar-story-flow.gif",
+      "gif_width": 360,
+      "gif_height": 800,
+      "gif_duration": 38.02
+    }
+  ]
+}
