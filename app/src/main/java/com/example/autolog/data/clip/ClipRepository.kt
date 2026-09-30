@@ -10,6 +10,11 @@ import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.withContext
 
 /**
  * MediaStore(원본) ⊕ Room(사용자가 정한 순서)를 한 목록으로 합친다.
@@ -25,9 +30,20 @@ class ClipRepository @Inject constructor(
     private val clipSegmentDao: ClipSegmentDao,
 ) {
 
+    private val _pendingDeletion = MutableStateFlow<List<Clip>>(emptyList())
+
+    /**
+     * 지웠지만 아직 실행취소를 기다리는 클립 (#102). 모든 조회에서 빠져 이미 지워진 것처럼 보이고,
+     * [commitDeletion] 때 원본이 지워진다. 그 전에 프로세스가 죽으면 지워지지 않고 남는다 — 잃는 쪽보다 낫다.
+     */
+    val pendingDeletion = _pendingDeletion.asStateFlow()
+
     suspend fun clipsByDate(): Map<LocalDate, List<Clip>> {
-        val clips = mediaStoreSource.loadClips()
-        removeOrphanRows(clips)
+        val pendingIds = _pendingDeletion.value.mapTo(mutableSetOf()) { it.id }
+        val loaded = mediaStoreSource.loadClips()
+        // 실행취소로 돌아올 수 있으니 순서·조각 행은 남겨 둔다.
+        removeOrphanRows(loaded)
+        val clips = loaded.filterNot { it.id in pendingIds }
         val segments = clipSegmentDao.byClips(clips.map { it.id }).groupBy { it.clipId }
         return clips
             .map { clip -> segments[clip.id]?.let { clip.withSegments(it) } ?: clip }
@@ -80,10 +96,36 @@ class ClipRepository @Inject constructor(
         }
     }
 
-    fun deleteRequest(clips: List<Clip>): IntentSender = mediaStoreSource.deleteRequest(clips)
+    /**
+     * 확인 창 없이 지우고 실행취소를 기다린다 (#102). 지우기는 되돌릴 수 있으면 묻지 않는 편이 빠르다.
+     * 재설치로 소유권이 풀린 클립은 앱이 직접 지울 수 없어 시스템 확인 창을 돌려준다 — 그 창이 곧 확인이다.
+     */
+    suspend fun delete(clips: List<Clip>): IntentSender? {
+        val (owned, others) = clips.partition { it.isOwned }
+        if (owned.isNotEmpty()) {
+            // 실행취소는 마지막 한 번만 받는다. 앞서 기다리던 것은 확정한다.
+            commitDeletion()
+            _pendingDeletion.value = owned
+        }
+        return others.takeIf { it.isNotEmpty() }?.let(mediaStoreSource::deleteRequest)
+    }
+
+    fun undoDeletion() {
+        _pendingDeletion.value = emptyList()
+    }
+
+    /** 실행취소 기회가 지나면 원본을 지운다. 화면이 닫히는 중에 불려도 끝까지 지운다. */
+    suspend fun commitDeletion() = withContext(NonCancellable) {
+        val clips = _pendingDeletion.value
+        if (clips.isEmpty()) return@withContext
+        mediaStoreSource.delete(clips)
+        forgetDeleted(clips)
+        // 지우는 사이 새로 지운 것이 들어왔으면 그것은 남긴다.
+        _pendingDeletion.update { if (it === clips) emptyList() else it }
+    }
 
     /**
-     * 시스템 창에서 삭제가 승인된 뒤 순서·조각 행을 걷어낸다. 남은 클립의 순서는 행 사이 빈 자리를
+     * 삭제가 확정된 뒤 순서·조각 행을 걷어낸다. 남은 클립의 순서는 행 사이 빈 자리를
      * 그대로 둬도 [applySavedOrder]가 position 순으로 읽어 유지된다.
      */
     suspend fun forgetDeleted(clips: List<Clip>) {

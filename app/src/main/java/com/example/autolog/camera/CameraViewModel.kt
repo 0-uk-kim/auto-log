@@ -1,6 +1,7 @@
 package com.example.autolog.camera
 
 import android.annotation.SuppressLint
+import android.content.ContentUris
 import android.content.Context
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CaptureRequest
@@ -42,9 +43,11 @@ import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -113,6 +116,13 @@ class CameraViewModel @Inject constructor(
     // 드래그·핀치 중에는 매 프레임 바뀐다. uiState에 두면 카메라 화면 전체가 매번 다시 그려지므로 따로 둔다.
     private val _zoomRatio = MutableStateFlow(1f)
     val zoomRatio = _zoomRatio.asStateFlow()
+
+    /** 새로 찍은 클립의 id. 찍자마자 편집 화면으로 넘긴다 (#102). */
+    private val _recorded = Channel<Long>(Channel.CONFLATED)
+    val recorded = _recorded.receiveAsFlow()
+
+    /** 편집 화면에서 지우고 돌아오면 여기서 실행취소 스낵바를 이어 띄운다 (#102). */
+    val awaitingUndo = clipRepository.pendingDeletion
 
     private var recording: Recording? = null
     private var countdown: Job? = null
@@ -319,6 +329,7 @@ class CameraViewModel @Inject constructor(
                         _uiState.update {
                             it.copy(isRecording = false, isPaused = false, elapsed = Duration.ZERO, latestClip = saved)
                         }
+                        if (!event.hasError()) _recorded.trySend(ContentUris.parseId(event.outputResults.outputUri))
                     }
                 }
             }
@@ -331,9 +342,11 @@ class CameraViewModel @Inject constructor(
         viewModelScope.launch {
             // 실패하면 원본도 사라진다. 직전 촬영본은 그대로 둔다 — 일반 촬영이 실패했을 때와 같다.
             try {
-                latestClip = timelapseEncoder.encode(raw, speed, startedAt, endedAt, recorded) { percent ->
+                val saved = timelapseEncoder.encode(raw, speed, startedAt, endedAt, recorded) { percent ->
                     _uiState.update { it.copy(timelapseProgress = percent) }
                 }
+                latestClip = saved
+                _recorded.trySend(ContentUris.parseId(saved))
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
@@ -341,6 +354,15 @@ class CameraViewModel @Inject constructor(
                 _uiState.update { it.copy(timelapseProgress = null, latestClip = latestClip) }
             }
         }
+    }
+
+    fun undoDeletion() {
+        clipRepository.undoDeletion()
+        refreshLatestClip()
+    }
+
+    fun commitDeletion() {
+        viewModelScope.launch { clipRepository.commitDeletion() }
     }
 
     override fun onCleared() {

@@ -28,7 +28,11 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -40,11 +44,14 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.core.view.WindowCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.example.autolog.R
 import com.example.autolog.camera.permission.CameraPermissionGate
+import com.example.autolog.ui.UndoDeletionEffect
 import com.example.autolog.ui.theme.CameraBackground
 import com.example.autolog.ui.theme.Spacing
 
@@ -57,6 +64,7 @@ private const val DISABLED_ALPHA = 0.38f
 fun CameraScreen(
     onOpenClipList: () -> Unit,
     onOpenLatestClip: () -> Unit,
+    onRecorded: (clipId: Long) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: CameraViewModel = hiltViewModel(),
 ) {
@@ -95,6 +103,23 @@ fun CameraScreen(
             listener.enable()
             onDispose { listener.disable() }
         }
+
+        // 찍자마자 편집으로 넘긴다. 녹화가 끝나는 사이 앱을 나갔으면 돌아왔을 때 넘긴다.
+        val recorded by rememberUpdatedState(onRecorded)
+        LaunchedEffect(viewModel, lifecycleOwner) {
+            lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                viewModel.recorded.collect { recorded(it) }
+            }
+        }
+
+        val awaitingUndo by viewModel.awaitingUndo.collectAsStateWithLifecycle()
+        val snackbarHostState = remember { SnackbarHostState() }
+        UndoDeletionEffect(
+            pending = awaitingUndo,
+            hostState = snackbarHostState,
+            onUndo = viewModel::undoDeletion,
+            onCommit = viewModel::commitDeletion,
+        )
 
         // 목록에서 지우고 돌아오거나 앱 밖에서 지워질 수 있다. 돌아올 때마다 다시 읽는다.
         LifecycleResumeEffect(Unit) {
@@ -187,6 +212,9 @@ fun CameraScreen(
                     .padding(bottom = Spacing.lg),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                // 셔터 줄 위에 뜬다. 떠 있지 않으면 높이가 없어 아래 줄들이 움직이지 않는다.
+                SnackbarHost(snackbarHostState)
+
                 uiState.zoomRange?.takeIf { it.isZoomable }?.let { range ->
                     ZoomControl(
                         range = range,

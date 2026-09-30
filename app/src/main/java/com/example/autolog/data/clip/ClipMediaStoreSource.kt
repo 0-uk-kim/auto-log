@@ -1,10 +1,12 @@
 package com.example.autolog.data.clip
 
 import android.content.ContentResolver
+import android.content.Context
 import android.content.IntentSender
 import android.provider.MediaStore
 import com.example.autolog.camera.ClipOutput
 import com.example.autolog.di.IoDispatcher
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -20,6 +22,7 @@ import kotlinx.coroutines.withContext
 @Singleton
 class ClipMediaStoreSource @Inject constructor(
     private val contentResolver: ContentResolver,
+    @ApplicationContext private val context: Context,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) {
 
@@ -38,6 +41,7 @@ class ClipMediaStoreSource @Inject constructor(
             val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
             val takenColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_TAKEN)
             val addedColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
+            val ownerColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.OWNER_PACKAGE_NAME)
 
             while (cursor.moveToNext()) {
                 // DATE_TAKEN은 메타데이터의 촬영 시각(ms)이고, 없으면 행이 생긴 시각(s)으로 대신한다.
@@ -51,6 +55,7 @@ class ClipMediaStoreSource @Inject constructor(
                     durationMs = cursor.getLong(durationColumn),
                     startedAt = Instant.ofEpochMilli(startedAtMillis),
                     sizeBytes = cursor.getLong(sizeColumn),
+                    isOwned = cursor.getString(ownerColumn) == context.packageName,
                 )
             }
         }
@@ -58,10 +63,15 @@ class ClipMediaStoreSource @Inject constructor(
         clips.sortedBy { it.endedAt }
     }
 
-    /**
-     * 원본 파일을 지우려면 시스템 확인 창을 거쳐야 한다. 재설치로 소유권이 풀린 클립도 있어서
-     * 앱이 찍은 것도 예외 없이 이 창으로 보낸다 — 창 한 번에 여러 개를 함께 지운다.
-     */
+    /** 이 설치에서 찍은 클립은 확인 창 없이 지울 수 있다. 소유권이 없는 것은 [deleteRequest]로 보낸다. */
+    suspend fun delete(clips: List<Clip>) = withContext(ioDispatcher) {
+        clips.forEach { clip ->
+            // 그사이 앱 밖에서 먼저 지워졌을 수 있다. 하나가 실패해도 나머지는 지운다.
+            runCatching { contentResolver.delete(clip.uri, null, null) }
+        }
+    }
+
+    /** 재설치로 소유권이 풀린 클립은 시스템 확인 창을 거쳐야 지울 수 있다 — 창 한 번에 여러 개를 함께 지운다. */
     fun deleteRequest(clips: List<Clip>): IntentSender =
         MediaStore.createDeleteRequest(contentResolver, clips.map { it.uri }).intentSender
 
@@ -73,6 +83,7 @@ class ClipMediaStoreSource @Inject constructor(
             MediaStore.Video.Media.SIZE,
             MediaStore.Video.Media.DATE_TAKEN,
             MediaStore.Video.Media.DATE_ADDED,
+            MediaStore.Video.Media.OWNER_PACKAGE_NAME,
         )
 
         // 녹화가 끝나기 전(IS_PENDING=1) 행은 아직 재생할 수 없으므로 목록에서 뺀다.

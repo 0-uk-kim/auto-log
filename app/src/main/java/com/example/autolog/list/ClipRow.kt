@@ -2,7 +2,7 @@ package com.example.autolog.list
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,6 +51,7 @@ fun clipCheckboxTag(position: Int) = "clip-checkbox-$position"
  * 손가락에 가려도 알 수 있어야 한다 (#16).
  *
  * [selected]가 null이 아니면 삭제 모드다 — 손잡이 자리에 체크박스를 두고, 줄을 누르면 체크가 바뀐다 (#38).
+ * 삭제 모드가 아닐 때 길게 누르면 [onLongClick]으로 삭제 모드에 들어간다 (#102).
  */
 @Composable
 fun ClipRow(
@@ -61,6 +62,7 @@ fun ClipRow(
     isDragging: Boolean = false,
     dragHandleModifier: Modifier = Modifier,
     selected: Boolean? = null,
+    onLongClick: (() -> Unit)? = null,
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -70,7 +72,7 @@ fun ClipRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick)
+                .combinedClickable(onLongClick = onLongClick, onClick = onClick)
                 .padding(horizontal = Spacing.md, vertical = Spacing.sm)
                 .testTag(clipRowTag(position)),
             verticalAlignment = Alignment.CenterVertically,
