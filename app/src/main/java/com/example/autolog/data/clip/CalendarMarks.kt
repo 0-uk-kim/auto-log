@@ -1,5 +1,6 @@
 package com.example.autolog.data.clip
 
+import android.net.Uri
 import java.time.LocalDate
 
 /**
@@ -9,6 +10,9 @@ import java.time.LocalDate
  * 뒤는 결과물이 나온 날이다. 그래서 하나로 합치지 않는다.
  */
 data class CalendarMarks(
-    val datesWithClips: Set<LocalDate> = emptySet(),
+    /** 영상이 있는 날마다 그날의 첫 클립 — 브이로그가 시작하는 장면이라 그날의 표지로 쓴다. */
+    val covers: Map<LocalDate, Uri> = emptyMap(),
     val datesWithVlog: Set<LocalDate> = emptySet(),
-)
+) {
+    val datesWithClips: Set<LocalDate> get() = covers.keys
+}
