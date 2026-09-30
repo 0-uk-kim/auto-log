@@ -78,6 +78,7 @@ const val TAG_START_SELECTION = "clip-list-start-selection"
 const val TAG_DELETE_SELECTED = "clip-list-delete-selected"
 const val TAG_SELECT_ALL = "clip-list-select-all"
 const val TAG_OPEN_CALENDAR = "clip-list-open-calendar"
+const val TAG_PLAY_ALL = "clip-list-play-all"
 
 /**
  * 하루치 클립을 브이로그에 들어갈 순서대로 보여주는 스토리보드 (planning 3-3).
@@ -220,6 +221,14 @@ fun ClipListScreen(
                         val marks by viewModel.calendarMarks.collectAsStateWithLifecycle()
                         // 이미 만든 날은 새로 만드는 게 아니라 보러 가는 것이다 — 들어가면 기존 결과물이 뜬다.
                         val hasVlog = viewModel.date in marks.datesWithVlog
+                        // 만들기 전에 이어붙일 영상을 처음부터 끝까지 먼저 본다 — 미리보기가 클립 끝마다 다음으로 넘어간다.
+                        ActionButton(
+                            text = stringResource(R.string.clip_list_play_all),
+                            icon = R.drawable.ic_play,
+                            onClick = { onOpenClip(0) },
+                            style = ActionStyle.Secondary,
+                            modifier = Modifier.testTag(TAG_PLAY_ALL),
+                        )
                         ActionButton(
                             text = stringResource(
                                 if (hasVlog) R.string.clip_list_open_vlog else R.string.clip_list_create_vlog,

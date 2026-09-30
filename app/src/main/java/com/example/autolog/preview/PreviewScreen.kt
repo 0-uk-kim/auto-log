@@ -1,8 +1,14 @@
 package com.example.autolog.preview
 
 import androidx.annotation.OptIn
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.draw.drawWithContent
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -13,8 +19,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.media3.common.Player
 import com.example.autolog.list.formatClipDuration
 import com.example.autolog.list.formatClipTime
@@ -147,8 +151,8 @@ private fun ClipPager(
     val context = LocalContext.current
     val player = remember {
         ExoPlayer.Builder(context)
-            // 재생목록이라 끝나면 자동으로 다음 클립이 시작된다. 페이지는 그대로인데 화면만
-            // 바뀌면 어긋나므로, 넘기는 것은 사용자 손에만 맡긴다.
+            // 재생목록이 스스로 다음 클립으로 넘어가면 페이지와 화면이 어긋난다. 클립 끝에서 멈추게 하고,
+            // 다음 페이지로 넘기는 것은 페이저가 한다 — 그래야 자동 재생과 손으로 넘기기가 같은 길을 탄다.
             .setPauseAtEndOfMediaItems(true)
             .build()
     }
@@ -166,12 +170,28 @@ private fun ClipPager(
         player.playWhenReady = true
     }
 
-    // 화면을 벗어나면 소리부터 멈춰야 한다. 돌아올 때 이어서 트는 것은 사용자가 정한다.
+    // 화면을 벗어나면 소리부터 멈추고, 돌아오면 이어서 튼다 — 편집에서 돌아와도 바로 이어 본다.
     LifecycleResumeEffect(player) {
+        player.play()
         onPauseOrDispose { player.pause() }
     }
 
     val pagerState = rememberPagerState(initialPage = startIndex) { clips.size }
+    val scope = rememberCoroutineScope()
+
+    // 인스타 스토리처럼 한 클립이 끝나면 다음 클립으로 넘어가 하루치를 처음부터 끝까지 이어 본다.
+    // 마지막 클립에서는 멈춘 채 남는다 — 되감아 처음으로 가면 어디까지 봤는지 잃는다.
+    DisposableEffect(player, pagerState) {
+        val listener = object : Player.Listener {
+            override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                if (playWhenReady || reason != Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM) return
+                val next = player.currentMediaItemIndex + 1
+                if (next < pagerState.pageCount) scope.launch { pagerState.animateScrollToPage(next) }
+            }
+        }
+        player.addListener(listener)
+        onDispose { player.removeListener(listener) }
+    }
 
     // 손을 뗀 뒤 자리가 확정된 페이지만 따라간다 — 끄는 도중마다 옮기면 지나치는 클립이 잠깐씩 재생된다.
     LaunchedEffect(pagerState, player) {
@@ -185,6 +205,12 @@ private fun ClipPager(
 
     // 위아래 바를 영상 위에 겹치지 않고 따로 둔다 — 밝은 장면에서 흰 글자가 묻힌다.
     Column(modifier = modifier.fillMaxSize().safeDrawingPadding()) {
+        StoryProgress(
+            page = pagerState.currentPage,
+            total = clips.size,
+            player = player,
+            modifier = Modifier.padding(start = Spacing.md, end = Spacing.md, top = Spacing.sm),
+        )
         // 넘기다 보면 하루치 중 어디쯤인지 잃는다. 목록에서 본 번호와 같은 값을 가운데에 둔다.
         PreviewTopBar(
             onBack = onBack,
@@ -206,6 +232,19 @@ private fun ClipPager(
             ) {
                 if (page == pagerState.settledPage) {
                     VideoSurface(player = player)
+                    // 양옆을 누르면 이전·다음 클립, 가운데를 누르면 재생·일시정지(VideoSurface가 받는다).
+                    // 넘기기(스와이프)도 그대로 된다 — 누름은 끌기를 소비하지 않는다.
+                    TapZones(
+                        onPrevious = {
+                            scope.launch {
+                                if (page > 0) pagerState.animateScrollToPage(page - 1) else player.seekTo(0)
+                                player.play()
+                            }
+                        },
+                        onNext = {
+                            if (page < clips.lastIndex) scope.launch { pagerState.animateScrollToPage(page + 1) }
+                        },
+                    )
                 } else {
                     // 넘기는 중 옆 페이지는 썸네일로 채운다 — 표면은 하나뿐이라 여기에 붙일 것이 없다.
                     NeighbourClip(clip = clips[page])
@@ -215,10 +254,9 @@ private fun ClipPager(
 
         ClipInfoBar(
             clip = clips[pagerState.currentPage],
-            player = player,
             onEdit = { onEdit(clips[pagerState.currentPage].id) },
+            modifier = Modifier.padding(bottom = Spacing.md),
         )
-        PageDots(page = pagerState.currentPage, total = clips.size)
     }
 }
 
@@ -243,12 +281,11 @@ private fun PreviewTopBar(
 }
 
 /**
- * 지금 보는 클립이 언제 찍은 것인지, 어디쯤 재생 중인지, 그리고 할 수 있는 일(편집)을 아래에 모은다.
+ * 지금 보는 클립이 언제 찍은 것인지와 할 수 있는 일(편집)을 아래에 모은다.
  * 편집은 이 화면에서 사실상 유일한 다음 동작이라 엄지가 닿는 자리에 글자가 붙은 버튼으로 둔다.
  */
 @Composable
-private fun ClipInfoBar(clip: Clip, player: Player, onEdit: () -> Unit, modifier: Modifier = Modifier) {
-    val position = rememberPlaybackPosition(player)
+private fun ClipInfoBar(clip: Clip, onEdit: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -275,21 +312,6 @@ private fun ClipInfoBar(clip: Clip, player: Player, onEdit: () -> Unit, modifier
                 modifier = Modifier.height(ListDimens.glassButton + Spacing.xs).testTag(TAG_PREVIEW_EDIT),
             )
         }
-        LinearProgressIndicator(
-            progress = {
-                val duration = player.duration
-                if (duration > 0) (position.value.toFloat() / duration).coerceIn(0f, 1f) else 0f
-            },
-            color = CameraHighlight,
-            trackColor = CameraControlTint.copy(alpha = 0.18f),
-            strokeCap = StrokeCap.Round,
-            gapSize = 0.dp,
-            drawStopIndicator = {},
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(end = Spacing.sm)
-                .height(4.dp),
-        )
     }
 }
 
@@ -307,32 +329,68 @@ private fun PagePosition(page: Int, total: Int, modifier: Modifier = Modifier) {
     )
 }
 
-/** 좌우로 넘길 수 있다는 표시. 지금 클립은 길게 늘려 노랗게 칠한다. 너무 많으면 점이 줄을 넘쳐 숨긴다. */
+/**
+ * 인스타 스토리식 진행 막대. 클립마다 한 칸이고, 지나간 칸은 차 있고 지금 칸은 재생 위치만큼 찬다.
+ * 몇 개 중 몇 번째인지와 이 클립이 얼마나 남았는지를 한 줄로 읽는다.
+ */
 @Composable
-private fun PageDots(page: Int, total: Int, modifier: Modifier = Modifier) {
+private fun StoryProgress(page: Int, total: Int, player: Player, modifier: Modifier = Modifier) {
+    val position = rememberPlaybackPosition(player)
     Row(
-        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         modifier = modifier
             .fillMaxWidth()
-            .height(Spacing.xl),
+            .height(3.dp),
     ) {
-        if (total in 2..MAX_DOTS) {
-            repeat(total) { index ->
-                val current = index == page
-                val width by animateDpAsState(if (current) 18.dp else 6.dp, label = "dot")
-                Box(
-                    Modifier
-                        .size(width = width, height = 6.dp)
-                        .clip(CircleShape)
-                        .background(if (current) CameraHighlight else CameraControlTint.copy(alpha = 0.3f)),
-                )
-            }
+        repeat(total) { index ->
+            Box(
+                Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .clip(CircleShape)
+                    .background(CameraControlTint.copy(alpha = 0.25f))
+                    .drawWithContent {
+                        val fraction = when {
+                            index < page -> 1f
+                            index > page -> 0f
+                            else -> {
+                                val duration = player.duration
+                                if (duration > 0) (position.value.toFloat() / duration).coerceIn(0f, 1f) else 0f
+                            }
+                        }
+                        drawRect(CameraHighlight, size = size.copy(width = size.width * fraction))
+                    },
+            )
         }
     }
 }
 
-private const val MAX_DOTS = 12
+/** 화면 양쪽 가장자리의 누름 영역. 가운데는 비워 두어 아래 영상 표면이 재생·일시정지를 받는다. */
+@Composable
+private fun TapZones(onPrevious: () -> Unit, onNext: () -> Unit) {
+    Row(Modifier.fillMaxSize()) {
+        TapZone(onClick = onPrevious, label = stringResource(R.string.preview_previous), modifier = Modifier.weight(EDGE_WEIGHT))
+        Spacer(Modifier.weight(1f - 2 * EDGE_WEIGHT))
+        TapZone(onClick = onNext, label = stringResource(R.string.preview_next), modifier = Modifier.weight(EDGE_WEIGHT))
+    }
+}
+
+@Composable
+private fun TapZone(onClick: () -> Unit, label: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .fillMaxHeight()
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClickLabel = label,
+                onClick = onClick,
+            ),
+    )
+}
+
+/** 양옆 누름 영역의 폭. 인스타 스토리처럼 가장자리 3분의 1씩이다. */
+private const val EDGE_WEIGHT = 0.3f
 
 @Composable
 private fun NeighbourClip(clip: Clip, modifier: Modifier = Modifier) {

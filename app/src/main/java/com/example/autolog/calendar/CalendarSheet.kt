@@ -1,5 +1,16 @@
 package com.example.autolog.calendar
 
+import android.net.Uri
+import androidx.compose.foundation.Image
+import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import com.example.autolog.ui.rememberClipThumbnail
+import com.example.autolog.ui.theme.CameraControlTint
+import com.example.autolog.ui.theme.CameraHighlight
+import com.example.autolog.ui.theme.CameraScrim
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,8 +62,7 @@ const val TAG_CALENDAR_MONTH = "calendar-month"
 
 fun dayCellTag(date: LocalDate) = "calendar-day-$date"
 
-private val DayCircle = 36.dp
-private val MarkerDot = 6.dp
+private val VlogBadge = 16.dp
 
 /** 다른 날짜의 목록으로 옮겨 가기 위한 달력 (planning 3-4). */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,6 +91,7 @@ fun CalendarSheet(
                 onPreviousMonth = { month = month.minusMonths(1) },
                 onNextMonth = { month = month.plusMonths(1) },
             )
+            MonthSummary(month = month, marks = marks)
             WeekDayHeader()
             MonthGrid(
                 month = month,
@@ -165,7 +176,7 @@ private fun MonthGrid(
                                 date = date,
                                 isToday = date == today,
                                 isViewed = date == viewedDate,
-                                hasClips = date in marks.datesWithClips,
+                                cover = marks.covers[date],
                                 hasVlog = date in marks.datesWithVlog,
                                 onClick = { onSelectDate(date) },
                             )
@@ -178,74 +189,108 @@ private fun MonthGrid(
 }
 
 /**
- * 날짜 한 칸. 숫자 아래 점 두 종류가 "영상이 있는 날"과 "브이로그를 만든 날"을 가른다 (#20).
+ * 이 달에 몇 날을 찍었고 그중 몇 편을 브이로그로 만들었는지. 아직 안 만든 날이 몇인지가 곧 남은 일이다.
+ */
+@Composable
+private fun MonthSummary(month: YearMonth, marks: CalendarMarks) {
+    val shot = marks.datesWithClips.count { YearMonth.from(it) == month }
+    val made = marks.datesWithVlog.count { YearMonth.from(it) == month }
+    Text(
+        text = if (shot == 0) {
+            stringResource(R.string.calendar_summary_empty)
+        } else {
+            stringResource(R.string.calendar_summary, shot, made)
+        },
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = Spacing.sm, bottom = Spacing.sm),
+    )
+}
+
+/**
+ * 날짜 한 칸 (#20). 영상이 있는 날은 그날 첫 클립이 칸을 채운다 — 점 하나보다 "이날 뭘 찍었지"가 바로 보인다.
+ * 브이로그를 만든 날은 오른쪽 아래에 노란 영상 배지가 붙는다. 영상이 없는 날은 숫자만 흐리게 둔다.
  *
- * 보고 있는 날짜는 노란 원으로 채우고, 오늘은 노란 테두리로 — 둘이 겹칠 수 있으므로 표시 수단을 다르게 둔다.
+ * 보고 있는 날짜는 흰 테두리, 오늘은 노란 숫자 — 표지·배지와 겹쳐도 서로 가리지 않게 표시 수단을 다르게 둔다.
  */
 @Composable
 private fun DayCell(
     date: LocalDate,
     isToday: Boolean,
     isViewed: Boolean,
-    hasClips: Boolean,
+    cover: Uri?,
     hasVlog: Boolean,
     onClick: () -> Unit,
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        // 영상이 없는 날도 고를 수 있다 — 빈 목록이 "그날 안 찍었다"는 답이다 (#15).
+    val shape = MaterialTheme.shapes.small
+    // 영상이 없는 날도 고를 수 있다 — 빈 목록이 "그날 안 찍었다"는 답이다 (#15).
+    Box(
         modifier = Modifier
             .fillMaxSize()
+            .padding(2.dp)
+            .clip(shape)
+            .background(if (cover != null) MaterialTheme.colorScheme.surfaceContainerHighest else Color.Transparent)
+            .border(2.dp, if (isViewed) MaterialTheme.colorScheme.onSurface else Color.Transparent, shape)
             .clickable(onClick = onClick)
             .testTag(dayCellTag(date)),
     ) {
-        Box(
-            modifier = Modifier
-                .size(DayCircle)
-                .clip(CircleShape)
-                .background(if (isViewed) MaterialTheme.colorScheme.secondary else Color.Transparent)
-                .border(
-                    width = 1.5.dp,
-                    color = if (isToday && !isViewed) MaterialTheme.colorScheme.secondary else Color.Transparent,
-                    shape = CircleShape,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = "${date.dayOfMonth}",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (isToday || isViewed) FontWeight.Bold else FontWeight.Normal,
-                color = when {
-                    isViewed -> MaterialTheme.colorScheme.onSecondary
-                    isToday -> MaterialTheme.colorScheme.secondary
-                    else -> date.dayOfWeek.labelColor()
-                },
+        if (cover != null) {
+            rememberClipThumbnail(cover)?.let { bitmap ->
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            // 밝은 장면에서도 날짜 숫자가 읽히게 위쪽을 어둡게 깐다.
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Brush.verticalGradient(0f to CameraScrim, 0.7f to Color.Transparent)),
             )
         }
 
-        // 점 자리는 표시가 없어도 항상 잡아 둔다 — 안 그러면 줄마다 숫자 높이가 어긋난다.
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs / 2),
-            modifier = Modifier.padding(top = Spacing.xs / 2),
-        ) {
-            Marker(visible = hasClips, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Marker(visible = hasVlog, color = MaterialTheme.colorScheme.tertiary)
+        Text(
+            text = "${date.dayOfMonth}",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = if (cover != null || isToday) FontWeight.Bold else FontWeight.Normal,
+            color = when {
+                isToday -> MaterialTheme.colorScheme.secondary
+                cover != null -> CameraControlTint
+                else -> date.dayOfWeek.labelColor().copy(alpha = EMPTY_DAY_ALPHA)
+            },
+            modifier = Modifier
+                .align(if (cover != null) Alignment.TopStart else Alignment.Center)
+                .padding(horizontal = Spacing.xs + 1.dp, vertical = 2.dp),
+        )
+
+        if (hasVlog) {
+            VlogMark(modifier = Modifier.align(Alignment.BottomEnd).padding(3.dp))
         }
     }
 }
 
+/** 브이로그를 만든 날의 표시. 목록의 「브이로그 보기」 버튼과 같은 영상 아이콘이라 뜻이 이어진다. */
 @Composable
-private fun Marker(visible: Boolean, color: Color) {
+private fun VlogMark(modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier
-            .size(MarkerDot)
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .size(VlogBadge)
             .clip(CircleShape)
-            .background(if (visible) color else Color.Transparent),
-    )
+            .background(MaterialTheme.colorScheme.secondary),
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_movie),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSecondary,
+            modifier = Modifier.size(10.dp),
+        )
+    }
 }
 
-/** 점 두 개가 무엇을 뜻하는지 달력 안에서 바로 읽히게 한다. */
+/** 표지와 배지가 무엇을 뜻하는지 달력 안에서 바로 읽히게 한다. 범례도 실제 칸과 같은 모양으로 그린다. */
 @Composable
 private fun MarkerLegend() {
     Row(
@@ -255,13 +300,20 @@ private fun MarkerLegend() {
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        LegendItem(MaterialTheme.colorScheme.onSurfaceVariant, R.string.calendar_legend_clips)
-        LegendItem(MaterialTheme.colorScheme.tertiary, R.string.calendar_legend_vlog)
+        LegendItem(R.string.calendar_legend_clips) {
+            Box(
+                Modifier
+                    .size(width = 14.dp, height = 18.dp)
+                    .clip(MaterialTheme.shapes.extraSmall)
+                    .background(Brush.verticalGradient(listOf(Saturday, CameraHighlight.copy(alpha = 0.7f)))),
+            )
+        }
+        LegendItem(R.string.calendar_legend_vlog) { VlogMark() }
     }
 }
 
 @Composable
-private fun LegendItem(color: Color, @StringRes labelRes: Int) {
+private fun LegendItem(@StringRes labelRes: Int, swatch: @Composable () -> Unit) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs + 2.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -270,7 +322,7 @@ private fun LegendItem(color: Color, @StringRes labelRes: Int) {
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .padding(horizontal = Spacing.sm + Spacing.xs, vertical = Spacing.xs + 2.dp),
     ) {
-        Marker(visible = true, color = color)
+        swatch()
         Text(
             text = stringResource(labelRes),
             style = MaterialTheme.typography.labelMedium,
@@ -278,6 +330,8 @@ private fun LegendItem(color: Color, @StringRes labelRes: Int) {
         )
     }
 }
+
+private const val EMPTY_DAY_ALPHA = 0.55f
 
 /** 주말은 색으로 구분한다 — 하루가 곧 브이로그 한 편이라 주말 단위로 훑는 일이 잦다. */
 @Composable

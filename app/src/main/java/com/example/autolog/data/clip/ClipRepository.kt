@@ -60,7 +60,7 @@ class ClipRepository @Inject constructor(
      * "영상은 없고 브이로그만 있는" 날짜가 남는다.
      */
     suspend fun calendarMarks(): CalendarMarks = CalendarMarks(
-        datesWithClips = clipsByDate().keys,
+        covers = clipsByDate().mapValues { (_, clips) -> clips.first().uri },
         datesWithVlog = vlogDao.allDates().toSet(),
     )
 
