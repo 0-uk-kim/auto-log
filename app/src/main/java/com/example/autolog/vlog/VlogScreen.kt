@@ -1,16 +1,20 @@
 package com.example.autolog.vlog
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -23,6 +27,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -33,11 +38,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -48,6 +57,8 @@ import com.example.autolog.R
 import com.example.autolog.data.vlog.VlogFailure
 import com.example.autolog.list.formatClipDuration
 import com.example.autolog.ui.VideoSurface
+import com.example.autolog.ui.theme.CameraBackground
+import com.example.autolog.ui.theme.ListDimens
 import com.example.autolog.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -113,6 +124,7 @@ fun VlogScreen(
         topBar = {
             TopAppBar(
                 title = { Text(rememberDateTitle(date)) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -128,7 +140,7 @@ fun VlogScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(Spacing.xl),
+                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
             contentAlignment = Alignment.Center,
         ) {
             when (val state = uiState) {
@@ -165,20 +177,29 @@ private fun Merging(percent: Int) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        modifier = Modifier.testTag(TAG_VLOG_PROGRESS),
+        modifier = Modifier
+            .padding(horizontal = Spacing.lg)
+            .testTag(TAG_VLOG_PROGRESS),
     ) {
+        Text(
+            text = stringResource(R.string.vlog_percent, percent),
+            style = MaterialTheme.typography.displayMedium.copy(fontFeatureSettings = "tnum"),
+            fontWeight = FontWeight.Bold,
+        )
         Text(
             text = stringResource(R.string.vlog_merging),
             style = MaterialTheme.typography.titleMedium,
         )
         LinearProgressIndicator(
             progress = { percent / 100f },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Text(
-            text = stringResource(R.string.vlog_percent, percent),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.secondary,
+            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            strokeCap = StrokeCap.Round,
+            gapSize = 0.dp,
+            drawStopIndicator = {},
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp),
         )
         Text(
             text = stringResource(R.string.vlog_keep_running),
@@ -211,28 +232,40 @@ private fun Done(
             uri = state.uri,
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.large)
+                .background(CameraBackground),
         )
+        Spacer(Modifier.height(Spacing.xs))
         Text(
             text = stringResource(
                 R.string.vlog_done_duration,
                 formatClipDuration(state.durationMs),
             ),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.titleMedium,
         )
         // 저장은 만들 때 이미 끝나 있다 — 어디에 있는지 알려 주는 줄이다 (planning 3-6).
         Text(
             text = stringResource(R.string.vlog_gallery_location),
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            OutlinedButton(onClick = onRegenerate) {
-                Text(stringResource(R.string.vlog_regenerate))
+        Spacer(Modifier.height(Spacing.sm))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            FilledTonalButton(
+                onClick = onRegenerate,
+                modifier = Modifier.weight(1f).height(ListDimens.primaryButton),
+            ) {
+                Text(stringResource(R.string.vlog_regenerate), style = MaterialTheme.typography.titleMedium)
             }
-            Button(onClick = onShare, modifier = Modifier.testTag(TAG_VLOG_SHARE)) {
-                Text(stringResource(R.string.vlog_share))
+            Button(
+                onClick = onShare,
+                modifier = Modifier.weight(1f).height(ListDimens.primaryButton).testTag(TAG_VLOG_SHARE),
+            ) {
+                Text(stringResource(R.string.vlog_share), style = MaterialTheme.typography.titleMedium)
             }
         }
     }
@@ -271,7 +304,10 @@ private fun RegenerateAlert(onConfirm: () -> Unit, onDismiss: () -> Unit) {
         title = { Text(stringResource(R.string.vlog_regenerate_title)) },
         text = { Text(stringResource(R.string.vlog_regenerate_message)) },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
+            TextButton(
+                onClick = onConfirm,
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+            ) {
                 Text(stringResource(R.string.vlog_regenerate_confirm))
             }
         },

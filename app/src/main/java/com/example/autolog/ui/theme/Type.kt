@@ -2,49 +2,52 @@ package com.example.autolog.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-val Typography = Typography(
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 22.sp,
+// 녹화 경과 시간·클립 길이처럼 바뀌는 숫자는 폭이 흔들리지 않게 tabular 숫자를 쓴다.
+// 고정폭 글꼴은 같은 효과를 내지만 한글과 섞이면 타자기처럼 보인다.
+private const val TabularNumbers = "tnum"
+
+private val Base = Typography()
+
+val Typography = Base.copy(
+    headlineSmall = Base.headlineSmall.copy(
+        fontWeight = FontWeight.Bold,
+        fontSize = 26.sp,
+        lineHeight = 32.sp,
+        letterSpacing = (-0.5).sp,
+    ),
+    titleLarge = Base.titleLarge.copy(
+        fontWeight = FontWeight.Bold,
+        fontSize = 20.sp,
         lineHeight = 28.sp,
+        letterSpacing = (-0.3).sp,
     ),
-    titleMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
+    titleMedium = Base.titleMedium.copy(
+        fontWeight = FontWeight.SemiBold,
         fontSize = 16.sp,
-        lineHeight = 24.sp,
+        lineHeight = 22.sp,
+        letterSpacing = 0.sp,
     ),
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp,
-    ),
-    bodyMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.25.sp,
-    ),
-    // 녹화 경과 시간·클립 길이. 숫자가 바뀔 때 폭이 흔들리지 않도록 tabular 자리를 전제로 쓴다.
-    labelLarge = TextStyle(
-        fontFamily = FontFamily.Monospace,
+    titleSmall = Base.titleSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.sp),
+    bodyLarge = Base.bodyLarge.copy(letterSpacing = 0.sp),
+    bodyMedium = Base.bodyMedium.copy(letterSpacing = 0.sp),
+    bodySmall = Base.bodySmall.copy(letterSpacing = 0.sp),
+    labelLarge = Base.labelLarge.copy(
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
-        lineHeight = 20.sp,
+        letterSpacing = 0.sp,
+        fontFeatureSettings = TabularNumbers,
     ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
+    labelMedium = Base.labelMedium.copy(
         fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp,
+        letterSpacing = 0.sp,
+        fontFeatureSettings = TabularNumbers,
+    ),
+    labelSmall = Base.labelSmall.copy(
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = 0.sp,
+        fontFeatureSettings = TabularNumbers,
     ),
 )

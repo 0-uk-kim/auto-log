@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.autolog.R
 import com.example.autolog.data.clip.CalendarMarks
+import com.example.autolog.ui.theme.Saturday
 import com.example.autolog.ui.theme.Spacing
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -50,7 +51,7 @@ const val TAG_CALENDAR_MONTH = "calendar-month"
 
 fun dayCellTag(date: LocalDate) = "calendar-day-$date"
 
-private val DayCircle = 34.dp
+private val DayCircle = 36.dp
 private val MarkerDot = 6.dp
 
 /** 다른 날짜의 목록으로 옮겨 가기 위한 달력 (planning 3-4). */
@@ -110,7 +111,7 @@ private fun MonthHeader(
         }
         Text(
             text = stringResource(R.string.calendar_month_title, month.year, month.monthValue),
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.testTag(TAG_CALENDAR_MONTH),
         )
         IconButton(onClick = onNextMonth) {
@@ -178,7 +179,7 @@ private fun MonthGrid(
 /**
  * 날짜 한 칸. 숫자 아래 점 두 종류가 "영상이 있는 날"과 "브이로그를 만든 날"을 가른다 (#20).
  *
- * 보고 있는 날짜는 채워서, 오늘은 굵게 — 둘이 겹칠 수 있으므로 표시 수단을 다르게 둔다.
+ * 보고 있는 날짜는 흰 원으로 채우고, 오늘은 노란 글자로 — 둘이 겹칠 수 있으므로 표시 수단을 다르게 둔다.
  */
 @Composable
 private fun DayCell(
@@ -208,11 +209,11 @@ private fun DayCell(
             Text(
                 text = "${date.dayOfMonth}",
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                color = if (isViewed) {
-                    MaterialTheme.colorScheme.onPrimary
-                } else {
-                    date.dayOfWeek.labelColor()
+                fontWeight = if (isToday || isViewed) FontWeight.Bold else FontWeight.Normal,
+                color = when {
+                    isViewed -> MaterialTheme.colorScheme.onPrimary
+                    isToday -> MaterialTheme.colorScheme.secondary
+                    else -> date.dayOfWeek.labelColor()
                 },
             )
         }
@@ -222,7 +223,7 @@ private fun DayCell(
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs / 2),
             modifier = Modifier.padding(top = Spacing.xs / 2),
         ) {
-            Marker(visible = hasClips, color = MaterialTheme.colorScheme.primary)
+            Marker(visible = hasClips, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Marker(visible = hasVlog, color = MaterialTheme.colorScheme.tertiary)
         }
     }
@@ -248,7 +249,7 @@ private fun MarkerLegend() {
         horizontalArrangement = Arrangement.spacedBy(Spacing.md, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        LegendItem(MaterialTheme.colorScheme.primary, R.string.calendar_legend_clips)
+        LegendItem(MaterialTheme.colorScheme.onSurfaceVariant, R.string.calendar_legend_clips)
         LegendItem(MaterialTheme.colorScheme.tertiary, R.string.calendar_legend_vlog)
     }
 }
@@ -272,6 +273,6 @@ private fun LegendItem(color: Color, @StringRes labelRes: Int) {
 @Composable
 private fun DayOfWeek.labelColor() = when (this) {
     DayOfWeek.SUNDAY -> MaterialTheme.colorScheme.error
-    DayOfWeek.SATURDAY -> MaterialTheme.colorScheme.tertiary
+    DayOfWeek.SATURDAY -> Saturday
     else -> MaterialTheme.colorScheme.onSurface
 }

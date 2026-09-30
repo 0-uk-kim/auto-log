@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "slug": "104-look-and-feel",
+  "service": "autolog",
+  "feature": "look-and-feel",
+  "created": "2026-09-30T13:10:03+09:00",
+  "device": "sdk_gphone64_arm64 (Android 16, emupool-api36-1)",
+  "branch": "feature/104-look-and-feel",
+  "commit": "fe7600f",
+  "items": [
+    {
+      "kind": "image",
+      "file": "look-and-feel.png",
+      "caption": "목록·달력·미리보기·편집·브이로그 — AS-IS(위) / TO-BE(아래)\n핑크 틴트 라이트 테마 → 카메라와 같은 검정 무채색, 켜진 상태만 노랑\n목록: 파일명 제거, 카드형 줄, 휴지통 아이콘 → 「선택」, 날짜를 누르면 달력, 이미 만든 날은 「브이로그 보기」\n미리보기: 연필 아이콘 → 아래 촬영 시각·진행 바·「편집」 버튼\n편집: 「원래대로」를 상단에서 길이 변화 옆으로",
+      "compare": true,
+      "width": 1600,
+      "height": 1467,
+      "text_px": 16,
+      "text_lines": 35
+    },
+    {
+      "kind": "video",
+      "file": "look-and-feel-flow.mp4",
+      "caption": "카메라 → 목록 → 선택 모드 → 달력 → 미리보기 → 편집 → 브이로그 흐름 (TO-BE)\n선택 모드에서는 하단 버튼이 빨간 「N개 삭제」로 바뀜",
+      "compare": false,
+      "duration": 48.73,
+      "gif": "look-and-feel-flow.gif",
+      "gif_width": 360,
+      "gif_height": 800,
+      "gif_duration": 48.73
+    }
+  ]
+}
