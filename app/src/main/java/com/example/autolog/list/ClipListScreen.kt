@@ -228,7 +228,7 @@ private fun ClipList(
             text = stringResource(
                 R.string.clip_list_summary,
                 clips.size,
-                formatClipDuration(clips.sumOf { it.durationMs }),
+                formatClipDuration(clips.sumOf { it.playedDurationMs }),
             ),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -174,7 +174,7 @@ private fun ClipThumbnail(clip: Clip, modifier: Modifier = Modifier) {
         }
 
         Text(
-            text = formatClipDuration(clip.durationMs),
+            text = formatClipDuration(clip.playedDurationMs),
             style = MaterialTheme.typography.labelSmall,
             color = CameraControlTint,
             modifier = Modifier

@@ -24,3 +24,7 @@ data class Preview(val date: String, val clipIndex: Int) : AutoLogRoute {
 
 @Serializable
 data class Vlog(val date: String) : AutoLogRoute
+
+/** 클립 하나를 손보는 화면. 자리(index)가 아니라 [clipId]로 가리킨다 — 목록 순서가 바뀌어도 같은 클립을 연다. */
+@Serializable
+data class Edit(val date: String, val clipId: Long) : AutoLogRoute
