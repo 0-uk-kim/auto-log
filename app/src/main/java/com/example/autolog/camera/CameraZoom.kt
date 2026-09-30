@@ -1,6 +1,7 @@
 package com.example.autolog.camera
 
 import java.util.Locale
+import kotlin.math.pow
 import kotlin.math.round
 
 /** 후면 카메라가 낼 수 있는 배율 범위 (#42). 광각 렌즈가 있으면 min이 1보다 작다. */
@@ -28,5 +29,17 @@ fun formatZoom(ratio: Float): String {
     val rounded = round(ratio * 10) / 10
     return if (rounded % 1f == 0f) "${rounded.toInt()}x" else String.format(Locale.US, "%.1fx", rounded)
 }
+
+/**
+ * 배율 애니메이션의 t(0..1) 지점 배율. 눈에는 배율이 곱셈으로 느껴지므로 로그 공간에서 잇는다 —
+ * 선형으로 이으면 0.6x→2x에서 넓은 쪽을 순식간에 지나간다. 끝은 천천히 멈춘다.
+ */
+fun interpolateZoom(from: Float, to: Float, t: Float): Float {
+    val eased = 1f - (1f - t.coerceIn(0f, 1f)).pow(3)
+    return from * (to / from).pow(eased)
+}
+
+const val ZOOM_ANIMATION_NANOS = 250_000_000L
+const val ZOOM_FRAME_MS = 16L
 
 private const val ZOOM_EPSILON = 0.05f

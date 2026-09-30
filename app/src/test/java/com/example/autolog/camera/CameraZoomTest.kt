@@ -2,6 +2,7 @@ package com.example.autolog.camera
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CameraZoomTest {
@@ -43,5 +44,19 @@ class CameraZoomTest {
         assertEquals("2x", formatZoom(1.98f))
         assertEquals("1.4x", formatZoom(1.43f))
         assertEquals("0.6x", formatZoom(0.6f))
+    }
+
+    @Test
+    fun `배율 애니메이션은 양 끝에서 요청한 배율과 같다`() {
+        assertEquals(0.6f, interpolateZoom(0.6f, 2f, 0f), 1e-4f)
+        assertEquals(2f, interpolateZoom(0.6f, 2f, 1f), 1e-4f)
+    }
+
+    @Test
+    fun `배율 애니메이션은 곱셈 기준으로 잇는다`() {
+        // 0.5x→2x의 로그 중간은 1x. 감속 때문에 t=0.5면 이미 중간을 넘는다.
+        val mid = interpolateZoom(0.5f, 2f, 0.5f)
+        assertTrue(mid > 1f && mid < 2f)
+        assertTrue(interpolateZoom(2f, 0.5f, 0.5f) < 1f)
     }
 }

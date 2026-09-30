@@ -5,6 +5,7 @@ import androidx.activity.compose.LocalActivity
 import androidx.camera.compose.CameraXViewfinder
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -25,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -60,6 +62,13 @@ fun CameraScreen(
 
         val surfaceRequest by viewModel.surfaceRequest.collectAsStateWithLifecycle()
         val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+        val isPreviewStreaming by viewModel.isPreviewStreaming.collectAsStateWithLifecycle()
+        // 화면 복귀·렌즈 전환 때 검은 프리뷰가 갑자기 켜지지 않게 첫 프레임부터 서서히 띄운다.
+        val previewAlpha by animateFloatAsState(
+            targetValue = if (isPreviewStreaming) 1f else 0f,
+            animationSpec = tween(PREVIEW_FADE_MS),
+            label = "previewAlpha",
+        )
 
         KeepScreenOn(enabled = uiState.isCapturing)
 
@@ -99,6 +108,11 @@ fun CameraScreen(
                     modifier = Modifier
                         // 화면이 9:16보다 납작하면 높이가, 길쭉하면 너비가 기준이 된다 — 프레임 전체가 항상 보인다.
                         .aspectRatio(9f / 16f, matchHeightConstraintsFirst = true)
+                        // 뷰파인더는 SurfaceView라 투명도가 먹지 않는다. 위에 검은 막을 덮었다 걷는다.
+                        .drawWithContent {
+                            drawContent()
+                            drawRect(CameraBackground, alpha = 1f - previewAlpha)
+                        }
                         .pointerInput(Unit) {
                             detectTransformGestures { _, _, zoom, _ -> viewModel.onPinch(zoom) }
                         }
@@ -192,7 +206,7 @@ fun CameraScreen(
                     }
 
                     uiState.zoomRange?.takeIf { it.isZoomable }?.let { range ->
-                        ZoomControl(range = range, ratio = uiState.zoomRatio, onSelect = viewModel::setZoom)
+                        ZoomControl(range = range, ratio = uiState.zoomRatio, onSelect = viewModel::animateZoomTo)
                     }
 
                     // 녹화 중에는 바꿀 수 없으니 숨긴다.
@@ -233,6 +247,8 @@ fun CameraScreen(
         }
     }
 }
+
+private const val PREVIEW_FADE_MS = 200
 
 /** 찍는 동안에는 손대지 않아도 화면이 꺼지지 않게 한다 (#81). 꺼지면 액티비티가 멈춰 녹화도 끊긴다. */
 @Composable

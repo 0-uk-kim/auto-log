@@ -2,8 +2,13 @@ package com.example.autolog.camera
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.hardware.camera2.CameraCaptureSession
+import android.hardware.camera2.CaptureRequest
+import android.hardware.camera2.TotalCaptureResult
 import android.net.Uri
 import android.view.Surface
+import androidx.camera.camera2.interop.Camera2Interop
+import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.Camera
 import androidx.camera.core.MirrorMode
 import androidx.camera.core.Preview
@@ -53,13 +58,30 @@ class CameraViewModel @Inject constructor(
     private val _surfaceRequest = MutableStateFlow<SurfaceRequest?>(null)
     val surfaceRequest = _surfaceRequest.asStateFlow()
 
+    // 바인딩 직후 첫 프레임까지는 프리뷰가 검다. 화면은 이 값을 보고 프리뷰를 서서히 띄운다.
+    // 매 프레임 불리므로 uiState와 따로 둔다 — StateFlow는 같은 값이면 다시 내보내지 않는다.
+    private val _isPreviewStreaming = MutableStateFlow(false)
+    val isPreviewStreaming = _isPreviewStreaming.asStateFlow()
+
     // 프리뷰는 세로 화면에 9:16으로 그린다. 가로 촬영도 기기를 눕혀 찍으니 같은 프레임이 그대로 가로가 된다 (#40).
+    @OptIn(ExperimentalCamera2Interop::class)
     private val previewUseCase = Preview.Builder()
         .setResolutionSelector(
             ResolutionSelector.Builder()
                 .setAspectRatioStrategy(AspectRatioStrategy.RATIO_16_9_FALLBACK_AUTO_STRATEGY)
                 .build(),
         )
+        .also { builder ->
+            Camera2Interop.Extender(builder).setSessionCaptureCallback(object : CameraCaptureSession.CaptureCallback() {
+                override fun onCaptureCompleted(
+                    session: CameraCaptureSession,
+                    request: CaptureRequest,
+                    result: TotalCaptureResult,
+                ) {
+                    _isPreviewStreaming.value = true
+                }
+            })
+        }
         .build()
         .apply { setSurfaceProvider { request -> _surfaceRequest.value = request } }
 
@@ -92,6 +114,7 @@ class CameraViewModel @Inject constructor(
     private var latestClip: Uri? = null
     private var deviceRotation = Surface.ROTATION_0
     private var camera: Camera? = null
+    private var zoomAnimation: Job? = null
 
     init {
         refreshLatestClip()
@@ -162,10 +185,27 @@ class CameraViewModel @Inject constructor(
     /** 핀치 한 번의 배율 변화량을 현재 배율에 곱한다. 녹화 중에도 막지 않는다 — 배율은 파일 규격과 무관하다. */
     fun onPinch(scale: Float) {
         val range = _uiState.value.zoomRange ?: return
-        setZoom(range.clamp(_uiState.value.zoomRatio * scale))
+        zoomAnimation?.cancel()
+        applyZoom(range.clamp(_uiState.value.zoomRatio * scale))
     }
 
-    fun setZoom(ratio: Float) {
+    /** 배율 버튼용. 한 번에 바꾸면 프리뷰가 튀므로 몇 프레임에 걸쳐 옮긴다. */
+    fun animateZoomTo(ratio: Float) {
+        val range = _uiState.value.zoomRange ?: return
+        val from = _uiState.value.zoomRatio
+        val to = range.clamp(ratio)
+        zoomAnimation?.cancel()
+        zoomAnimation = viewModelScope.launch {
+            val start = System.nanoTime()
+            do {
+                val t = ((System.nanoTime() - start) / ZOOM_ANIMATION_NANOS.toFloat()).coerceAtMost(1f)
+                applyZoom(interpolateZoom(from, to, t))
+                delay(ZOOM_FRAME_MS)
+            } while (t < 1f)
+        }
+    }
+
+    private fun applyZoom(ratio: Float) {
         val camera = camera ?: return
         val range = _uiState.value.zoomRange ?: return
         val clamped = range.clamp(ratio)
@@ -285,12 +325,14 @@ class CameraViewModel @Inject constructor(
         _uiState.update { it.copy(lens = target, canSwitchLens = available.size > 1) }
         // 렌즈를 바꾸면 이전 호출의 해제와 이번 바인딩 중 무엇이 먼저 돌지 보장되지 않는다. 먼저 풀고 건다.
         cameraProvider.unbindAll()
+        _isPreviewStreaming.value = false
         val bound = cameraProvider.bindToLifecycle(
             lifecycleOwner,
             target.selector,
             previewUseCase,
             videoCapture,
         )
+        zoomAnimation?.cancel()
         camera = bound
         // 다시 바인딩하면 배율이 1x로 돌아온다. 화면도 카메라가 알려주는 값에서 새로 시작한다.
         bound.cameraInfo.zoomState.value?.let { zoom ->
@@ -304,6 +346,7 @@ class CameraViewModel @Inject constructor(
             // 이미 새 렌즈로 다시 바인딩됐다면 그쪽을 풀면 안 된다.
             if (camera === bound) {
                 camera = null
+                _isPreviewStreaming.value = false
                 cameraProvider.unbindAll()
             }
         }
