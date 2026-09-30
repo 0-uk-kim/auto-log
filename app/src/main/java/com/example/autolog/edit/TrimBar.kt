@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.systemGestureExclusion
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,10 +41,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.example.autolog.data.clip.ClipSegment
 import com.example.autolog.data.clip.ClipSegments
+import com.example.autolog.ui.theme.CameraBackground
 import com.example.autolog.ui.theme.CameraControlTint
 import com.example.autolog.ui.theme.Coral80
 import com.example.autolog.ui.theme.OnCoralDark
@@ -56,6 +62,8 @@ const val TAG_TRIM_BAR = "edit-trim-bar"
 private val StripHeight = 52.dp
 /** 재생 위치 손잡이와 선택 테두리가 띠 위아래로 삐져나올 자리. */
 private val Overhang = 8.dp
+/** 재생 위치 시각 말풍선이 띠 위에 뜰 자리. */
+private val BubbleHeight = 22.dp
 private val HandleWidth = 16.dp
 /** 손잡이는 눈에 보이는 폭보다 넓게 잡힌다 — 손가락이 손잡이를 가려 정확히 겨냥할 수 없다. */
 private val HandleReach = 28.dp
@@ -114,11 +122,13 @@ fun TrimBar(
     val handleDragStart by rememberUpdatedState(onHandleDragStart)
     val moveStart by rememberUpdatedState(onMoveStart)
     val moveEnd by rememberUpdatedState(onMoveEnd)
+    val textMeasurer = rememberTextMeasurer()
+    val bubbleStyle = MaterialTheme.typography.labelMedium.copy(color = CameraBackground)
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(StripHeight + Overhang * 2)
+            .height(BubbleHeight + StripHeight + Overhang * 2)
             .systemGestureExclusion()
             .semantics { this.contentDescription = contentDescription }
             .testTag(TAG_TRIM_BAR)
@@ -154,13 +164,13 @@ fun TrimBar(
             .drawWithContent {
                 drawContent()
                 drawSegments(segments, selected, durationMs)
-                drawPlayhead(position().coerceIn(0, durationMs), durationMs)
+                drawPlayhead(position().coerceIn(0, durationMs), durationMs, textMeasurer, bubbleStyle)
             },
     ) {
         Row(
             Modifier
                 .fillMaxSize()
-                .padding(vertical = Overhang)
+                .padding(top = BubbleHeight + Overhang, bottom = Overhang)
                 .clip(RoundedCornerShape(6.dp)),
         ) {
             frames.forEach { frame ->
@@ -185,7 +195,7 @@ private fun timeAt(x: Float, width: Int, durationMs: Long): Long =
 private fun DrawScope.drawSegments(segments: ClipSegments, selected: Int, durationMs: Long) {
     val total = durationMs.coerceAtLeast(1).toFloat()
     fun xOf(ms: Long) = ms / total * size.width
-    val top = Overhang.toPx()
+    val top = (BubbleHeight + Overhang).toPx()
     val bottom = size.height - Overhang.toPx()
 
     // 잘라낼 곳: 어둡게 덮고 빗금을 친다 — 어둡기만으로는 "조금 어두운 장면"과 구분되지 않는다.
@@ -241,16 +251,37 @@ private fun DrawScope.drawSelected(startX: Float, endX: Float, top: Float, botto
     }
 }
 
-private fun DrawScope.drawPlayhead(positionMs: Long, durationMs: Long) {
+/**
+ * 재생 위치 선과 그 위의 시각 말풍선. 시각을 선에 붙여 두면 "지금 보는 장면이 어디인지"를 따로 읽을 필요가 없다.
+ * 말풍선은 띠 양 끝에서 잘리지 않게 안쪽으로 밀어 넣는다.
+ */
+private fun DrawScope.drawPlayhead(
+    positionMs: Long,
+    durationMs: Long,
+    textMeasurer: TextMeasurer,
+    style: TextStyle,
+) {
     val x = positionMs / durationMs.coerceAtLeast(1).toFloat() * size.width
+    val bubbleBottom = BubbleHeight.toPx()
     drawLine(
         color = CameraControlTint,
-        start = Offset(x, Overhang.toPx() / 2),
+        start = Offset(x, bubbleBottom),
         end = Offset(x, size.height - Overhang.toPx() / 2),
         strokeWidth = 3.dp.toPx(),
         cap = StrokeCap.Round,
     )
-    drawCircle(CameraControlTint, radius = 5.dp.toPx(), center = Offset(x, Overhang.toPx() / 2 + 2.dp.toPx()))
+
+    val text = textMeasurer.measure(formatTrimTime(positionMs), style)
+    val padding = 6.dp.toPx()
+    val width = text.size.width + padding * 2
+    val left = (x - width / 2).coerceIn(0f, (size.width - width).coerceAtLeast(0f))
+    drawRoundRect(
+        color = CameraControlTint,
+        topLeft = Offset(left, 0f),
+        size = Size(width, bubbleBottom),
+        cornerRadius = CornerRadius(bubbleBottom / 2),
+    )
+    drawText(text, topLeft = Offset(left + padding, (bubbleBottom - text.size.height) / 2))
 }
 
 /** 클립 전체에 고르게 흩은 프레임들. 앞에서부터 하나씩 채워진다. */

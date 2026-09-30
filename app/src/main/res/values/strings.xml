@@ -75,9 +75,7 @@
     <string name="edit_missing">이 클립을 찾을 수 없어요.\n앱 밖에서 지워졌을 수 있습니다.</string>
     <string name="edit_save">저장</string>
     <string name="edit_reset">원래대로</string>
-    <string name="edit_position">%1$s / %2$s</string>
-    <string name="edit_kept">남는 길이 %1$s</string>
-    <string name="edit_selected">선택한 조각 %1$d/%2$d · %3$s – %4$s</string>
+    <string name="edit_length_change">%1$s → %2$s</string>
     <string name="edit_hint">양 끝 손잡이로 앞뒤를 자르고, 가운데는 띠를 끌어 찾은 곳에서 \'자르기\' 후 조각을 지우세요</string>
     <string name="edit_play">재생</string>
     <string name="edit_pause">일시정지</string>

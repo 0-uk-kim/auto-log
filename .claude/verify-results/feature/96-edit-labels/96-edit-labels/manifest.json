@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "slug": "96-edit-labels",
+  "service": "autolog",
+  "feature": "edit",
+  "created": "2026-09-30T10:42:24+09:00",
+  "device": "emulator-5554",
+  "branch": "feature/96-edit-labels",
+  "commit": "485ccd5",
+  "items": [
+    {
+      "kind": "image",
+      "file": "edit-labels.png",
+      "caption": "편집 화면 표기 — 자르기 전(좌) / 가운데를 잘라낸 뒤(우)\n재생 위치 시각을 띠의 재생 위치 선 위 말풍선으로 (7.0초, 12.1초)\n잘라낸 뒤에만 길이 변화 22.5초 → 15.4초, 자르기 전에는 사용법 한 줄\n선택한 조각 줄과 남는 길이 줄은 제거",
+      "compare": true,
+      "width": 1600,
+      "height": 1835,
+      "text_px": 52,
+      "text_lines": 10
+    }
+  ]
+}
