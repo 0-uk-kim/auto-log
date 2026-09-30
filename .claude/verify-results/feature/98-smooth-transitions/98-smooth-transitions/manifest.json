@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "98-smooth-transitions",
+  "service": "autolog",
+  "feature": "camera",
+  "created": "2026-09-30T11:23:36+09:00",
+  "device": "emulator-5554",
+  "branch": "feature/98-smooth-transitions",
+  "commit": "c622a61",
+  "items": [
+    {
+      "kind": "video",
+      "file": "transitions.mp4",
+      "caption": "배율 버튼 1x ↔ 2x를 두 번 오가며 중간 배율(1.3x 등)을 거쳐 이어지는 줌\n목록 버튼 → 목록이 오른쪽에서 밀려 들어옴, 뒤로 → 목록이 오른쪽으로 빠지고 카메라 프리뷰가 서서히 켜짐 (3회)",
+      "compare": false,
+      "duration": 26.000000,
+      "gif": "transitions.gif",
+      "gif_width": 360,
+      "gif_height": 800,
+      "gif_duration": 26.000000
+    }
+  ]
+}
