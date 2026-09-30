@@ -36,11 +36,11 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.C
-import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.autolog.R
 import com.example.autolog.data.clip.Clip
+import com.example.autolog.data.clip.toMediaItem
 import com.example.autolog.ui.VideoSurface
 import com.example.autolog.ui.rememberClipThumbnail
 import com.example.autolog.ui.theme.CameraBackground
@@ -49,21 +49,30 @@ import com.example.autolog.ui.theme.CameraScrim
 import com.example.autolog.ui.theme.Spacing
 
 const val TAG_POSITION = "preview-position"
+const val TAG_PREVIEW_EDIT = "preview-edit"
 
 /**
  * 목록 순서를 따라 클립을 재생한다 (planning 6 "미리보기 재생 범위").
  *
  * 단일 클립 플레이어가 아니라 **페이저**다 — 좌우로 넘기면 이전·다음 클립으로 간다.
+ * 우측 상단 편집 버튼은 지금 보고 있는 클립의 편집 화면을 연다 (planning 5 "3차: 구간 자르기").
  */
 @Composable
 fun PreviewScreen(
     date: String,
     clipIndex: Int,
     onBack: () -> Unit,
+    onEdit: (clipId: Long) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PreviewViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // 편집 화면에서 돌아오면 바뀐 구간으로 다시 읽는다. 바뀐 것이 없으면 상태가 같아 그대로다.
+    LifecycleResumeEffect(viewModel) {
+        viewModel.refresh()
+        onPauseOrDispose { }
+    }
 
     Box(
         modifier = modifier
@@ -85,6 +94,7 @@ fun PreviewScreen(
             is PreviewUiState.Ready -> ClipPager(
                 clips = state.clips,
                 startIndex = state.startIndex,
+                onEdit = onEdit,
             )
         }
 
@@ -112,7 +122,12 @@ fun PreviewScreen(
  */
 @OptIn(UnstableApi::class)
 @Composable
-private fun ClipPager(clips: List<Clip>, startIndex: Int, modifier: Modifier = Modifier) {
+private fun ClipPager(
+    clips: List<Clip>,
+    startIndex: Int,
+    onEdit: (clipId: Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val context = LocalContext.current
     val player = remember {
         ExoPlayer.Builder(context)
@@ -127,7 +142,9 @@ private fun ClipPager(clips: List<Clip>, startIndex: Int, modifier: Modifier = M
     }
 
     LaunchedEffect(player, clips) {
-        player.setMediaItems(clips.map { MediaItem.fromUri(it.uri) }, startIndex, C.TIME_UNSET)
+        // 편집에서 돌아와 다시 읽은 것이면 보던 클립에 머문다.
+        val index = if (player.mediaItemCount > 0) player.currentMediaItemIndex.coerceIn(clips.indices) else startIndex
+        player.setMediaItems(clips.map { it.toMediaItem() }, index, C.TIME_UNSET)
         player.prepare()
         player.playWhenReady = true
     }
@@ -168,6 +185,21 @@ private fun ClipPager(clips: List<Clip>, startIndex: Int, modifier: Modifier = M
                 .safeDrawingPadding()
                 .padding(top = Spacing.md),
         )
+
+        IconButton(
+            onClick = { onEdit(clips[pagerState.currentPage].id) },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .safeDrawingPadding()
+                .padding(Spacing.sm)
+                .testTag(TAG_PREVIEW_EDIT),
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_edit),
+                contentDescription = stringResource(R.string.preview_edit),
+                tint = CameraControlTint,
+            )
+        }
     }
 }
 

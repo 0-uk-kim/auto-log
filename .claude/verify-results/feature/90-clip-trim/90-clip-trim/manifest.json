@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "90-clip-trim",
+  "service": "autolog",
+  "feature": "edit",
+  "created": "2026-09-30T09:33:14+09:00",
+  "device": "emulator-5554",
+  "branch": "feature/90-clip-trim",
+  "commit": "43863d9",
+  "items": [
+    {
+      "kind": "video",
+      "file": "clip-trim.mp4",
+      "caption": "미리보기 편집 버튼으로 22초 클립의 0:05.8–0:14.6만 남겨 저장\n다시 열어도 저장한 구간이 그대로\n목록의 클립 길이 0:22 → 0:08, 총 1:50 → 1:36",
+      "compare": false,
+      "duration": 39.07,
+      "gif": "clip-trim.gif",
+      "gif_width": 360,
+      "gif_height": 800,
+      "gif_duration": 39.07
+    }
+  ]
+}

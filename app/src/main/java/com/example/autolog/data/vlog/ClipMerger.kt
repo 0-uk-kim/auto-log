@@ -4,7 +4,6 @@ import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.os.Handler
 import android.os.Looper
-import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.effect.Presentation
 import androidx.media3.transformer.Composition
@@ -17,6 +16,7 @@ import androidx.media3.transformer.ProgressHolder
 import androidx.media3.transformer.Transformer
 import com.example.autolog.camera.CaptureOrientation
 import com.example.autolog.data.clip.Clip
+import com.example.autolog.data.clip.toMediaItem
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -70,7 +70,8 @@ class ClipMerger @Inject constructor(
             }
             val sequence = EditedMediaItemSequence.Builder(
                 clips.map { clip ->
-                    EditedMediaItem.Builder(MediaItem.fromUri(clip.uri))
+                    // 자른 클립은 남긴 구간만 들어간다 (#90).
+                    EditedMediaItem.Builder(clip.toMediaItem())
                         .apply { effects?.let(::setEffects) }
                         .build()
                 },

@@ -3,6 +3,8 @@ package com.example.autolog.data.clip
 import android.content.IntentSender
 import com.example.autolog.data.db.ClipOrderDao
 import com.example.autolog.data.db.ClipOrderEntity
+import com.example.autolog.data.db.ClipTrimDao
+import com.example.autolog.data.db.ClipTrimEntity
 import com.example.autolog.data.db.VlogDao
 import java.time.LocalDate
 import java.time.ZoneId
@@ -20,14 +22,17 @@ class ClipRepository @Inject constructor(
     private val mediaStoreSource: ClipMediaStoreSource,
     private val clipOrderDao: ClipOrderDao,
     private val vlogDao: VlogDao,
+    private val clipTrimDao: ClipTrimDao,
 ) {
 
     suspend fun clipsByDate(): Map<LocalDate, List<Clip>> {
         val clips = mediaStoreSource.loadClips()
-        removeOrphanOrders(clips)
-        return clips.groupByRecordedDate(ZoneId.systemDefault()).mapValues { (date, ofDate) ->
-            ofDate.applySavedOrder(clipOrderDao.byDate(date))
-        }
+        removeOrphanRows(clips)
+        val trims = clipTrimDao.byClips(clips.map { it.id }).associateBy { it.clipId }
+        return clips
+            .map { clip -> trims[clip.id]?.let { clip.withTrim(it) } ?: clip }
+            .groupByRecordedDate(ZoneId.systemDefault())
+            .mapValues { (date, ofDate) -> ofDate.applySavedOrder(clipOrderDao.byDate(date)) }
     }
 
     suspend fun clipsOn(date: LocalDate): List<Clip> = clipsByDate()[date].orEmpty()
@@ -63,26 +68,48 @@ class ClipRepository @Inject constructor(
         )
     }
 
+    /** 남길 구간을 저장한다. 전체를 고른 것은 자르지 않은 것이라 행을 지운다 (#90). */
+    suspend fun saveTrim(clip: Clip, trim: ClipTrim) {
+        if (trim.coversWhole(clip.durationMs)) {
+            clipTrimDao.deleteByIds(listOf(clip.id))
+        } else {
+            clipTrimDao.upsert(ClipTrimEntity(clip.id, trim.startMs, trim.endMs))
+        }
+    }
+
     fun deleteRequest(clips: List<Clip>): IntentSender = mediaStoreSource.deleteRequest(clips)
 
     /**
-     * 시스템 창에서 삭제가 승인된 뒤 순서 행을 걷어낸다. 남은 클립의 순서는 행 사이 빈 자리를
+     * 시스템 창에서 삭제가 승인된 뒤 순서·구간 행을 걷어낸다. 남은 클립의 순서는 행 사이 빈 자리를
      * 그대로 둬도 [applySavedOrder]가 position 순으로 읽어 유지된다.
      */
     suspend fun forgetDeleted(clips: List<Clip>) {
-        clipOrderDao.deleteByIds(clips.map { it.id })
+        val ids = clips.map { it.id }
+        clipOrderDao.deleteByIds(ids)
+        clipTrimDao.deleteByIds(ids)
     }
 
     /**
-     * 앱 밖에서 지워진 클립의 순서 행을 걷어낸다.
+     * 앱 밖에서 지워진 클립의 순서·구간 행을 걷어낸다.
      *
      * 스캔 결과가 비었을 때는 건드리지 않는다 — 진짜로 클립이 없는 것과 권한이 없어 못 읽은 것을
      * 여기서 구분할 수 없어서, 한 번의 빈 조회로 사용자가 정한 순서를 날리지 않게 한다.
      */
-    private suspend fun removeOrphanOrders(clips: List<Clip>) {
+    private suspend fun removeOrphanRows(clips: List<Clip>) {
         if (clips.isEmpty()) return
-        clipOrderDao.deleteMissing(clips.map { it.id })
+        val ids = clips.map { it.id }
+        clipOrderDao.deleteMissing(ids)
+        clipTrimDao.deleteMissing(ids)
     }
+}
+
+/**
+ * 저장된 구간을 입힌다. 원본이 저장 뒤에 다른 길이로 바뀌었을 수 있어 지금 길이에 다시 맞춘다.
+ * 맞추고 나서 전체가 되면 자른 것이 아니다.
+ */
+internal fun Clip.withTrim(row: ClipTrimEntity): Clip {
+    val trim = ClipTrim.of(row.startMs, row.endMs, durationMs)
+    return copy(trim = trim.takeUnless { it.coversWhole(durationMs) })
 }
 
 /**

@@ -25,12 +25,11 @@ class PreviewViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<PreviewUiState>(PreviewUiState.Loading)
     val uiState = _uiState.asStateFlow()
 
-    init {
-        load()
-    }
-
-    /** 목록과 같은 순서로 읽는다 — 재생 순서가 곧 사용자가 정한 순서다 (#16). */
-    private fun load() {
+    /**
+     * 목록과 같은 순서로 읽는다 — 재생 순서가 곧 사용자가 정한 순서다 (#16).
+     * 화면이 보일 때마다 부른다 — 편집 화면에서 자른 구간을 돌아와서 바로 반영한다 (#90).
+     */
+    fun refresh() {
         viewModelScope.launch {
             val clips = clipRepository.clipsOn(date)
             _uiState.value = if (clips.isEmpty()) {

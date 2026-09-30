@@ -8,6 +8,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.autolog.data.clip.Clip
 import com.example.autolog.data.clip.ClipMediaStoreSource
+import com.example.autolog.data.clip.ClipTrim
 import java.io.File
 import kotlin.math.abs
 import kotlinx.coroutines.Dispatchers
@@ -74,6 +75,29 @@ class ClipMergerTest {
                 retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_MIMETYPE),
             )
         }
+    }
+
+    @Test
+    fun 자른_클립은_남긴_구간만_들어간다() = runBlocking {
+        val clips = loadClips().filter { it.durationMs >= 3_000 }.take(2)
+        assumeTrue("3초 이상인 클립이 2건 이상 있어야 한다", clips.size >= 2)
+
+        // 첫 클립은 가운데만, 둘째는 그대로 — 자른 것과 안 자른 것이 섞여도 이어져야 한다.
+        val first = clips[0]
+        val trimmed = listOf(
+            first.copy(trim = ClipTrim.of(first.durationMs / 4, first.durationMs * 3 / 4, first.durationMs)),
+            clips[1],
+        )
+        val output = File(context.cacheDir, "merge-trim-test.mp4")
+        output.delete()
+
+        val result = ClipMerger(context).merge(trimmed, output.absolutePath)
+
+        val expected = trimmed.sumOf { it.playedDurationMs }
+        assertTrue(
+            "길이 ${result.durationMs}ms 가 자른 합계 ${expected}ms 와 크게 다르다",
+            abs(result.durationMs - expected) < 1_000,
+        )
     }
 
     private suspend fun loadClips(): List<Clip> =
