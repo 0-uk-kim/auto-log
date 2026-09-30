@@ -8,7 +8,8 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.autolog.data.clip.Clip
 import com.example.autolog.data.clip.ClipMediaStoreSource
-import com.example.autolog.data.clip.ClipTrim
+import com.example.autolog.data.clip.ClipSegment
+import com.example.autolog.data.clip.ClipSegments
 import java.io.File
 import kotlin.math.abs
 import kotlinx.coroutines.Dispatchers
@@ -78,14 +79,15 @@ class ClipMergerTest {
     }
 
     @Test
-    fun 자른_클립은_남긴_구간만_들어간다() = runBlocking {
+    fun 자른_클립은_남긴_조각만_들어간다() = runBlocking {
         val clips = loadClips().filter { it.durationMs >= 3_000 }.take(2)
         assumeTrue("3초 이상인 클립이 2건 이상 있어야 한다", clips.size >= 2)
 
-        // 첫 클립은 가운데만, 둘째는 그대로 — 자른 것과 안 자른 것이 섞여도 이어져야 한다.
+        // 첫 클립은 중간을 잘라내 두 조각, 둘째는 그대로 — 자른 것과 안 자른 것이 섞여도 이어져야 한다.
         val first = clips[0]
+        val d = first.durationMs
         val trimmed = listOf(
-            first.copy(trim = ClipTrim.of(first.durationMs / 4, first.durationMs * 3 / 4, first.durationMs)),
+            first.copy(segments = ClipSegments.of(listOf(ClipSegment(0, d / 3), ClipSegment(d * 2 / 3, d)), d)),
             clips[1],
         )
         val output = File(context.cacheDir, "merge-trim-test.mp4")

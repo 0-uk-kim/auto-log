@@ -3,8 +3,8 @@ package com.example.autolog.data.clip
 import android.content.IntentSender
 import com.example.autolog.data.db.ClipOrderDao
 import com.example.autolog.data.db.ClipOrderEntity
-import com.example.autolog.data.db.ClipTrimDao
-import com.example.autolog.data.db.ClipTrimEntity
+import com.example.autolog.data.db.ClipSegmentDao
+import com.example.autolog.data.db.ClipSegmentEntity
 import com.example.autolog.data.db.VlogDao
 import java.time.LocalDate
 import java.time.ZoneId
@@ -22,15 +22,15 @@ class ClipRepository @Inject constructor(
     private val mediaStoreSource: ClipMediaStoreSource,
     private val clipOrderDao: ClipOrderDao,
     private val vlogDao: VlogDao,
-    private val clipTrimDao: ClipTrimDao,
+    private val clipSegmentDao: ClipSegmentDao,
 ) {
 
     suspend fun clipsByDate(): Map<LocalDate, List<Clip>> {
         val clips = mediaStoreSource.loadClips()
         removeOrphanRows(clips)
-        val trims = clipTrimDao.byClips(clips.map { it.id }).associateBy { it.clipId }
+        val segments = clipSegmentDao.byClips(clips.map { it.id }).groupBy { it.clipId }
         return clips
-            .map { clip -> trims[clip.id]?.let { clip.withTrim(it) } ?: clip }
+            .map { clip -> segments[clip.id]?.let { clip.withSegments(it) } ?: clip }
             .groupByRecordedDate(ZoneId.systemDefault())
             .mapValues { (date, ofDate) -> ofDate.applySavedOrder(clipOrderDao.byDate(date)) }
     }
@@ -68,29 +68,32 @@ class ClipRepository @Inject constructor(
         )
     }
 
-    /** 남길 구간을 저장한다. 전체를 고른 것은 자르지 않은 것이라 행을 지운다 (#90). */
-    suspend fun saveTrim(clip: Clip, trim: ClipTrim) {
-        if (trim.coversWhole(clip.durationMs)) {
-            clipTrimDao.deleteByIds(listOf(clip.id))
+    /** 남길 조각을 저장한다. 잘라낸 곳이 없으면 자르지 않은 것이라 행을 지운다 (#92). */
+    suspend fun saveSegments(clip: Clip, segments: ClipSegments) {
+        if (segments.coversWhole(clip.durationMs)) {
+            clipSegmentDao.deleteByIds(listOf(clip.id))
         } else {
-            clipTrimDao.upsert(ClipTrimEntity(clip.id, trim.startMs, trim.endMs))
+            clipSegmentDao.replaceClip(
+                clip.id,
+                segments.items.map { ClipSegmentEntity(clip.id, it.startMs, it.endMs) },
+            )
         }
     }
 
     fun deleteRequest(clips: List<Clip>): IntentSender = mediaStoreSource.deleteRequest(clips)
 
     /**
-     * 시스템 창에서 삭제가 승인된 뒤 순서·구간 행을 걷어낸다. 남은 클립의 순서는 행 사이 빈 자리를
+     * 시스템 창에서 삭제가 승인된 뒤 순서·조각 행을 걷어낸다. 남은 클립의 순서는 행 사이 빈 자리를
      * 그대로 둬도 [applySavedOrder]가 position 순으로 읽어 유지된다.
      */
     suspend fun forgetDeleted(clips: List<Clip>) {
         val ids = clips.map { it.id }
         clipOrderDao.deleteByIds(ids)
-        clipTrimDao.deleteByIds(ids)
+        clipSegmentDao.deleteByIds(ids)
     }
 
     /**
-     * 앱 밖에서 지워진 클립의 순서·구간 행을 걷어낸다.
+     * 앱 밖에서 지워진 클립의 순서·조각 행을 걷어낸다.
      *
      * 스캔 결과가 비었을 때는 건드리지 않는다 — 진짜로 클립이 없는 것과 권한이 없어 못 읽은 것을
      * 여기서 구분할 수 없어서, 한 번의 빈 조회로 사용자가 정한 순서를 날리지 않게 한다.
@@ -99,17 +102,17 @@ class ClipRepository @Inject constructor(
         if (clips.isEmpty()) return
         val ids = clips.map { it.id }
         clipOrderDao.deleteMissing(ids)
-        clipTrimDao.deleteMissing(ids)
+        clipSegmentDao.deleteMissing(ids)
     }
 }
 
 /**
- * 저장된 구간을 입힌다. 원본이 저장 뒤에 다른 길이로 바뀌었을 수 있어 지금 길이에 다시 맞춘다.
+ * 저장된 조각을 입힌다. 원본이 저장 뒤에 다른 길이로 바뀌었을 수 있어 지금 길이에 다시 맞춘다.
  * 맞추고 나서 전체가 되면 자른 것이 아니다.
  */
-internal fun Clip.withTrim(row: ClipTrimEntity): Clip {
-    val trim = ClipTrim.of(row.startMs, row.endMs, durationMs)
-    return copy(trim = trim.takeUnless { it.coversWhole(durationMs) })
+internal fun Clip.withSegments(rows: List<ClipSegmentEntity>): Clip {
+    val segments = ClipSegments.of(rows.map { ClipSegment(it.startMs, it.endMs) }, durationMs)
+    return copy(segments = segments.takeUnless { it.coversWhole(durationMs) })
 }
 
 /**

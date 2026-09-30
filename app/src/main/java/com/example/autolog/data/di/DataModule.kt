@@ -6,9 +6,10 @@ import androidx.room.Room
 import androidx.work.WorkManager
 import com.example.autolog.data.db.AutoLogDatabase
 import com.example.autolog.data.db.ClipOrderDao
-import com.example.autolog.data.db.ClipTrimDao
+import com.example.autolog.data.db.ClipSegmentDao
 import com.example.autolog.data.db.MIGRATION_1_3
 import com.example.autolog.data.db.MIGRATION_2_3
+import com.example.autolog.data.db.MIGRATION_3_4
 import com.example.autolog.data.db.VlogDao
 import dagger.Module
 import dagger.Provides
@@ -39,7 +40,7 @@ object DataModule {
             // 내려온 DB를 열지 못해 실행하자마자 죽는다 — 그때는 새로 만든다.
             // 잃는 것은 순서와 브이로그 기록뿐이고, 원본과 결과물은 MediaStore에 그대로 있다.
             .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
-            .addMigrations(MIGRATION_1_3, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_3, MIGRATION_2_3, MIGRATION_3_4)
             .build()
 
     @Provides
@@ -49,5 +50,5 @@ object DataModule {
     fun provideVlogDao(database: AutoLogDatabase): VlogDao = database.vlogDao()
 
     @Provides
-    fun provideClipTrimDao(database: AutoLogDatabase): ClipTrimDao = database.clipTrimDao()
+    fun provideClipSegmentDao(database: AutoLogDatabase): ClipSegmentDao = database.clipSegmentDao()
 }
