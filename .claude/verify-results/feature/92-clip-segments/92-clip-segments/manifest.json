@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "92-clip-segments",
+  "service": "autolog",
+  "feature": "edit",
+  "created": "2026-09-30T09:43:57+09:00",
+  "device": "emulator-5554",
+  "branch": "feature/92-clip-segments",
+  "commit": "f532e5a",
+  "items": [
+    {
+      "kind": "video",
+      "file": "clip-segments.mp4",
+      "caption": "22초 클립을 7초·14초에서 분할하고 가운데 조각을 삭제해 중간을 잘라냄\n마지막 조각의 끝 손잡이를 0:19.0으로 당겨 조각 2개 · 11.9초만 남김\n재생은 잘라낸 곳을 건너뛰며 남긴 조각만 반복\n저장 후 다시 열어도 조각 그대로, 목록 길이 0:22 → 0:11 · 총 1:50 → 1:40",
+      "compare": false,
+      "duration": 58.28,
+      "gif": "clip-segments.gif",
+      "gif_width": 360,
+      "gif_height": 800,
+      "gif_duration": 58.28
+    }
+  ]
+}
