@@ -22,13 +22,13 @@
     {
       "kind": "video",
       "file": "calendar-story-flow.mp4",
-      "caption": "달력(썸네일·배지) → 9/23 → 「전체 보기」 → 클립 끝나면 다음 클립 자동 재생 → 오른쪽/왼쪽 누르기로 다음/이전 → 가운데 누르기로 일시정지 → 스와이프 (TO-BE)",
+      "caption": "달력(썸네일·배지) → 9/23 → 「전체 보기」 → 클립 끝나면 끊김 없이 다음 클립 → 오른쪽/왼쪽 누르기로 바로 다음/이전 → 가운데 누르기로 일시정지 → 스와이프 (TO-BE, 끊김 수정 후)",
       "compare": false,
-      "duration": 38.02,
+      "duration": 38.07,
       "gif": "calendar-story-flow.gif",
       "gif_width": 360,
       "gif_height": 800,
-      "gif_duration": 38.02
+      "gif_duration": 38.07
     }
   ]
 }
