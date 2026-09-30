@@ -1,152 +1,164 @@
 package com.example.autolog.list
 
 import androidx.compose.foundation.gestures.scrollBy
-import androidx.compose.foundation.lazy.LazyListItemInfo
-import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
-import kotlin.math.abs
-import kotlin.math.sign
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.unit.toOffset
+import androidx.compose.ui.unit.toSize
 import kotlinx.coroutines.channels.Channel
 
+/** 화면에 보이는 칸 하나의 자리. 격자 좌표계는 스크롤 영역의 시작점 기준이다. */
+data class GridCell(val index: Int, val bounds: Rect)
+
 /**
- * 목록 순서 변경. Compose Foundation에 재정렬 LazyColumn이 아직 없어서 직접 만든다.
+ * 격자 순서 변경의 판정부. 레이아웃에 기대지 않아 JVM 테스트로 잰다.
  *
- * 드래그는 **줄 끝 손잡이에서만** 시작한다. 목록 전체에 걸면 LazyColumn의 스크롤이 같은
- * 포인터 이벤트를 먼저 가져가 첫 이동에서 제스처가 취소된다(실측) — 손잡이는 스크롤보다
- * 안쪽 노드라 이동을 먼저 받는다.
+ * 끌고 있는 칸의 **가운데**가 다른 칸 안에 들어가면 그 자리로 옮긴다. 옮긴 뒤에는 칸이 새 자리에서 다시
+ * 그려지므로, 화면 위치가 그대로 남도록 두 자리의 차이만큼 [offset]을 덜어 낸다. 덜어 내지 않으면
+ * 손가락이 멈춰 있어도 다음 칸이 또 걸려 한 번에 끝까지 떨어진다 (B0).
+ */
+class GridReorder(
+    private val cells: () -> List<GridCell>,
+    private val onMove: (from: Int, to: Int) -> Unit,
+) {
+    var draggingIndex: Int? = null
+        private set
+
+    /** 끌고 있는 칸을 제자리에서 얼마나 띄워 그릴지. */
+    var offset: Offset = Offset.Zero
+        private set
+
+    fun start(index: Int): Boolean {
+        if (cells().none { it.index == index }) return false
+        draggingIndex = index
+        offset = Offset.Zero
+        return true
+    }
+
+    fun stop() {
+        draggingIndex = null
+        offset = Offset.Zero
+    }
+
+    /** 목록이 따라 흐른 만큼 칸도 손가락 밑에 남긴다. */
+    fun scrolled(by: Float) {
+        if (draggingIndex != null) offset += Offset(0f, by)
+    }
+
+    /** 손가락이 [delta]만큼 움직였다. 끌고 있는 칸이 지금 그려진 자리를 돌려준다. */
+    fun drag(delta: Offset): Rect? {
+        val index = draggingIndex ?: return null
+        offset += delta
+        val visible = cells()
+        val home = visible.firstOrNull { it.index == index } ?: return null
+        val dragged = home.bounds.translate(offset)
+        val target = visible.firstOrNull { it.index != index && it.bounds.contains(dragged.center) }
+            ?: return dragged
+        onMove(index, target.index)
+        draggingIndex = target.index
+        offset += home.bounds.topLeft - target.bounds.topLeft
+        return dragged
+    }
+}
+
+/**
+ * 격자 순서 변경. Compose Foundation에 재정렬 격자가 아직 없어서 직접 만든다.
  *
+ * 끄는 것은 칸을 **길게 누른 뒤**에만 시작한다 — 짧은 누름은 미리보기, 그냥 끌면 스크롤이다.
  * 끄는 동안에는 목록의 순서만 바꾸고(메모리), 손을 떼는 순간 한 번만 저장한다 —
  * 한 칸 지날 때마다 Room에 쓰면 드래그 한 번에 쓰기가 수십 번 일어난다.
  */
 class DragDropState internal constructor(
-    private val lazyListState: LazyListState,
-    private val onMove: (from: Int, to: Int) -> Unit,
+    private val gridState: LazyGridState,
+    onMove: (from: Int, to: Int) -> Unit,
     private val onDrop: () -> Unit,
 ) {
+    private val reorder = GridReorder(
+        cells = {
+            gridState.layoutInfo.visibleItemsInfo.map {
+                GridCell(it.index, Rect(it.offset.toOffset(), it.size.toSize()))
+            }
+        },
+        onMove = { from, to ->
+            pinScroll(from, to)
+            onMove(from, to)
+        },
+    )
+
     var draggingItemIndex by mutableStateOf<Int?>(null)
+        private set
+
+    var draggingItemOffset by mutableStateOf(Offset.Zero)
         private set
 
     internal val scrollChannel = Channel<Float>()
 
-    /**
-     * 마지막으로 자리를 바꾼 뒤로 끈 거리. 자리 바꿈 판정과 그림 위치를 **둘 다** 이 값으로 정한다.
-     *
-     * 끌기 시작한 지점을 목록 좌표로 붙들고 있으면 안 된다. 자리를 바꾸면 LazyColumn이 그 줄을
-     * 붙잡으려고 스크롤을 되감아 내용이 통째로 밀리는데, 그러면 붙들어 둔 기준점이 어긋나 바로
-     * 아래 줄이 다시 목표로 걸린다. 손가락이 멈춰 있어도 이벤트마다 한 칸씩 내려가 한 행만 끌어도
-     * 바닥까지 떨어졌다 (B0). 줄의 **현재 자리**에서 재면 무엇이 밀리든 기준이 함께 움직인다.
-     */
-    private var draggedSinceMove by mutableFloatStateOf(0f)
-
-    /** 마지막으로 손가락이 향한 쪽. 자리를 바꾼 직후에는 [draggedSinceMove]의 부호가 뒤집혀서 못 쓴다. */
-    private var dragDirection by mutableFloatStateOf(0f)
-
-    /** 끌고 있는 줄을 제 자리에서 얼마나 띄워 그릴지. */
-    val draggingItemOffset: Float
-        get() = if (draggingItemIndex == null) 0f else draggedSinceMove
-
-    private val draggingItemLayoutInfo: LazyListItemInfo?
-        get() = lazyListState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == draggingItemIndex }
-
     internal fun onDragStart(index: Int) {
-        if (lazyListState.layoutInfo.visibleItemsInfo.none { it.index == index }) return
-        draggingItemIndex = index
-        draggedSinceMove = 0f
-        dragDirection = 0f
+        if (!reorder.start(index)) return
+        sync()
     }
 
     internal fun onDragInterrupted() {
         if (draggingItemIndex != null) onDrop()
-        draggingItemIndex = null
-        draggedSinceMove = 0f
-        dragDirection = 0f
+        reorder.stop()
+        sync()
     }
 
-    internal fun onDrag(offset: Offset) {
-        var index = draggingItemIndex ?: return
-        draggedSinceMove += offset.y
-        if (offset.y != 0f) dragDirection = sign(offset.y)
-
-        // 이웃 줄의 절반을 넘게 지나야 자리가 바뀌고, 바뀐 자리만큼은 덜어낸다 — 그래야 그다음
-        // 칸으로 가려면 또 한 행을 온전히 끌어야 한다. 프레임을 건너뛰면 이벤트 하나에 두 행
-        // 넘게 들어오므로 지나간 칸은 한 번에 다 넘긴다.
-        while (!isAtListEnd(index)) {
-            val neighbour = neighbourToward(index) ?: break
-            if (neighbour.size == 0 || abs(draggedSinceMove) <= neighbour.size / 2f) break
-            pinScroll(index, neighbour.index)
-            onMove(index, neighbour.index)
-            index = neighbour.index
-            draggingItemIndex = index
-            draggedSinceMove -= sign(draggedSinceMove) * neighbour.size
-        }
-
-        val dragging = draggingItemLayoutInfo ?: return
-
-        // 목록 끝에서는 더 갈 곳이 없다. 끈 거리를 쌓아두면 되돌아올 때 그만큼 헛돈다.
-        if (isAtListEnd(index)) {
-            draggedSinceMove = draggedSinceMove.coerceIn(-dragging.size / 2f, dragging.size / 2f)
-            return
-        }
+    internal fun onDrag(delta: Offset) {
+        val dragged = reorder.drag(delta)
+        sync()
+        dragged ?: return
 
         // 화면 끝까지 끌면 목록이 따라 흐르게 한다 — 안 그러면 보이는 범위 밖으로 옮길 수 없다.
-        val startOffset = dragging.offset + draggedSinceMove
-        val endOffset = startOffset + dragging.size
+        val layout = gridState.layoutInfo
         val overscroll = when {
-            dragDirection > 0 ->
-                (endOffset - lazyListState.layoutInfo.viewportEndOffset).coerceAtLeast(0f)
-
-            dragDirection < 0 ->
-                (startOffset - lazyListState.layoutInfo.viewportStartOffset).coerceAtMost(0f)
-
+            delta.y > 0 -> (dragged.bottom - layout.viewportEndOffset).coerceAtLeast(0f)
+            delta.y < 0 -> (dragged.top - layout.viewportStartOffset).coerceAtMost(0f)
             else -> 0f
         }
         if (overscroll != 0f) scrollChannel.trySend(overscroll)
     }
 
+    internal fun onScrolled(by: Float) {
+        reorder.scrolled(by)
+        sync()
+    }
+
+    private fun sync() {
+        draggingItemIndex = reorder.draggingIndex
+        draggingItemOffset = reorder.offset
+    }
+
     /**
-     * 맨 위 줄이 자리를 바꿀 때 목록이 따라 스크롤되지 않게 지금 보이는 자리를 붙잡아 둔다.
-     *
-     * LazyColumn은 스크롤 위치를 맨 위 줄의 키로 기억한다. 그 줄이 아래로 내려가면 목록은 그 줄을
-     * 계속 맨 위에 두려고 내용을 통째로 밀어 올린다 — 손가락은 가만히 있는데 화면이 뛴다.
+     * 맨 앞 칸이 자리를 바꿀 때 격자가 따라 스크롤되지 않게 지금 보이는 자리를 붙잡아 둔다.
+     * 격자는 스크롤 위치를 맨 앞 칸의 키로 기억해, 그 칸이 옮겨 가면 내용을 통째로 밀어 버린다.
      */
     private fun pinScroll(from: Int, to: Int) {
-        val first = lazyListState.firstVisibleItemIndex
+        val first = gridState.firstVisibleItemIndex
         if (from != first && to != first) return
-        lazyListState.requestScrollToItem(first, lazyListState.firstVisibleItemScrollOffset)
-    }
-
-    /** 끌린 쪽으로 맞닿은 줄. 화면 밖이면 null이고, 그때는 목록을 흘려 보이게 만든 뒤에 옮긴다. */
-    private fun neighbourToward(index: Int): LazyListItemInfo? {
-        val next = if (draggedSinceMove > 0) index + 1 else index - 1
-        return lazyListState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == next }
-    }
-
-    private fun isAtListEnd(index: Int) = when {
-        draggedSinceMove > 0 -> index == lazyListState.layoutInfo.totalItemsCount - 1
-        draggedSinceMove < 0 -> index == 0
-        else -> true
+        gridState.requestScrollToItem(first, gridState.firstVisibleItemScrollOffset)
     }
 }
 
 @Composable
 fun rememberDragDropState(
-    lazyListState: LazyListState,
+    gridState: LazyGridState,
     onMove: (from: Int, to: Int) -> Unit,
     onDrop: () -> Unit,
 ): DragDropState {
     val currentMove by rememberUpdatedState(onMove)
     val currentDrop by rememberUpdatedState(onDrop)
-    val state = remember(lazyListState) {
+    val state = remember(gridState) {
         DragDropState(
-            lazyListState = lazyListState,
+            gridState = gridState,
             onMove = { from, to -> currentMove(from, to) },
             onDrop = { currentDrop() },
         )
@@ -154,7 +166,7 @@ fun rememberDragDropState(
 
     LaunchedEffect(state) {
         for (diff in state.scrollChannel) {
-            lazyListState.scrollBy(diff)
+            state.onScrolled(gridState.scrollBy(diff))
         }
     }
 

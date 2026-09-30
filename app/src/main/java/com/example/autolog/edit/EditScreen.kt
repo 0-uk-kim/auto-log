@@ -116,7 +116,7 @@ fun EditScreen(
             .background(CameraBackground)
             .safeDrawingPadding(),
     ) {
-        // 나가기는 왼쪽 위, 클립을 통째로 버리는 삭제는 오른쪽 위, 저장은 엄지가 닿는 맨 아래다.
+        // 나가기는 왼쪽 위, 클립을 통째로 버리는 삭제는 오른쪽 위, 저장은 엄지가 닿는 오른쪽 아래다.
         // 저장과 삭제를 멀리 떼어 놓아 잘못 누를 일이 없다.
         ScreenTopBar(
             navigation = {
@@ -299,7 +299,8 @@ private fun ClipTrimmer(
                 }
             }
 
-            Row(modifier = Modifier.fillMaxWidth()) {
+            // 도구와 저장을 한 줄에 둬 영상에 자리를 더 준다. 저장은 오른쪽 끝, 엄지가 가장 쉽게 닿는 곳이다.
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 ToolButton(
                     icon = if (playPause.showPlay) R.drawable.ic_play else R.drawable.ic_pause,
                     label = stringResource(if (playPause.showPlay) R.string.edit_play else R.string.edit_pause),
@@ -334,14 +335,12 @@ private fun ClipTrimmer(
                     onClick = actions::undo,
                     modifier = Modifier.weight(1f).testTag(TAG_EDIT_UNDO),
                 )
+                ActionButton(
+                    text = stringResource(R.string.edit_save),
+                    onClick = onSave,
+                    modifier = Modifier.padding(start = Spacing.sm).testTag(TAG_EDIT_SAVE),
+                )
             }
-
-            Spacer(Modifier.height(Spacing.sm))
-            ActionButton(
-                text = stringResource(R.string.edit_save),
-                onClick = onSave,
-                modifier = Modifier.fillMaxWidth().testTag(TAG_EDIT_SAVE),
-            )
         }
     }
 }

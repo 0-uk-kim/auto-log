@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -18,9 +19,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -214,6 +218,58 @@ private fun GlowCore(content: @Composable BoxScope.() -> Unit) {
             .border(1.dp, GlassBorder, CircleShape),
         content = content,
     )
+}
+
+/**
+ * 되돌릴 수 없는 일을 하기 전에 묻는 시트. 기본 대화상자 대신 아래에서 올라와, 확인 버튼이 주 동작과 같은
+ * 자리(아래)에 선다. 확인은 빨강 — 누르는 순간 무엇이 사라지는지 색으로 한 번 더 말한다.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ConfirmSheet(
+    title: String,
+    message: String,
+    confirmText: String,
+    dismissText: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = modifier,
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            modifier = Modifier
+                .navigationBarsPadding()
+                .padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.md),
+        ) {
+            Text(text = title, style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(Spacing.md))
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                ActionButton(
+                    text = dismissText,
+                    onClick = onDismiss,
+                    style = ActionStyle.Secondary,
+                    modifier = Modifier.weight(1f),
+                )
+                ActionButton(
+                    text = confirmText,
+                    onClick = onConfirm,
+                    style = ActionStyle.Destructive,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
 }
 
 private const val DISABLED_ALPHA = 0.35f
