@@ -70,7 +70,7 @@ const val TAG_EDIT_PLAY = "edit-play"
 const val TAG_EDIT_SPLIT = "edit-split"
 const val TAG_EDIT_REMOVE = "edit-remove"
 const val TAG_EDIT_UNDO = "edit-undo"
-const val TAG_EDIT_POSITION = "edit-position"
+const val TAG_EDIT_LENGTH = "edit-length"
 
 /**
  * 클립 하나에서 남길 조각을 정하는 화면 (planning 5 "3차: 구간 자르기").
@@ -202,20 +202,6 @@ private fun ClipTrimmer(
         }
 
         Column(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                PositionText(
-                    position = { position.value },
-                    durationMs = clip.durationMs,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    text = stringResource(R.string.edit_kept, formatTrimTime(state.segments.lengthMs)),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Coral80,
-                )
-            }
-            Spacer(Modifier.height(Spacing.xs))
-
             TrimBar(
                 uri = clip.uri,
                 durationMs = clip.durationMs,
@@ -242,24 +228,32 @@ private fun ClipTrimmer(
                 contentDescription = stringResource(R.string.edit_trim_bar),
             )
 
-            Text(
-                text = if (state.isTrimmed) {
-                    val selected = state.segments.items[state.selected]
-                    stringResource(
-                        R.string.edit_selected,
-                        state.selected + 1,
-                        state.segments.items.size,
-                        formatTrimTime(selected.startMs),
-                        formatTrimTime(selected.endMs),
+            // 잘라냈으면 길이가 어떻게 바뀌는지만, 아직이면 사용법 한 줄. 두 줄 높이를 맞춰 도구 줄이 들썩이지 않게 한다.
+            val cut = !state.segments.coversWhole(clip.durationMs)
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxWidth().height(44.dp),
+            ) {
+                if (cut) {
+                    Text(
+                        text = stringResource(
+                            R.string.edit_length_change,
+                            formatTrimTime(clip.durationMs),
+                            formatTrimTime(state.segments.lengthMs),
+                        ),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = Coral80,
+                        modifier = Modifier.testTag(TAG_EDIT_LENGTH),
                     )
                 } else {
-                    stringResource(R.string.edit_hint)
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = CameraControlTint.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.xs),
-            )
+                    Text(
+                        text = stringResource(R.string.edit_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = CameraControlTint.copy(alpha = 0.7f),
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
 
             Row(modifier = Modifier.fillMaxWidth()) {
                 ToolButton(
@@ -301,17 +295,6 @@ private fun ClipTrimmer(
     }
 }
 
-/** 재생 위치는 50ms마다 바뀐다 — 이 글자만 다시 그리게 따로 둔다. */
-@Composable
-private fun PositionText(position: () -> Long, durationMs: Long, modifier: Modifier = Modifier) {
-    Text(
-        text = stringResource(R.string.edit_position, formatTrimTime(position()), formatTrimTime(durationMs)),
-        style = MaterialTheme.typography.labelLarge,
-        color = CameraControlTint,
-        modifier = modifier.testTag(TAG_EDIT_POSITION),
-    )
-}
-
 /** 아이콘 위, 글자 아래의 큰 도구 버튼. 무엇을 하는지 글자로도 말한다 — 가위 아이콘만으로는 뜻이 갈린다. */
 @Composable
 private fun ToolButton(
@@ -345,9 +328,16 @@ private fun ToolButton(
 /** 요청한 자리와 이만큼 넘게 벌어지면 손잡이가 한계에 걸린 것이다. */
 private const val LIMIT_SLOP_MS = 100L
 
-/** 손잡이는 1초보다 잘게 움직인다 — 목록 표기(`0:07`)와 달리 0.1초까지 보여 준다. */
+/**
+ * 편집 화면의 시각 표기. 클립은 대개 1분이 안 돼서 `7.7초`처럼 초로 쓴다 — `0:07.7`은 소수점 때문에
+ * 시각으로 읽히지 않는다. 1분을 넘으면 `1:05.3`이다. 손잡이는 1초보다 잘게 움직여 0.1초까지 보여 준다.
+ */
 internal fun formatTrimTime(ms: Long): String {
-    val tenths = (ms.coerceAtLeast(0) / 100)
-    val totalSeconds = tenths / 10
-    return String.format(Locale.US, "%d:%02d.%d", totalSeconds / 60, totalSeconds % 60, tenths % 10)
+    val tenths = ms.coerceAtLeast(0) / 100
+    val seconds = tenths / 10
+    return if (seconds < 60) {
+        String.format(Locale.US, "%d.%d초", seconds, tenths % 10)
+    } else {
+        String.format(Locale.US, "%d:%02d.%d", seconds / 60, seconds % 60, tenths % 10)
+    }
 }
