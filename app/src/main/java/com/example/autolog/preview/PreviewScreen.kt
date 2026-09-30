@@ -180,13 +180,14 @@ private fun ClipPager(
     val scope = rememberCoroutineScope()
 
     // 인스타 스토리처럼 한 클립이 끝나면 다음 클립으로 넘어가 하루치를 처음부터 끝까지 이어 본다.
+    // 자동 넘김과 양옆 누름은 밀어 넘기는 애니메이션 없이 곧장 옮긴다 — 밀리는 동안 이어 보던 흐름이 끊긴다.
     // 마지막 클립에서는 멈춘 채 남는다 — 되감아 처음으로 가면 어디까지 봤는지 잃는다.
     DisposableEffect(player, pagerState) {
         val listener = object : Player.Listener {
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
                 if (playWhenReady || reason != Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM) return
                 val next = player.currentMediaItemIndex + 1
-                if (next < pagerState.pageCount) scope.launch { pagerState.animateScrollToPage(next) }
+                if (next < pagerState.pageCount) scope.launch { pagerState.scrollToPage(next) }
             }
         }
         player.addListener(listener)
@@ -237,12 +238,12 @@ private fun ClipPager(
                     TapZones(
                         onPrevious = {
                             scope.launch {
-                                if (page > 0) pagerState.animateScrollToPage(page - 1) else player.seekTo(0)
+                                if (page > 0) pagerState.scrollToPage(page - 1) else player.seekTo(0)
                                 player.play()
                             }
                         },
                         onNext = {
-                            if (page < clips.lastIndex) scope.launch { pagerState.animateScrollToPage(page + 1) }
+                            if (page < clips.lastIndex) scope.launch { pagerState.scrollToPage(page + 1) }
                         },
                     )
                 } else {
