@@ -16,7 +16,7 @@ import androidx.media3.transformer.ProgressHolder
 import androidx.media3.transformer.Transformer
 import com.example.autolog.camera.CaptureOrientation
 import com.example.autolog.data.clip.Clip
-import com.example.autolog.data.clip.toMediaItem
+import com.example.autolog.data.clip.segmentMediaItems
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -69,9 +69,9 @@ class ClipMerger @Inject constructor(
                 )
             }
             val sequence = EditedMediaItemSequence.Builder(
-                clips.map { clip ->
-                    // 자른 클립은 남긴 구간만 들어간다 (#90).
-                    EditedMediaItem.Builder(clip.toMediaItem())
+                // 자른 클립은 남긴 조각마다 한 항목씩 이어 넣는다 (#92).
+                clips.flatMap { it.segmentMediaItems() }.map { item ->
+                    EditedMediaItem.Builder(item)
                         .apply { effects?.let(::setEffects) }
                         .build()
                 },

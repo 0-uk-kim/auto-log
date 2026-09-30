@@ -32,15 +32,16 @@ data class VlogEntity(
 )
 
 /**
- * 클립에서 남길 구간 (#90). 원본 파일은 건드리지 않고, 미리보기·병합할 때만 이 구간으로 잘라 쓴다.
+ * 클립에서 남길 조각 하나 (#92). 원본 파일은 건드리지 않고, 미리보기·병합할 때만 조각들을 이어 쓴다.
+ * 자르지 않은 클립에는 행이 없다.
  *
  * 순서([ClipOrderEntity])와 따로 둔다 — 순서 행은 순서를 정한 날짜에만 있고 저장할 때마다 날짜째
  * 갈아 끼워지는데, 자르기는 순서와 상관없이 클립마다 남아야 한다.
  */
-@Entity(tableName = "clip_trim")
-data class ClipTrimEntity(
+@Entity(tableName = "clip_segment", primaryKeys = ["clipId", "startMs"])
+data class ClipSegmentEntity(
     /** MediaStore `_ID`. 원본이 사라지면 [ClipOrderEntity]와 같이 고아가 되어 정리된다. */
-    @PrimaryKey val clipId: Long,
+    val clipId: Long,
     val startMs: Long,
     val endMs: Long,
 )

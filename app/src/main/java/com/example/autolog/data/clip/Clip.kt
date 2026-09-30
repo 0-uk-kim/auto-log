@@ -6,7 +6,7 @@ import android.provider.MediaStore
 import java.time.Instant
 
 /**
- * 앱이 촬영한 클립 하나. 값은 MediaStore 행에서 읽어내고, [isEdited]와 [trim]만 Room이 기억한다.
+ * 앱이 촬영한 클립 하나. 값은 MediaStore 행에서 읽어내고, [isEdited]와 [segments]만 Room이 기억한다.
  *
  * 날짜 묶기·정렬 키는 둘 다 [endedAt]이다 — 자정을 걸친 클립은 종료 시각이 속한 날짜에 들어간다
  * (planning 6 "날짜 기준").
@@ -23,13 +23,13 @@ data class Clip(
      * 나중 마이그레이션 비용을 줄인다 (planning 5 "1차 개발 시 유의", #18).
      */
     val isEdited: Boolean = false,
-    /** 남길 구간. null이면 자르지 않았다 — 원본 전체를 쓴다 (#90). */
-    val trim: ClipTrim? = null,
+    /** 남길 조각들. null이면 자르지 않았다 — 원본 전체를 쓴다 (#90, #92). */
+    val segments: ClipSegments? = null,
 ) {
     val endedAt: Instant get() = startedAt.plusMillis(durationMs)
 
     /** 미리보기와 브이로그에 실제로 들어가는 길이. */
-    val playedDurationMs: Long get() = trim?.lengthMs ?: durationMs
+    val playedDurationMs: Long get() = segments?.lengthMs ?: durationMs
 
     val uri: Uri
         get() = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)

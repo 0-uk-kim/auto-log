@@ -38,9 +38,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import com.example.autolog.R
 import com.example.autolog.data.clip.Clip
-import com.example.autolog.data.clip.toMediaItem
 import com.example.autolog.ui.VideoSurface
 import com.example.autolog.ui.rememberClipThumbnail
 import com.example.autolog.ui.theme.CameraBackground
@@ -144,7 +144,8 @@ private fun ClipPager(
     LaunchedEffect(player, clips) {
         // 편집에서 돌아와 다시 읽은 것이면 보던 클립에 머문다.
         val index = if (player.mediaItemCount > 0) player.currentMediaItemIndex.coerceIn(clips.indices) else startIndex
-        player.setMediaItems(clips.map { it.toMediaItem() }, index, C.TIME_UNSET)
+        val factory = DefaultMediaSourceFactory(context)
+        player.setMediaSources(clips.map { it.previewMediaSource(context, factory) }, index, C.TIME_UNSET)
         player.prepare()
         player.playWhenReady = true
     }
