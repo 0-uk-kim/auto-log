@@ -124,8 +124,7 @@ fun EditScreen(
                 color = CameraControlTint,
                 modifier = Modifier.weight(1f),
             )
-            val ready = uiState as? EditUiState.Ready
-            if (ready != null) {
+            if (uiState is EditUiState.Ready) {
                 // 찍자마자 들어오는 화면이라 마음에 안 들면 여기서 바로 버린다 (#102).
                 IconButton(onClick = viewModel::delete, modifier = Modifier.testTag(TAG_EDIT_DELETE_CLIP)) {
                     Icon(
@@ -133,13 +132,6 @@ fun EditScreen(
                         contentDescription = stringResource(R.string.edit_delete_clip),
                         tint = CameraControlTint,
                     )
-                }
-                TextButton(
-                    onClick = viewModel::reset,
-                    enabled = ready.isTrimmed,
-                    colors = ButtonDefaults.textButtonColors(contentColor = CameraControlTint),
-                ) {
-                    Text(stringResource(R.string.edit_reset))
                 }
                 Button(
                     onClick = viewModel::save,
@@ -163,7 +155,7 @@ fun EditScreen(
                 )
             }
 
-            is EditUiState.Ready -> ClipTrimmer(state = state, actions = viewModel)
+            is EditUiState.Ready -> ClipTrimmer(state = state, actions = viewModel, onReset = viewModel::reset)
         }
     }
 }
@@ -173,6 +165,7 @@ fun EditScreen(
 private fun ClipTrimmer(
     state: EditUiState.Ready,
     actions: EditViewModel,
+    onReset: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val clip = state.clip
@@ -258,16 +251,25 @@ private fun ClipTrimmer(
                 modifier = Modifier.fillMaxWidth().height(44.dp),
             ) {
                 if (cut) {
-                    Text(
-                        text = stringResource(
-                            R.string.edit_length_change,
-                            formatTrimTime(clip.durationMs),
-                            formatTrimTime(state.segments.lengthMs),
-                        ),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = CameraHighlight,
-                        modifier = Modifier.testTag(TAG_EDIT_LENGTH),
-                    )
+                    // 되돌리는 버튼은 바뀐 결과 바로 옆에 둔다 — 무엇을 되돌리는지 눈으로 이어진다.
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = stringResource(
+                                R.string.edit_length_change,
+                                formatTrimTime(clip.durationMs),
+                                formatTrimTime(state.segments.lengthMs),
+                            ),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = CameraHighlight,
+                            modifier = Modifier.testTag(TAG_EDIT_LENGTH),
+                        )
+                        TextButton(
+                            onClick = onReset,
+                            colors = ButtonDefaults.textButtonColors(contentColor = CameraControlTint),
+                        ) {
+                            Text(stringResource(R.string.edit_reset))
+                        }
+                    }
                 } else {
                     Text(
                         text = stringResource(R.string.edit_hint),

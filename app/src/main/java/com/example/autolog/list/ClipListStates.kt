@@ -58,14 +58,21 @@ fun ClipListEmpty(
     onRequestAccess: () -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    onShoot: (() -> Unit)? = null,
 ) {
     when (access) {
         MediaAccess.Full -> EmptyMessage(
             title = R.string.clip_list_empty_title,
-            hint = R.string.clip_list_empty_hint,
+            hint = if (onShoot != null) R.string.clip_list_empty_hint else R.string.clip_list_empty_hint_past,
             testTag = TAG_EMPTY_NONE,
             modifier = modifier,
-        )
+        ) {
+            if (onShoot != null) {
+                Button(onClick = onShoot) {
+                    Text(stringResource(R.string.clip_list_action_shoot))
+                }
+            }
+        }
 
         MediaAccess.Partial -> EmptyMessage(
             title = R.string.clip_list_partial_title,

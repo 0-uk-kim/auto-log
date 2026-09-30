@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -138,7 +139,6 @@ fun ClipListScreen(
                     allSelected = selected.size == (uiState as? ClipListUiState.Clips)?.clips?.size,
                     onClose = viewModel::endSelection,
                     onToggleAll = viewModel::toggleSelectAll,
-                    onDelete = viewModel::deleteSelected,
                 )
             } else {
                 TopAppBar(
@@ -156,14 +156,11 @@ fun ClipListScreen(
                     },
                     actions = {
                         if (uiState is ClipListUiState.Clips) {
-                            IconButton(
+                            TextButton(
                                 onClick = viewModel::startSelection,
                                 modifier = Modifier.testTag(TAG_START_SELECTION),
                             ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.ic_delete),
-                                    contentDescription = stringResource(R.string.clip_list_start_selection),
-                                )
+                                Text(stringResource(R.string.clip_list_start_selection))
                             }
                         }
                         DiagnosticsMenu()
@@ -173,18 +170,28 @@ fun ClipListScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            // 이어붙일 것이 있을 때만 생성 버튼을 둔다 — 0건에서 누르면 할 수 있는 일이 없다.
-            // 삭제 모드에서는 고르는 중인 목록으로 브이로그를 만들 일이 없어 숨긴다.
-            if (uiState is ClipListUiState.Clips && selection == null) {
-                Button(
-                    onClick = onCreateVlog,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(horizontal = Spacing.md, vertical = Spacing.sm + Spacing.xs)
-                        .height(ListDimens.primaryButton),
-                ) {
-                    Text(stringResource(R.string.clip_list_create_vlog), style = MaterialTheme.typography.titleMedium)
+            // 버튼은 엄지가 닿는 아래 한 자리만 쓴다 — 평소엔 브이로그, 고르는 중엔 삭제.
+            // 이어붙일 것이 없으면 둘 다 할 일이 없어 비운다.
+            if (uiState is ClipListUiState.Clips) {
+                val selected = selection
+                if (selected != null) {
+                    BottomAction(
+                        text = stringResource(R.string.clip_list_delete_selected, selected.size),
+                        onClick = viewModel::deleteSelected,
+                        enabled = selected.isNotEmpty(),
+                        destructive = true,
+                        modifier = Modifier.testTag(TAG_DELETE_SELECTED),
+                    )
+                } else {
+                    val marks by viewModel.calendarMarks.collectAsStateWithLifecycle()
+                    // 이미 만든 날은 새로 만드는 게 아니라 보러 가는 것이다 — 들어가면 기존 결과물이 뜬다.
+                    val hasVlog = viewModel.date in marks.datesWithVlog
+                    BottomAction(
+                        text = stringResource(
+                            if (hasVlog) R.string.clip_list_open_vlog else R.string.clip_list_create_vlog,
+                        ),
+                        onClick = onCreateVlog,
+                    )
                 }
             }
         },
@@ -209,6 +216,8 @@ fun ClipListScreen(
                     access = state.access,
                     onRequestAccess = requestAccess,
                     onOpenSettings = { context.openAppSettings() },
+                    // 카메라는 늘 오늘로 찍는다. 지난 날짜의 빈 목록에서 권하면 엉뚱한 날에 쌓인다.
+                    onShoot = onBack.takeIf { viewModel.date == LocalDate.now() },
                 )
 
                 is ClipListUiState.Clips -> ClipList(
@@ -344,7 +353,6 @@ private fun SelectionTopBar(
     allSelected: Boolean,
     onClose: () -> Unit,
     onToggleAll: () -> Unit,
-    onDelete: () -> Unit,
 ) {
     TopAppBar(
         title = { Text(stringResource(R.string.clip_list_selected_count, selectedCount)) },
@@ -360,16 +368,6 @@ private fun SelectionTopBar(
         actions = {
             TextButton(onClick = onToggleAll, modifier = Modifier.testTag(TAG_SELECT_ALL)) {
                 Text(stringResource(if (allSelected) R.string.clip_list_deselect_all else R.string.clip_list_select_all))
-            }
-            IconButton(
-                onClick = onDelete,
-                enabled = selectedCount > 0,
-                modifier = Modifier.testTag(TAG_DELETE_SELECTED),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_delete),
-                    contentDescription = stringResource(R.string.clip_list_delete_selected),
-                )
             }
         },
     )
@@ -438,6 +436,35 @@ private fun DateHeader(title: String, summary: String?, onOpenCalendar: (() -> U
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+@Composable
+private fun BottomAction(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    destructive: Boolean = false,
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        colors = if (destructive) {
+            ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.error,
+                contentColor = MaterialTheme.colorScheme.onError,
+            )
+        } else {
+            ButtonDefaults.buttonColors()
+        },
+        modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm + Spacing.xs)
+            .height(ListDimens.primaryButton),
+    ) {
+        Text(text, style = MaterialTheme.typography.titleMedium)
     }
 }
 
