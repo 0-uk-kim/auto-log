@@ -106,11 +106,6 @@ class ClipListViewModel @Inject constructor(
         }
     }
 
-    /** 줄을 길게 누르면 그 줄을 체크한 채 선택 모드로 들어간다. */
-    fun startSelection(clipId: Long) {
-        _selection.value = setOf(clipId)
-    }
-
     fun toggleSelectAll() {
         val clips = (_uiState.value as? ClipListUiState.Clips)?.clips ?: return
         _selection.update { selected ->

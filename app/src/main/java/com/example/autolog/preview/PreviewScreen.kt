@@ -53,7 +53,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import com.example.autolog.R
 import com.example.autolog.data.clip.Clip
 import com.example.autolog.ui.GlassIconButton
-import com.example.autolog.ui.GlassPill
+import com.example.autolog.ui.ActionButton
 import com.example.autolog.ui.GlowIcon
 import com.example.autolog.ui.ScreenTopBar
 import com.example.autolog.ui.VideoSurface
@@ -62,6 +62,7 @@ import com.example.autolog.ui.theme.CameraBackground
 import com.example.autolog.ui.theme.CameraControlTint
 import com.example.autolog.ui.theme.CameraHighlight
 import com.example.autolog.ui.theme.Glass
+import com.example.autolog.ui.theme.ListDimens
 import com.example.autolog.ui.theme.GlassBorder
 import androidx.compose.ui.text.style.TextAlign
 import com.example.autolog.ui.theme.Spacing
@@ -73,7 +74,7 @@ const val TAG_PREVIEW_EDIT = "preview-edit"
  * 목록 순서를 따라 클립을 재생한다 (planning 6 "미리보기 재생 범위").
  *
  * 단일 클립 플레이어가 아니라 **페이저**다 — 좌우로 넘기면 이전·다음 클립으로 간다.
- * 오른쪽 위 편집 버튼은 지금 보고 있는 클립의 편집 화면을 연다 (planning 5 "3차: 구간 자르기").
+ * 아래 편집 버튼은 지금 보고 있는 클립의 편집 화면을 연다 (planning 5 "3차: 구간 자르기").
  */
 @Composable
 fun PreviewScreen(
@@ -188,7 +189,6 @@ private fun ClipPager(
         PreviewTopBar(
             onBack = onBack,
             position = { PagePosition(page = pagerState.currentPage, total = clips.size) },
-            onEdit = { onEdit(clips[pagerState.currentPage].id) },
         )
 
         HorizontalPager(
@@ -213,21 +213,20 @@ private fun ClipPager(
             }
         }
 
-        ClipInfoBar(clip = clips[pagerState.currentPage], player = player)
+        ClipInfoBar(
+            clip = clips[pagerState.currentPage],
+            player = player,
+            onEdit = { onEdit(clips[pagerState.currentPage].id) },
+        )
         PageDots(page = pagerState.currentPage, total = clips.size)
     }
 }
 
-/**
- * 나가기는 왼쪽, 편집은 오른쪽 위. 이 화면은 보는 곳이라 아래를 비워 두고, 편집은 다른 화면의 부가 동작과 같은
- * 자리에 글자가 붙은 알약으로 둔다 — 가위 아이콘만으로는 뜻이 갈린다.
- */
 @Composable
 private fun PreviewTopBar(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     position: @Composable () -> Unit = {},
-    onEdit: (() -> Unit)? = null,
 ) {
     ScreenTopBar(
         modifier = modifier,
@@ -240,41 +239,40 @@ private fun PreviewTopBar(
             )
         },
         title = position,
-        actions = {
-            if (onEdit != null) {
-                GlassPill(
-                    text = stringResource(R.string.preview_edit),
-                    icon = R.drawable.ic_cut,
-                    onClick = onEdit,
-                    contentColor = CameraControlTint,
-                    modifier = Modifier.testTag(TAG_PREVIEW_EDIT),
-                )
-            }
-        },
     )
 }
 
-/** 지금 보는 클립이 언제 찍은 것인지, 어디쯤 재생 중인지. */
+/**
+ * 지금 보는 클립이 언제 찍은 것인지, 어디쯤 재생 중인지, 그리고 할 수 있는 일(편집)을 아래에 모은다.
+ * 편집은 이 화면에서 사실상 유일한 다음 동작이라 엄지가 닿는 자리에 글자가 붙은 버튼으로 둔다.
+ */
 @Composable
-private fun ClipInfoBar(clip: Clip, player: Player, modifier: Modifier = Modifier) {
+private fun ClipInfoBar(clip: Clip, player: Player, onEdit: () -> Unit, modifier: Modifier = Modifier) {
     val position = rememberPlaybackPosition(player)
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = Spacing.lg, end = Spacing.lg, top = Spacing.md),
+            .padding(start = Spacing.lg, end = Spacing.md, top = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm + Spacing.xs),
     ) {
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text(
-                text = formatClipTime(clip.endedAt),
-                style = MaterialTheme.typography.titleLarge,
-                color = CameraControlTint,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = formatClipDuration(clip.playedDurationMs),
-                style = MaterialTheme.typography.labelLarge,
-                color = CameraControlTint.copy(alpha = 0.7f),
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = formatClipTime(clip.endedAt),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = CameraControlTint,
+                )
+                Text(
+                    text = formatClipDuration(clip.playedDurationMs),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = CameraControlTint.copy(alpha = 0.7f),
+                )
+            }
+            ActionButton(
+                text = stringResource(R.string.preview_edit),
+                icon = R.drawable.ic_cut,
+                onClick = onEdit,
+                modifier = Modifier.height(ListDimens.glassButton + Spacing.xs).testTag(TAG_PREVIEW_EDIT),
             )
         }
         LinearProgressIndicator(
@@ -289,6 +287,7 @@ private fun ClipInfoBar(clip: Clip, player: Player, modifier: Modifier = Modifie
             drawStopIndicator = {},
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(end = Spacing.sm)
                 .height(4.dp),
         )
     }

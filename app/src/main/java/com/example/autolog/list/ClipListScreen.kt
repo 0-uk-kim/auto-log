@@ -5,47 +5,48 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxState
-import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.SwipeToDismissBoxDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -79,11 +80,12 @@ const val TAG_SELECT_ALL = "clip-list-select-all"
 const val TAG_OPEN_CALENDAR = "clip-list-open-calendar"
 
 /**
- * 하루치 클립을 브이로그에 들어갈 순서대로 보여주는 화면 (planning 3-3).
- * 순서 변경(드래그)은 #16, 편집 여부 배지는 #18, 삭제(밀어서 삭제·삭제 모드)는 #38에서 이 목록 위에 얹힌다.
- * 삭제는 묻지 않고 바로 빼고 실행취소 스낵바로 되돌린다. 줄을 길게 누르면 선택 모드로 들어간다 (#102).
+ * 하루치 클립을 브이로그에 들어갈 순서대로 보여주는 스토리보드 (planning 3-3).
+ *
+ * 위 띠는 완성될 브이로그의 축소판이고, 아래 격자는 같은 순서의 칸들이다. 칸을 길게 눌러 끌면 순서가
+ * 바뀐다(#16). 지우는 것은 「선택」으로 고른 뒤 아래 버튼으로 한다(#38) — 묻지 않고 바로 빼고 실행취소
+ * 스낵바로 되돌린다(#102).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClipListScreen(
     date: String,
@@ -96,7 +98,6 @@ fun ClipListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val selection by viewModel.selection.collectAsStateWithLifecycle()
-    val awaitingConfirmation by viewModel.awaitingConfirmation.collectAsStateWithLifecycle()
     val awaitingUndo by viewModel.awaitingUndo.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val requestAccess = rememberMediaAccessRequest(onResult = viewModel::refresh)
@@ -140,12 +141,21 @@ fun ClipListScreen(
             } else {
                 ScreenTopBar(
                     modifier = Modifier.statusBarsPadding(),
+                    // 날짜가 곧 이 화면의 제목이다. 누르면 달력이 열린다 — 따로 달력 버튼을 두지 않는다.
                     navigation = {
-                        GlassIconButton(
-                            icon = R.drawable.ic_arrow_back,
-                            contentDescription = stringResource(R.string.clip_list_back),
-                            onClick = onBack,
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            GlassIconButton(
+                                icon = R.drawable.ic_arrow_back,
+                                contentDescription = stringResource(R.string.clip_list_back),
+                                onClick = onBack,
+                            )
+                            Spacer(Modifier.width(Spacing.xs))
+                            DateTitle(
+                                title = rememberDateTitle(date),
+                                isToday = viewModel.date == LocalDate.now(),
+                                onOpenCalendar = { showCalendar = true },
+                            )
+                        }
                     },
                     actions = {
                         if (uiState is ClipListUiState.Clips) {
@@ -160,7 +170,7 @@ fun ClipListScreen(
                 )
             }
         },
-        // 아래 버튼이 목록 위에 떠 있어 스낵바가 그 위로 올라서야 한다 — 기본 자리는 버튼에 가린다.
+        // 아래 버튼이 격자 위에 떠 있어 스낵바가 그 위로 올라서야 한다 — 기본 자리는 버튼에 가린다.
         snackbarHost = {
             SnackbarHost(
                 snackbarHostState,
@@ -169,40 +179,27 @@ fun ClipListScreen(
         },
     ) { padding ->
         Box(Modifier.padding(top = padding.calculateTopPadding()).fillMaxSize()) {
-            Column {
-                DateHeader(
-                    title = rememberDateTitle(date),
-                    isToday = viewModel.date == LocalDate.now(),
-                    clips = (uiState as? ClipListUiState.Clips)?.clips,
-                    // 삭제 모드에서는 날짜를 바꾸면 고르던 것이 사라진다.
-                    onOpenCalendar = { showCalendar = true }.takeIf { selection == null },
+            when (val state = uiState) {
+                ClipListUiState.Loading -> ClipListLoading()
+
+                is ClipListUiState.Empty -> ClipListEmpty(
+                    access = state.access,
+                    onRequestAccess = requestAccess,
+                    onOpenSettings = { context.openAppSettings() },
+                    // 카메라는 늘 오늘로 찍는다. 지난 날짜의 빈 목록에서 권하면 엉뚱한 날에 쌓인다.
+                    onShoot = onBack.takeIf { viewModel.date == LocalDate.now() },
                 )
-                when (val state = uiState) {
-                    ClipListUiState.Loading -> ClipListLoading()
 
-                    is ClipListUiState.Empty -> ClipListEmpty(
-                        access = state.access,
-                        onRequestAccess = requestAccess,
-                        onOpenSettings = { context.openAppSettings() },
-                        // 카메라는 늘 오늘로 찍는다. 지난 날짜의 빈 목록에서 권하면 엉뚱한 날에 쌓인다.
-                        onShoot = onBack.takeIf { viewModel.date == LocalDate.now() },
-                    )
-
-                    is ClipListUiState.Clips -> ClipList(
-                        clips = state.clips,
-                        access = state.access,
-                        onRequestAccess = requestAccess,
-                        selection = selection,
-                        awaitingConfirmationIds = awaitingConfirmation.mapTo(mutableSetOf()) { it.id },
-                        awaitingUndoIds = awaitingUndo.mapTo(mutableSetOf()) { it.id },
-                        onOpenClip = onOpenClip,
-                        onToggleClip = viewModel::toggleSelection,
-                        onLongPressClip = viewModel::startSelection,
-                        onSwipeDelete = { clip -> viewModel.delete(listOf(clip)) },
-                        onMoveClip = viewModel::moveClip,
-                        onOrderSettled = viewModel::persistOrder,
-                    )
-                }
+                is ClipListUiState.Clips -> Storyboard(
+                    clips = state.clips,
+                    access = state.access,
+                    onRequestAccess = requestAccess,
+                    selection = selection,
+                    onOpenClip = onOpenClip,
+                    onToggleClip = viewModel::toggleSelection,
+                    onMoveClip = viewModel::moveClip,
+                    onOrderSettled = viewModel::persistOrder,
+                )
             }
 
             // 버튼은 엄지가 닿는 아래 한 자리만 쓴다 — 평소엔 브이로그, 고르는 중엔 삭제.
@@ -252,35 +249,62 @@ fun ClipListScreen(
 }
 
 @Composable
-private fun ClipList(
+private fun Storyboard(
     clips: List<Clip>,
     access: MediaAccess,
     onRequestAccess: () -> Unit,
     selection: Set<Long>?,
-    awaitingConfirmationIds: Set<Long>,
-    awaitingUndoIds: Set<Long>,
     onOpenClip: (Int) -> Unit,
     onToggleClip: (clipId: Long) -> Unit,
-    onLongPressClip: (clipId: Long) -> Unit,
-    onSwipeDelete: (Clip) -> Unit,
     onMoveClip: (from: Int, to: Int) -> Unit,
     onOrderSettled: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val lazyListState = rememberLazyListState()
+    val gridState = rememberLazyGridState()
     val dragDropState = rememberDragDropState(
-        lazyListState = lazyListState,
+        gridState = gridState,
         onMove = onMoveClip,
         onDrop = onOrderSettled,
     )
+    val haptics = LocalHapticFeedback.current
 
     Column(modifier = modifier.fillMaxSize()) {
         MediaAccessBanner(access = access, onRequestAccess = onRequestAccess)
 
-        LazyColumn(
-            state = lazyListState,
+        VlogTimeline(
+            clips = clips,
+            onOpenClip = onOpenClip,
+            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(start = Spacing.md, end = Spacing.md, top = Spacing.xs, bottom = Spacing.sm),
+        ) {
+            Text(
+                text = stringResource(
+                    R.string.clip_list_summary,
+                    clips.size,
+                    formatClipDuration(clips.sumOf { it.playedDurationMs }),
+                ),
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = stringResource(
+                    if (selection == null) R.string.clip_list_reorder_hint else R.string.clip_list_select_hint,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(GRID_COLUMNS),
+            state = gridState,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             // 마지막 줄이 떠 있는 아래 버튼에 가리지 않도록 그만큼 더 내려 쓴다.
-            contentPadding = PaddingValues(top = Spacing.xs, bottom = DOCK_CLEARANCE),
+            contentPadding = PaddingValues(start = Spacing.md, end = Spacing.md, top = Spacing.xs, bottom = DOCK_CLEARANCE),
         ) {
             itemsIndexed(clips, key = { _, clip -> clip.id }) { position, clip ->
                 val isDragging = position == dragDropState.draggingItemIndex
@@ -288,61 +312,88 @@ private fun ClipList(
                 // 시작 위치는 항상 최신 값을 읽는다.
                 val currentPosition by rememberUpdatedState(position)
 
-                // rememberSwipeToDismissBoxState는 저장되는 상태라, 실행취소로 같은 key의 줄이 돌아오면 밀린 채로
-                // 복원돼 곧바로 다시 지워진다. 저장하지 않는 상태를 쓴다 (#102).
-                val positionalThreshold = SwipeToDismissBoxDefaults.positionalThreshold
-                val swipeState = remember(clip.id) {
-                    SwipeToDismissBoxState(SwipeToDismissBoxValue.Settled, positionalThreshold)
-                }
-                val isHeld = clip.id in awaitingConfirmationIds || clip.id in awaitingUndoIds
-                // 삭제 창에서 거절하거나, 사라지는 도중에 실행취소하면 밀어 둔 줄을 제자리로 돌린다.
-                LaunchedEffect(isHeld) {
-                    if (!isHeld) swipeState.reset()
-                }
-                // SwipeToDismissBox는 이 콜백이 바뀔 때마다 밀린 상태를 다시 보고 부른다 — 다시 그릴 때마다 새
-                // 람다를 넘기면 실행취소한 줄이 곧바로 또 지워진다.
-                val swipeDelete by rememberUpdatedState(onSwipeDelete)
-                val onDismiss = remember(clip.id) { { _: SwipeToDismissBoxValue -> swipeDelete(clip) } }
-
-                SwipeToDismissBox(
-                    state = swipeState,
-                    backgroundContent = { SwipeDeleteBackground(swipeState) },
-                    enableDismissFromStartToEnd = false,
-                    gesturesEnabled = selection == null,
-                    onDismiss = onDismiss,
-                    modifier = if (isDragging) {
-                        // 끌고 있는 줄은 다른 줄 위로 떠야 하고, 자리 이동 애니메이션을 타면 안 된다.
-                        Modifier
-                            .zIndex(1f)
-                            .graphicsLayer { translationY = dragDropState.draggingItemOffset }
-                    } else {
-                        Modifier.animateItem()
-                    },
-                ) {
-                    ClipRow(
-                        clip = clip,
-                        position = position,
-                        isDragging = isDragging,
-                        selected = selection?.let { clip.id in it },
-                        onClick = {
-                            if (selection != null) onToggleClip(clip.id) else onOpenClip(position)
-                        },
-                        onLongClick = if (selection == null) ({ onLongPressClip(clip.id) }) else null,
-                        dragHandleModifier = Modifier.pointerInput(clip.id) {
-                            detectDragGestures(
-                                onDragStart = { dragDropState.onDragStart(currentPosition) },
-                                onDragEnd = dragDropState::onDragInterrupted,
-                                onDragCancel = dragDropState::onDragInterrupted,
-                                onDrag = { change, offset ->
-                                    change.consume()
-                                    dragDropState.onDrag(offset)
-                                },
-                            )
-                        },
-                    )
-                }
+                ClipTile(
+                    clip = clip,
+                    position = position,
+                    isDragging = isDragging,
+                    selected = selection?.let { clip.id in it },
+                    modifier = Modifier
+                        .then(
+                            if (isDragging) {
+                                // 끌고 있는 칸은 다른 칸 위로 떠야 하고, 자리 이동 애니메이션을 타면 안 된다.
+                                Modifier
+                                    .zIndex(1f)
+                                    .graphicsLayer {
+                                        translationX = dragDropState.draggingItemOffset.x
+                                        translationY = dragDropState.draggingItemOffset.y
+                                    }
+                            } else {
+                                Modifier.animateItem()
+                            },
+                        )
+                        .clickable {
+                            if (selection != null) onToggleClip(clip.id) else onOpenClip(currentPosition)
+                        }
+                        // 끌기 감지를 누름보다 안쪽에 둬 이벤트를 먼저 받게 한다 — 끌기가 시작되면 이동을 소비해 누름은 취소된다.
+                        .then(
+                            if (selection == null) {
+                                Modifier.pointerInput(clip.id) {
+                                    detectDragGesturesAfterLongPress(
+                                        onDragStart = {
+                                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            dragDropState.onDragStart(currentPosition)
+                                        },
+                                        onDragEnd = dragDropState::onDragInterrupted,
+                                        onDragCancel = dragDropState::onDragInterrupted,
+                                        onDrag = { change, offset ->
+                                            change.consume()
+                                            dragDropState.onDrag(offset)
+                                        },
+                                    )
+                                }
+                            } else {
+                                Modifier
+                            },
+                        ),
+                )
             }
         }
+    }
+}
+
+/** 위 바의 날짜 제목. 오늘이면 위에 작게 「오늘」을 얹는다 — 지난 날을 보고 있을 때 헷갈리지 않는다. */
+@Composable
+private fun DateTitle(title: String, isToday: Boolean, onOpenCalendar: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(MaterialTheme.shapes.small)
+            .clickable(
+                onClickLabel = stringResource(R.string.clip_list_open_calendar),
+                onClick = onOpenCalendar,
+            )
+            .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+            .testTag(TAG_OPEN_CALENDAR),
+    ) {
+        Column {
+            if (isToday) {
+                Text(
+                    text = stringResource(R.string.clip_list_today),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                )
+            }
+            Text(text = title, style = MaterialTheme.typography.titleLarge)
+        }
+        Icon(
+            painter = painterResource(R.drawable.ic_chevron),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .padding(start = Spacing.xs)
+                .size(18.dp)
+                .rotate(-90f),
+        )
     }
 }
 
@@ -378,101 +429,9 @@ private fun SelectionTopBar(
     )
 }
 
-/** 줄을 미는 동안 뒤에 드러나는 삭제 표시. 방향이 정해지기 전(제자리)에는 비워 둔다. */
-@Composable
-private fun SwipeDeleteBackground(state: SwipeToDismissBoxState) {
-    if (state.dismissDirection != SwipeToDismissBoxValue.EndToStart) return
-    // 줄이 카드라 뒤판도 같은 여백·모서리로 깔아야 밀었을 때 모서리가 튀어나오지 않는다.
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = Spacing.md, vertical = Spacing.xs)
-            .clip(MaterialTheme.shapes.large)
-            .background(MaterialTheme.colorScheme.errorContainer)
-            .padding(horizontal = Spacing.lg),
-        contentAlignment = Alignment.CenterEnd,
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.ic_delete),
-            contentDescription = stringResource(R.string.clip_list_swipe_delete),
-            tint = MaterialTheme.colorScheme.onErrorContainer,
-        )
-    }
-}
+private const val GRID_COLUMNS = 3
 
-/**
- * 이 목록이 어느 날짜인지 크게 보여 준다. 날짜나 옆 달력 버튼을 누르면 달력이 열린다.
- * 아래 칩은 브이로그에 들어갈 분량이다 — 몇 개를, 모두 합쳐 얼마나 이어붙이는지.
- */
-@Composable
-private fun DateHeader(title: String, isToday: Boolean, clips: List<Clip>?, onOpenCalendar: (() -> Unit)?) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        modifier = Modifier.padding(start = Spacing.lg, end = Spacing.md, top = Spacing.xs, bottom = Spacing.md),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(MaterialTheme.shapes.small)
-                    .then(
-                        if (onOpenCalendar != null) {
-                            Modifier.clickable(
-                                onClickLabel = stringResource(R.string.clip_list_open_calendar),
-                                onClick = onOpenCalendar,
-                            )
-                        } else {
-                            Modifier
-                        },
-                    )
-                    .testTag(TAG_OPEN_CALENDAR),
-            ) {
-                // 지난 날짜를 보고 있으면 이 줄이 빠진다 — "오늘"이 없는 것만으로 다른 날이라는 걸 안다.
-                if (isToday) {
-                    Text(
-                        text = stringResource(R.string.clip_list_today),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.secondary,
-                    )
-                }
-                Text(text = title, style = MaterialTheme.typography.headlineMedium)
-            }
-            if (onOpenCalendar != null) {
-                GlassIconButton(
-                    icon = R.drawable.ic_calendar,
-                    contentDescription = stringResource(R.string.clip_list_open_calendar),
-                    onClick = onOpenCalendar,
-                )
-            }
-        }
-        if (clips != null) {
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-                StatChip(stringResource(R.string.clip_list_clip_count, clips.size))
-                StatChip(formatClipDuration(clips.sumOf { it.playedDurationMs }))
-                Text(
-                    text = stringResource(R.string.clip_list_order_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = Spacing.xs),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatChip(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelMedium,
-        modifier = Modifier
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .padding(horizontal = Spacing.sm + Spacing.xs, vertical = Spacing.xs + 1.dp),
-    )
-}
-
-/** 떠 있는 아래 버튼(56dp)과 그 위아래 여백만큼. 목록 끝과 스낵바가 이만큼 비켜 선다. */
+/** 떠 있는 아래 버튼(56dp)과 그 위아래 여백만큼. 격자 끝과 스낵바가 이만큼 비켜 선다. */
 private val DOCK_CLEARANCE = 104.dp
 
 @Composable
