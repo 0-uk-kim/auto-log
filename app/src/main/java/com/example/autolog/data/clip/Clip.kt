@@ -25,6 +25,8 @@ data class Clip(
     val isEdited: Boolean = false,
     /** 남길 조각들. null이면 자르지 않았다 — 원본 전체를 쓴다 (#90, #92). */
     val segments: ClipSegments? = null,
+    /** 이 설치가 찍은 클립이다. 재설치하면 MediaStore가 소유권을 지워 false가 된다 — 지울 때 확인 창이 필요하다. */
+    val isOwned: Boolean = true,
 ) {
     val endedAt: Instant get() = startedAt.plusMillis(durationMs)
 

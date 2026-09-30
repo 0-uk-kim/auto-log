@@ -44,6 +44,7 @@ fun AutoLogNavHost(
                 onOpenLatestClip = {
                     navController.navigate(Preview(LocalDate.now().toString(), Preview.LATEST_CLIP))
                 },
+                onRecorded = { clipId -> navController.navigate(Edit(LocalDate.now().toString(), clipId)) },
             )
         }
         composable<ClipList> { entry ->

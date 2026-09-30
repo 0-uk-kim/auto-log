@@ -1,5 +1,6 @@
 package com.example.autolog.edit
 
+import android.content.IntentSender
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -34,13 +35,23 @@ class EditViewModel @Inject constructor(
      */
     private val history = ArrayDeque<Pair<ClipSegments, Int>>()
 
-    /** 저장이 끝나면 한 번 흘린다 — 화면은 그때 닫는다. 저장 전에 닫으면 미리보기가 옛 조각을 읽는다. */
-    private val _saved = Channel<Unit>(Channel.CONFLATED)
-    val saved = _saved.receiveAsFlow()
+    /**
+     * 저장·삭제가 끝나면 한 번 흘린다 — 화면은 그때 닫는다. 저장 전에 닫으면 미리보기가 옛 조각을 읽는다.
+     * 삭제는 앞 화면이 실행취소 스낵바를 이어 띄운다 (#102).
+     */
+    private val _finished = Channel<Unit>(Channel.CONFLATED)
+    val finished = _finished.receiveAsFlow()
+
+    /** 소유권이 없는 클립을 지우려면 거쳐야 하는 시스템 삭제 창. */
+    private val _deleteRequests = Channel<IntentSender>(Channel.CONFLATED)
+    val deleteRequests = _deleteRequests.receiveAsFlow()
 
     init {
         viewModelScope.launch {
+            // 찍자마자 들어오면 route의 날짜는 지금이다. 자정을 걸친 하이퍼랩스는 종료 시각이 다른 날에 들 수 있어
+            // 그날에 없으면 전체에서 찾는다.
             val clip = clipRepository.clipsOn(LocalDate.parse(route.date)).firstOrNull { it.id == route.clipId }
+                ?: clipRepository.clipsByDate().values.flatten().firstOrNull { it.id == route.clipId }
             _uiState.value = if (clip == null) {
                 EditUiState.Missing
             } else {
@@ -110,7 +121,25 @@ class EditViewModel @Inject constructor(
         val state = uiState.value as? EditUiState.Ready ?: return
         viewModelScope.launch {
             clipRepository.saveSegments(state.clip, state.segments)
-            _saved.send(Unit)
+            _finished.send(Unit)
+        }
+    }
+
+    /** 묻지 않고 지운다 — 되돌리기는 돌아간 화면의 실행취소가 맡는다. */
+    fun delete() {
+        val state = uiState.value as? EditUiState.Ready ?: return
+        viewModelScope.launch {
+            val request = clipRepository.delete(listOf(state.clip))
+            if (request == null) _finished.send(Unit) else _deleteRequests.send(request)
+        }
+    }
+
+    fun onDeletionResult(approved: Boolean) {
+        val state = uiState.value as? EditUiState.Ready ?: return
+        if (!approved) return
+        viewModelScope.launch {
+            clipRepository.forgetDeleted(listOf(state.clip))
+            _finished.send(Unit)
         }
     }
 

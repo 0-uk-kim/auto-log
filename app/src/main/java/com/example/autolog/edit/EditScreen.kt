@@ -1,5 +1,9 @@
 package com.example.autolog.edit
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
@@ -64,6 +68,7 @@ import com.example.autolog.ui.theme.OnCoralDark
 import com.example.autolog.ui.theme.Spacing
 import java.util.Locale
 import kotlin.math.abs
+import kotlinx.coroutines.launch
 
 const val TAG_EDIT_SAVE = "edit-save"
 const val TAG_EDIT_PLAY = "edit-play"
@@ -71,6 +76,7 @@ const val TAG_EDIT_SPLIT = "edit-split"
 const val TAG_EDIT_REMOVE = "edit-remove"
 const val TAG_EDIT_UNDO = "edit-undo"
 const val TAG_EDIT_LENGTH = "edit-length"
+const val TAG_EDIT_DELETE_CLIP = "edit-delete-clip"
 
 /**
  * 클립 하나에서 남길 조각을 정하는 화면 (planning 5 "3차: 구간 자르기").
@@ -89,8 +95,14 @@ fun EditScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val done by rememberUpdatedState(onDone)
 
+    val deleteLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult(),
+    ) { result -> viewModel.onDeletionResult(approved = result.resultCode == Activity.RESULT_OK) }
     LaunchedEffect(viewModel) {
-        viewModel.saved.collect { done() }
+        launch { viewModel.finished.collect { done() } }
+        viewModel.deleteRequests.collect { sender ->
+            deleteLauncher.launch(IntentSenderRequest.Builder(sender).build())
+        }
     }
 
     Column(
@@ -115,6 +127,14 @@ fun EditScreen(
             )
             val ready = uiState as? EditUiState.Ready
             if (ready != null) {
+                // 찍자마자 들어오는 화면이라 마음에 안 들면 여기서 바로 버린다 (#102).
+                IconButton(onClick = viewModel::delete, modifier = Modifier.testTag(TAG_EDIT_DELETE_CLIP)) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_delete),
+                        contentDescription = stringResource(R.string.edit_delete_clip),
+                        tint = CameraControlTint,
+                    )
+                }
                 TextButton(onClick = viewModel::reset, enabled = ready.isTrimmed) {
                     Text(stringResource(R.string.edit_reset))
                 }

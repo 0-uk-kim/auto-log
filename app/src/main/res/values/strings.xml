@@ -38,7 +38,9 @@
     <string name="clip_list_drag_handle">순서 변경 — 끌어서 옮기기</string>
     <string name="clip_list_edited_badge">편집됨</string>
     <string name="clip_list_open_calendar">다른 날짜 보기</string>
-    <string name="clip_list_start_selection">영상 삭제</string>
+    <string name="clip_list_start_selection">삭제할 영상 선택</string>
+    <string name="clip_list_select_all">전체 선택</string>
+    <string name="clip_list_deselect_all">전체 해제</string>
     <string name="clip_list_end_selection">삭제 취소</string>
     <string name="clip_list_selected_count">%d개 선택</string>
     <string name="clip_list_delete_selected">선택한 영상 삭제</string>
@@ -86,6 +88,10 @@
     <string name="edit_remove">조각 삭제</string>
     <string name="edit_undo">되돌리기</string>
     <string name="edit_trim_bar">남길 조각. 끌어서 장면을 찾고, 선택한 조각의 양 끝 손잡이를 끌어 조절</string>
+    <string name="edit_delete_clip">영상 삭제</string>
+    <string name="deleted_clip">영상을 삭제했어요</string>
+    <string name="deleted_clips">영상 %d개를 삭제했어요</string>
+    <string name="deleted_undo">실행취소</string>
     <string name="preview_empty">이 날짜의 영상을 찾을 수 없어요.\n앱 밖에서 지워졌을 수 있습니다.</string>
 
     <!-- 브이로그 생성 (#26) -->

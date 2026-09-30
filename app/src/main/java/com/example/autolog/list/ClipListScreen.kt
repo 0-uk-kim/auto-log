@@ -1,7 +1,6 @@
 package com.example.autolog.list
 
 import android.app.Activity
-import android.content.IntentSender
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
@@ -22,11 +21,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.material3.SwipeToDismissBoxDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,6 +57,7 @@ import com.example.autolog.diagnostics.DiagnosticsMenu
 import com.example.autolog.permission.MediaAccess
 import com.example.autolog.permission.openAppSettings
 import com.example.autolog.permission.rememberMediaAccessRequest
+import com.example.autolog.ui.UndoDeletionEffect
 import com.example.autolog.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -63,10 +66,12 @@ import java.util.Locale
 const val TAG_CLIP_LIST_SCREEN = "clip-list-screen"
 const val TAG_START_SELECTION = "clip-list-start-selection"
 const val TAG_DELETE_SELECTED = "clip-list-delete-selected"
+const val TAG_SELECT_ALL = "clip-list-select-all"
 
 /**
  * 하루치 클립을 브이로그에 들어갈 순서대로 보여주는 화면 (planning 3-3).
  * 순서 변경(드래그)은 #16, 편집 여부 배지는 #18, 삭제(밀어서 삭제·삭제 모드)는 #38에서 이 목록 위에 얹힌다.
+ * 삭제는 묻지 않고 바로 빼고 실행취소 스낵바로 되돌린다. 줄을 길게 누르면 선택 모드로 들어간다 (#102).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,17 +86,27 @@ fun ClipListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val selection by viewModel.selection.collectAsStateWithLifecycle()
-    val pendingDeletion by viewModel.pendingDeletion.collectAsStateWithLifecycle()
+    val awaitingConfirmation by viewModel.awaitingConfirmation.collectAsStateWithLifecycle()
+    val awaitingUndo by viewModel.awaitingUndo.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val requestAccess = rememberMediaAccessRequest(onResult = viewModel::refresh)
     var showCalendar by rememberSaveable { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val deleteLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult(),
     ) { result -> viewModel.onDeletionResult(approved = result.resultCode == Activity.RESULT_OK) }
-    val launchDeletion: (IntentSender?) -> Unit = { sender ->
-        sender?.let { deleteLauncher.launch(IntentSenderRequest.Builder(it).build()) }
+    LaunchedEffect(viewModel) {
+        viewModel.deleteRequests.collect { sender ->
+            deleteLauncher.launch(IntentSenderRequest.Builder(sender).build())
+        }
     }
+    UndoDeletionEffect(
+        pending = awaitingUndo,
+        hostState = snackbarHostState,
+        onUndo = viewModel::undoDeletion,
+        onCommit = viewModel::commitDeletion,
+    )
 
     BackHandler(enabled = selection != null, onBack = viewModel::endSelection)
 
@@ -108,8 +123,10 @@ fun ClipListScreen(
             if (selected != null) {
                 SelectionTopBar(
                     selectedCount = selected.size,
+                    allSelected = selected.size == (uiState as? ClipListUiState.Clips)?.clips?.size,
                     onClose = viewModel::endSelection,
-                    onDelete = { launchDeletion(viewModel.deleteSelected()) },
+                    onToggleAll = viewModel::toggleSelectAll,
+                    onDelete = viewModel::deleteSelected,
                 )
             } else {
                 TopAppBar(
@@ -145,6 +162,7 @@ fun ClipListScreen(
                 )
             }
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             // 이어붙일 것이 있을 때만 생성 버튼을 둔다 — 0건에서 누르면 할 수 있는 일이 없다.
             // 삭제 모드에서는 고르는 중인 목록으로 브이로그를 만들 일이 없어 숨긴다.
@@ -170,10 +188,12 @@ fun ClipListScreen(
                 access = state.access,
                 onRequestAccess = requestAccess,
                 selection = selection,
-                pendingDeletionIds = pendingDeletion.mapTo(mutableSetOf()) { it.id },
+                awaitingConfirmationIds = awaitingConfirmation.mapTo(mutableSetOf()) { it.id },
+                awaitingUndoIds = awaitingUndo.mapTo(mutableSetOf()) { it.id },
                 onOpenClip = onOpenClip,
                 onToggleClip = viewModel::toggleSelection,
-                onSwipeDelete = { clip -> launchDeletion(viewModel.requestDeletion(listOf(clip))) },
+                onLongPressClip = viewModel::startSelection,
+                onSwipeDelete = { clip -> viewModel.delete(listOf(clip)) },
                 onMoveClip = viewModel::moveClip,
                 onOrderSettled = viewModel::persistOrder,
                 contentPadding = padding,
@@ -201,9 +221,11 @@ private fun ClipList(
     access: MediaAccess,
     onRequestAccess: () -> Unit,
     selection: Set<Long>?,
-    pendingDeletionIds: Set<Long>,
+    awaitingConfirmationIds: Set<Long>,
+    awaitingUndoIds: Set<Long>,
     onOpenClip: (Int) -> Unit,
     onToggleClip: (clipId: Long) -> Unit,
+    onLongPressClip: (clipId: Long) -> Unit,
     onSwipeDelete: (Clip) -> Unit,
     onMoveClip: (from: Int, to: Int) -> Unit,
     onOrderSettled: () -> Unit,
@@ -246,19 +268,28 @@ private fun ClipList(
                 // 시작 위치는 항상 최신 값을 읽는다.
                 val currentPosition by rememberUpdatedState(position)
 
-                val swipeState = rememberSwipeToDismissBoxState()
-                val isPendingDeletion = clip.id in pendingDeletionIds
-                // 삭제 창에서 거절하면 밀어 둔 줄을 제자리로 돌린다. 승인되면 줄 자체가 목록에서 빠진다.
-                LaunchedEffect(isPendingDeletion) {
-                    if (!isPendingDeletion) swipeState.reset()
+                // rememberSwipeToDismissBoxState는 저장되는 상태라, 실행취소로 같은 key의 줄이 돌아오면 밀린 채로
+                // 복원돼 곧바로 다시 지워진다. 저장하지 않는 상태를 쓴다 (#102).
+                val positionalThreshold = SwipeToDismissBoxDefaults.positionalThreshold
+                val swipeState = remember(clip.id) {
+                    SwipeToDismissBoxState(SwipeToDismissBoxValue.Settled, positionalThreshold)
                 }
+                val isHeld = clip.id in awaitingConfirmationIds || clip.id in awaitingUndoIds
+                // 삭제 창에서 거절하거나, 사라지는 도중에 실행취소하면 밀어 둔 줄을 제자리로 돌린다.
+                LaunchedEffect(isHeld) {
+                    if (!isHeld) swipeState.reset()
+                }
+                // SwipeToDismissBox는 이 콜백이 바뀔 때마다 밀린 상태를 다시 보고 부른다 — 다시 그릴 때마다 새
+                // 람다를 넘기면 실행취소한 줄이 곧바로 또 지워진다.
+                val swipeDelete by rememberUpdatedState(onSwipeDelete)
+                val onDismiss = remember(clip.id) { { _: SwipeToDismissBoxValue -> swipeDelete(clip) } }
 
                 SwipeToDismissBox(
                     state = swipeState,
                     backgroundContent = { SwipeDeleteBackground(swipeState) },
                     enableDismissFromStartToEnd = false,
                     gesturesEnabled = selection == null,
-                    onDismiss = { onSwipeDelete(clip) },
+                    onDismiss = onDismiss,
                     modifier = if (isDragging) {
                         // 끌고 있는 줄은 다른 줄 위로 떠야 하고, 자리 이동 애니메이션을 타면 안 된다.
                         Modifier
@@ -276,6 +307,7 @@ private fun ClipList(
                         onClick = {
                             if (selection != null) onToggleClip(clip.id) else onOpenClip(position)
                         },
+                        onLongClick = if (selection == null) ({ onLongPressClip(clip.id) }) else null,
                         dragHandleModifier = Modifier.pointerInput(clip.id) {
                             detectDragGestures(
                                 onDragStart = { dragDropState.onDragStart(currentPosition) },
@@ -298,7 +330,9 @@ private fun ClipList(
 @Composable
 private fun SelectionTopBar(
     selectedCount: Int,
+    allSelected: Boolean,
     onClose: () -> Unit,
+    onToggleAll: () -> Unit,
     onDelete: () -> Unit,
 ) {
     TopAppBar(
@@ -312,6 +346,9 @@ private fun SelectionTopBar(
             }
         },
         actions = {
+            TextButton(onClick = onToggleAll, modifier = Modifier.testTag(TAG_SELECT_ALL)) {
+                Text(stringResource(if (allSelected) R.string.clip_list_deselect_all else R.string.clip_list_select_all))
+            }
             IconButton(
                 onClick = onDelete,
                 enabled = selectedCount > 0,

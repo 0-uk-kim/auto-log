@@ -14,8 +14,10 @@ import com.example.autolog.permission.MediaAccessProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import javax.inject.Inject
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -42,8 +44,15 @@ class ClipListViewModel @Inject constructor(
      * 시스템 삭제 창에 올라가 있는 클립. 창이 닫히기 전까지 밀어 둔 줄을 제자리로 돌리지 않는다 —
      * 비워지는 순간 거절된 줄은 원위치하고, 승인된 줄은 목록에서 빠진다.
      */
-    private val _pendingDeletion = MutableStateFlow<List<Clip>>(emptyList())
-    val pendingDeletion = _pendingDeletion.asStateFlow()
+    private val _awaitingConfirmation = MutableStateFlow<List<Clip>>(emptyList())
+    val awaitingConfirmation = _awaitingConfirmation.asStateFlow()
+
+    /** 실행취소를 기다리는 클립. 화면은 이것으로 스낵바를 띄운다 (#102). */
+    val awaitingUndo = clipRepository.pendingDeletion
+
+    /** 소유권이 없어 시스템 삭제 창을 거쳐야 하는 요청. */
+    private val _deleteRequests = Channel<IntentSender>(Channel.BUFFERED)
+    val deleteRequests = _deleteRequests.receiveAsFlow()
 
     init {
         refresh()
@@ -97,32 +106,60 @@ class ClipListViewModel @Inject constructor(
         }
     }
 
-    /** 체크한 클립을 목록 순서대로 삭제 창에 올린다. */
-    fun deleteSelected(): IntentSender? {
-        val selected = _selection.value ?: return null
+    /** 줄을 길게 누르면 그 줄을 체크한 채 선택 모드로 들어간다. */
+    fun startSelection(clipId: Long) {
+        _selection.value = setOf(clipId)
+    }
+
+    fun toggleSelectAll() {
+        val clips = (_uiState.value as? ClipListUiState.Clips)?.clips ?: return
+        _selection.update { selected ->
+            if (selected?.size == clips.size) emptySet() else clips.mapTo(mutableSetOf()) { it.id }
+        }
+    }
+
+    fun deleteSelected() {
+        val selected = _selection.value ?: return
         val clips = (_uiState.value as? ClipListUiState.Clips)?.clips.orEmpty()
-        return requestDeletion(clips.filter { it.id in selected })
+        delete(clips.filter { it.id in selected })
     }
 
-    fun requestDeletion(clips: List<Clip>): IntentSender? {
-        if (clips.isEmpty()) return null
-        _pendingDeletion.value = clips
-        return clipRepository.deleteRequest(clips)
+    /**
+     * 확인 없이 목록에서 빼고 실행취소 스낵바를 띄운다 (#102). 소유권이 없는 클립이 섞여 있으면
+     * 그것만 시스템 삭제 창으로 보낸다 — 창이 닫히기 전까지 밀어 둔 줄은 제자리로 돌리지 않는다.
+     */
+    fun delete(clips: List<Clip>) {
+        if (clips.isEmpty()) return
+        _uiState.update { state -> state.withoutClips(clips.filter { it.isOwned }.mapTo(mutableSetOf()) { it.id }) }
+        _selection.value = null
+        _awaitingConfirmation.value = clips.filterNot { it.isOwned }
+        viewModelScope.launch {
+            clipRepository.delete(clips)?.let { _deleteRequests.send(it) }
+            _calendarMarks.value = clipRepository.calendarMarks()
+        }
     }
 
-    /** 시스템 삭제 창의 결과. 거절하면 아무것도 지워지지 않았으므로 체크 상태도 그대로 둔다. */
+    fun undoDeletion() {
+        clipRepository.undoDeletion()
+        refresh()
+    }
+
+    fun commitDeletion() {
+        viewModelScope.launch { clipRepository.commitDeletion() }
+    }
+
+    /** 시스템 삭제 창의 결과. 거절하면 아무것도 지워지지 않았으므로 줄을 되돌린다. */
     fun onDeletionResult(approved: Boolean) {
-        val deleted = _pendingDeletion.value
+        val deleted = _awaitingConfirmation.value
         if (approved && deleted.isNotEmpty()) {
             val deletedIds = deleted.mapTo(mutableSetOf()) { it.id }
             _uiState.update { it.withoutClips(deletedIds) }
-            _selection.value = null
             viewModelScope.launch {
                 clipRepository.forgetDeleted(deleted)
                 // 날짜의 마지막 클립이면 달력 표시도 사라져야 한다.
                 _calendarMarks.value = clipRepository.calendarMarks()
             }
         }
-        _pendingDeletion.value = emptyList()
+        _awaitingConfirmation.value = emptyList()
     }
 }
