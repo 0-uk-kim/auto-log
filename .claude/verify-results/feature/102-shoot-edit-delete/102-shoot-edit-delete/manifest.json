@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "102-shoot-edit-delete",
+  "service": "autolog",
+  "feature": "edit",
+  "created": "2026-09-30T12:56:41+09:00",
+  "device": "emulator-5554",
+  "branch": "feature/102-shoot-edit-delete",
+  "commit": "2995a5d",
+  "items": [
+    {
+      "kind": "video",
+      "file": "shoot-edit-delete.mp4",
+      "caption": "촬영 종료 → 바로 편집 화면 → 휴지통으로 삭제 → 카메라에 '영상을 삭제했어요 · 실행취소' → 실행취소로 복구\n다시 촬영 → 편집 → 뒤로\n목록: 밀어서 삭제 → 실행취소로 줄 복귀 / 길게 눌러 선택 모드 → 전체 선택 → 삭제 → 실행취소",
+      "compare": false,
+      "duration": 57.33,
+      "gif": "shoot-edit-delete.gif",
+      "gif_width": 360,
+      "gif_height": 800,
+      "gif_duration": 57.33
+    }
+  ]
+}
