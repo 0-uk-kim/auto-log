@@ -2,6 +2,16 @@ package com.example.autolog.preview
 
 import androidx.annotation.OptIn
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import kotlinx.coroutines.flow.filterNotNull
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.media3.common.MediaItem
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Spacer
@@ -149,13 +159,9 @@ private fun ClipPager(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val player = remember {
-        ExoPlayer.Builder(context)
-            // 재생목록이 스스로 다음 클립으로 넘어가면 페이지와 화면이 어긋난다. 클립 끝에서 멈추게 하고,
-            // 다음 페이지로 넘기는 것은 페이저가 한다 — 그래야 자동 재생과 손으로 넘기기가 같은 길을 탄다.
-            .setPauseAtEndOfMediaItems(true)
-            .build()
-    }
+    // 클립 끝에서 멈추지 않고 재생목록이 스스로 다음 클립으로 넘어가게 둔다 — 플레이어가 다음 클립을 미리 읽어
+    // 두므로 끊김 없이 이어진다. 페이지는 그 뒤를 따라간다.
+    val player = remember { ExoPlayer.Builder(context).build() }
 
     DisposableEffect(player) {
         onDispose { player.release() }
@@ -180,23 +186,27 @@ private fun ClipPager(
     val scope = rememberCoroutineScope()
 
     // 인스타 스토리처럼 한 클립이 끝나면 다음 클립으로 넘어가 하루치를 처음부터 끝까지 이어 본다.
-    // 자동 넘김과 양옆 누름은 밀어 넘기는 애니메이션 없이 곧장 옮긴다 — 밀리는 동안 이어 보던 흐름이 끊긴다.
-    // 마지막 클립에서는 멈춘 채 남는다 — 되감아 처음으로 가면 어디까지 봤는지 잃는다.
+    // 페이지는 밀어 넘기는 애니메이션 없이 곧장 따라간다. 마지막 클립에서는 멈춘 채 남는다.
     DisposableEffect(player, pagerState) {
         val listener = object : Player.Listener {
-            override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
-                if (playWhenReady || reason != Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM) return
-                val next = player.currentMediaItemIndex + 1
-                if (next < pagerState.pageCount) scope.launch { pagerState.scrollToPage(next) }
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                if (reason != Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) return
+                scope.launch { pagerState.scrollToPage(player.currentMediaItemIndex) }
             }
         }
         player.addListener(listener)
         onDispose { player.removeListener(listener) }
     }
 
+    // 손가락으로 밀어 넘기는 중인지. 그동안만 영상 층을 숨기고 아래 페이저의 썸네일이 밀려 보이게 한다.
+    var swiping by remember { mutableStateOf(false) }
+    var swipeStartPage by remember { mutableIntStateOf(startIndex) }
+    val flingThreshold = with(LocalDensity.current) { FLING_VELOCITY.toPx() }
+
     // 손을 뗀 뒤 자리가 확정된 페이지만 따라간다 — 끄는 도중마다 옮기면 지나치는 클립이 잠깐씩 재생된다.
+    // 끌기는 페이저에 직접 거리를 밀어 넣어서 끄는 중에도 settledPage가 바뀐다. 그래서 끄는 동안은 따라가지 않는다.
     LaunchedEffect(pagerState, player) {
-        snapshotFlow { pagerState.settledPage }.collect { page ->
+        snapshotFlow { pagerState.settledPage.takeUnless { swiping } }.filterNotNull().collect { page ->
             if (player.currentMediaItemIndex != page) {
                 player.seekTo(page, C.TIME_UNSET)
                 player.play()
@@ -218,38 +228,63 @@ private fun ClipPager(
             position = { PagePosition(page = pagerState.currentPage, total = clips.size) },
         )
 
-        HorizontalPager(
-            state = pagerState,
-            pageSpacing = Spacing.sm,
-            contentPadding = PaddingValues(horizontal = Spacing.sm),
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-        ) { page ->
-            // 영상을 둥근 카드에 담아 넘길 때 이웃 클립과의 경계가 보이게 한다.
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            // 페이저는 넘기는 동안 보이는 썸네일 띠일 뿐이다. 끌기는 위 영상 층이 받아 페이저로 넘긴다.
+            HorizontalPager(
+                state = pagerState,
+                pageSpacing = Spacing.sm,
+                contentPadding = PaddingValues(horizontal = Spacing.sm),
+                userScrollEnabled = false,
+                modifier = Modifier.fillMaxSize(),
+            ) { page ->
+                // 영상을 둥근 카드에 담아 넘길 때 이웃 클립과의 경계가 보이게 한다.
+                Box(Modifier.fillMaxSize().videoCard()) {
+                    NeighbourClip(clip = clips[page])
+                }
+            }
+
+            // 영상 표면은 페이지마다 새로 만들지 않고 이 층 하나만 쓴다 — 새로 만들면 첫 프레임이 뜰 때까지
+            // 검은 화면이 끼어 클립이 바뀔 때마다 끊겨 보인다. 넘기는 동안만 투명해진다.
             Box(
                 Modifier
                     .fillMaxSize()
-                    .clip(MaterialTheme.shapes.extraLarge)
-                    .border(1.dp, GlassBorder, MaterialTheme.shapes.extraLarge),
+                    .padding(horizontal = Spacing.sm)
+                    .graphicsLayer { alpha = if (swiping) 0f else 1f }
+                    .videoCard()
+                    .background(CameraBackground)
+                    .draggable(
+                        state = rememberDraggableState { delta -> pagerState.dispatchRawDelta(-delta) },
+                        orientation = Orientation.Horizontal,
+                        onDragStarted = {
+                            swipeStartPage = pagerState.currentPage
+                            swiping = true
+                        },
+                        // 튕긴 방향은 끌기를 시작한 페이지에서 센다 — 끄는 도중 이미 넘어간 페이지에서 세면 두 칸을 간다.
+                        onDragStopped = { velocity ->
+                            val target = when {
+                                velocity < -flingThreshold -> swipeStartPage + 1
+                                velocity > flingThreshold -> swipeStartPage - 1
+                                else -> pagerState.currentPage
+                            }.coerceIn(clips.indices)
+                            pagerState.animateScrollToPage(target)
+                            swiping = false
+                        },
+                    ),
             ) {
-                if (page == pagerState.settledPage) {
-                    VideoSurface(player = player)
-                    // 양옆을 누르면 이전·다음 클립, 가운데를 누르면 재생·일시정지(VideoSurface가 받는다).
-                    // 넘기기(스와이프)도 그대로 된다 — 누름은 끌기를 소비하지 않는다.
-                    TapZones(
-                        onPrevious = {
-                            scope.launch {
-                                if (page > 0) pagerState.scrollToPage(page - 1) else player.seekTo(0)
-                                player.play()
-                            }
-                        },
-                        onNext = {
-                            if (page < clips.lastIndex) scope.launch { pagerState.scrollToPage(page + 1) }
-                        },
-                    )
-                } else {
-                    // 넘기는 중 옆 페이지는 썸네일로 채운다 — 표면은 하나뿐이라 여기에 붙일 것이 없다.
-                    NeighbourClip(clip = clips[page])
-                }
+                VideoSurface(player = player)
+                // 양옆을 누르면 이전·다음 클립, 가운데를 누르면 재생·일시정지(VideoSurface가 받는다).
+                val page = pagerState.settledPage
+                TapZones(
+                    onPrevious = {
+                        scope.launch {
+                            if (page > 0) pagerState.scrollToPage(page - 1) else player.seekTo(0)
+                            player.play()
+                        }
+                    },
+                    onNext = {
+                        if (page < clips.lastIndex) scope.launch { pagerState.scrollToPage(page + 1) }
+                    },
+                )
             }
         }
 
@@ -389,6 +424,16 @@ private fun TapZone(onClick: () -> Unit, label: String, modifier: Modifier = Mod
             ),
     )
 }
+
+/** 둥근 영상 카드. 페이저의 썸네일 칸과 위 영상 층이 같은 모양이라 넘길 때 경계가 맞물린다. */
+@Composable
+private fun Modifier.videoCard(): Modifier {
+    val shape = MaterialTheme.shapes.extraLarge
+    return clip(shape).border(1.dp, GlassBorder, shape)
+}
+
+/** 이보다 빠르게 튕기면 절반을 못 넘겨도 옆 클립으로 넘어간다. */
+private val FLING_VELOCITY = 400.dp
 
 /** 양옆 누름 영역의 폭. 인스타 스토리처럼 가장자리 3분의 1씩이다. */
 private const val EDGE_WEIGHT = 0.3f
