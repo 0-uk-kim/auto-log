@@ -67,13 +67,16 @@ class CameraViewModel @Inject constructor(
     val isPreviewStreaming = _isPreviewStreaming.asStateFlow()
 
     // 프리뷰는 세로 화면에 9:16으로 그린다. 가로 촬영도 기기를 눕혀 찍으니 같은 프레임이 그대로 가로가 된다 (#40).
+    // 손떨림 보정은 프리뷰에 걸어야 녹화본에도 같이 걸린다 — 보이는 화각과 저장되는 화각이 같아진다.
+    // 지원하지 않는 렌즈에 켜면 바인딩이 실패하므로 렌즈마다 새로 만든다.
     @OptIn(ExperimentalCamera2Interop::class)
-    private val previewUseCase = Preview.Builder()
+    private fun buildPreview(stabilized: Boolean): Preview = Preview.Builder()
         .setResolutionSelector(
             ResolutionSelector.Builder()
                 .setAspectRatioStrategy(AspectRatioStrategy.RATIO_16_9_FALLBACK_AUTO_STRATEGY)
                 .build(),
         )
+        .setPreviewStabilizationEnabled(stabilized)
         .also { builder ->
             Camera2Interop.Extender(builder).setSessionCaptureCallback(object : CameraCaptureSession.CaptureCallback() {
                 override fun onCaptureCompleted(
@@ -380,10 +383,12 @@ class CameraViewModel @Inject constructor(
         // 렌즈를 바꾸면 이전 호출의 해제와 이번 바인딩 중 무엇이 먼저 돌지 보장되지 않는다. 먼저 풀고 건다.
         cameraProvider.unbindAll()
         _isPreviewStreaming.value = false
+        val cameraInfo = cameraProvider.getCameraInfo(target.selector)
+        val stabilized = Preview.getPreviewCapabilities(cameraInfo).isStabilizationSupported
         val bound = cameraProvider.bindToLifecycle(
             lifecycleOwner,
             target.selector,
-            previewUseCase,
+            buildPreview(stabilized),
             videoCapture,
         )
         zoomAnimation?.cancel()
