@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -37,6 +38,9 @@ fun AutoLogNavHost(
         exitTransition = { slideOut(SlideDirection.Start, isTop = false) },
         popEnterTransition = { slideIn(SlideDirection.End, isTop = false) },
         popExitTransition = { slideOut(SlideDirection.End, isTop = true) },
+        // 기본값은 화면이 카드처럼 줄어드는 전환이라 뒤로 버튼의 슬라이드와 따로 논다. 제스처도 같은 슬라이드로 끌고 간다.
+        predictivePopEnterTransition = { slideIn(SlideDirection.End, isTop = false, gesture = true) },
+        predictivePopExitTransition = { slideOut(SlideDirection.End, isTop = true, gesture = true) },
     ) {
         composable<Camera> {
             CameraScreen(
@@ -86,24 +90,28 @@ private const val TRANSITION_MS = 300
 private const val REPLACE_MS = 150
 private const val UNDER_DIM_ALPHA = 0.6f
 
-private fun <T> slideSpec() = tween<T>(TRANSITION_MS, easing = FastOutSlowInEasing)
+// 제스처는 진행도로 전환을 되감는다. 곡선이 있으면 손가락보다 화면이 앞서 나가므로 직선으로 따라가게 한다.
+private fun <T> slideSpec(gesture: Boolean = false) =
+    tween<T>(TRANSITION_MS, easing = if (gesture) LinearEasing else FastOutSlowInEasing)
 
 private fun AnimatedContentTransitionScope<NavBackStackEntry>.slideIn(
     direction: SlideDirection,
     isTop: Boolean,
+    gesture: Boolean = false,
 ): EnterTransition = when {
     isSameScreen() -> fadeIn(tween(REPLACE_MS))
-    isTop -> slideIntoContainer(direction, slideSpec())
-    else -> slideIntoContainer(direction, slideSpec()) { it / 4 } + fadeIn(slideSpec(), UNDER_DIM_ALPHA)
+    isTop -> slideIntoContainer(direction, slideSpec(gesture))
+    else -> slideIntoContainer(direction, slideSpec(gesture)) { it / 4 } + fadeIn(slideSpec(gesture), UNDER_DIM_ALPHA)
 }
 
 private fun AnimatedContentTransitionScope<NavBackStackEntry>.slideOut(
     direction: SlideDirection,
     isTop: Boolean,
+    gesture: Boolean = false,
 ): ExitTransition = when {
     isSameScreen() -> fadeOut(tween(REPLACE_MS))
-    isTop -> slideOutOfContainer(direction, slideSpec())
-    else -> slideOutOfContainer(direction, slideSpec()) { it / 4 } + fadeOut(slideSpec(), UNDER_DIM_ALPHA)
+    isTop -> slideOutOfContainer(direction, slideSpec(gesture))
+    else -> slideOutOfContainer(direction, slideSpec(gesture)) { it / 4 } + fadeOut(slideSpec(gesture), UNDER_DIM_ALPHA)
 }
 
 /** 목록에서 날짜를 바꾸면 같은 화면을 갈아 끼운다 — 밀어 넣으면 다른 화면으로 간 것처럼 보인다. */
