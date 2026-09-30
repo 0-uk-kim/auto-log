@@ -21,11 +21,14 @@
     <string name="camera_timer_seconds">%d초</string>
     <string name="camera_timer_toggle">촬영 타이머 %s — 눌러서 바꾸기</string>
     <string name="camera_cancel_countdown">타이머 취소</string>
-    <string name="camera_timelapse_off">끔</string>
-    <string name="camera_timelapse_speed">%d×</string>
-    <string name="camera_timelapse_toggle">타임랩스 %s — 눌러서 바꾸기</string>
+    <string name="camera_timelapse_speed">%dx</string>
+    <string name="camera_timelapse_toggle">하이퍼랩스 배속 %s — 눌러서 바꾸기</string>
     <string name="camera_timelapse_elapsed">%1$s → %2$s</string>
-    <string name="camera_timelapse_encoding">타임랩스 만드는 중 %d%%</string>
+    <string name="camera_timelapse_encoding">하이퍼랩스 만드는 중 %d%%</string>
+    <string name="camera_mode_hyperlapse">하이퍼랩스</string>
+    <string name="camera_mode_video">동영상</string>
+    <string name="camera_pause_recording">일시정지</string>
+    <string name="camera_resume_recording">이어서 녹화</string>
     <!-- 영상 목록 (#15) -->
     <string name="clip_list_date_pattern" translatable="false">M월 d일 (E)</string>
     <string name="clip_list_back">뒤로</string>

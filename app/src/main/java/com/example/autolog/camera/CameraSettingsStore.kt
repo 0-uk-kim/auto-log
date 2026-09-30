@@ -22,6 +22,7 @@ class CameraSettingsStore @Inject constructor(
             ?: CameraLens.Back
         set(value) = prefs.edit().putString(KEY_LENS, value.name).apply()
 
+    // 예전 선택지(1·3초, 5·10·30배)로 저장된 값은 이름이 맞지 않아 기본값으로 돌아간다.
     var timer: RecordTimer
         get() = prefs.getString(KEY_TIMER, null)
             ?.let { saved -> RecordTimer.entries.firstOrNull { it.name == saved } }
@@ -34,11 +35,19 @@ class CameraSettingsStore @Inject constructor(
             ?: TimelapseSpeed.Off
         set(value) = prefs.edit().putString(KEY_TIMELAPSE, value.name).apply()
 
+    /** 동영상 모드로 나갔다 돌아와도 마지막 배속으로 다시 찍는다. */
+    var hyperlapseSpeed: TimelapseSpeed
+        get() = prefs.getString(KEY_HYPERLAPSE_SPEED, null)
+            ?.let { saved -> TimelapseSpeed.choices.firstOrNull { it.name == saved } }
+            ?: TimelapseSpeed.Default
+        set(value) = prefs.edit().putString(KEY_HYPERLAPSE_SPEED, value.name).apply()
+
     private companion object {
         const val PREFS_NAME = "camera"
         const val KEY_MUTED = "muted"
         const val KEY_LENS = "lens"
         const val KEY_TIMER = "record_timer"
         const val KEY_TIMELAPSE = "timelapse_speed"
+        const val KEY_HYPERLAPSE_SPEED = "hyperlapse_speed"
     }
 }

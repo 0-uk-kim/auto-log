@@ -105,9 +105,14 @@ class CameraViewModel @Inject constructor(
             lens = settingsStore.lens,
             timer = settingsStore.timer,
             timelapse = settingsStore.timelapse,
+            hyperlapseSpeed = settingsStore.hyperlapseSpeed,
         ),
     )
     val uiState = _uiState.asStateFlow()
+
+    // 드래그·핀치 중에는 매 프레임 바뀐다. uiState에 두면 카메라 화면 전체가 매번 다시 그려지므로 따로 둔다.
+    private val _zoomRatio = MutableStateFlow(1f)
+    val zoomRatio = _zoomRatio.asStateFlow()
 
     private var recording: Recording? = null
     private var countdown: Job? = null
@@ -147,18 +152,33 @@ class CameraViewModel @Inject constructor(
     }
 
     /** 녹화 중에는 바꾸지 않는다 — 한 클립을 찍는 도중에 배속이 달라질 수 없다. */
-    fun cycleTimelapse() {
+    fun selectMode(mode: CameraMode) {
         if (_uiState.value.isCapturing) return
-        val next = _uiState.value.timelapse.next()
-        settingsStore.timelapse = next
-        _uiState.update { it.copy(timelapse = next) }
+        val speed = when (mode) {
+            CameraMode.Hyperlapse -> _uiState.value.hyperlapseSpeed
+            CameraMode.Video -> TimelapseSpeed.Off
+        }
+        settingsStore.timelapse = speed
+        _uiState.update { it.copy(timelapse = speed) }
     }
 
-    fun cycleTimer() {
+    fun selectHyperlapseSpeed(speed: TimelapseSpeed) {
+        if (_uiState.value.isCapturing || !speed.isOn) return
+        settingsStore.hyperlapseSpeed = speed
+        settingsStore.timelapse = speed
+        _uiState.update { it.copy(hyperlapseSpeed = speed, timelapse = speed) }
+    }
+
+    fun selectTimer(timer: RecordTimer) {
         if (_uiState.value.isCapturing) return
-        val next = _uiState.value.timer.next()
-        settingsStore.timer = next
-        _uiState.update { it.copy(timer = next) }
+        settingsStore.timer = timer
+        _uiState.update { it.copy(timer = timer) }
+    }
+
+    /** 멈춘 동안에는 파일이 이어진 채 아무것도 담기지 않는다. 다시 누르면 같은 클립에 이어 찍는다. */
+    fun togglePause() {
+        val recording = recording ?: return
+        if (_uiState.value.isPaused) recording.resume() else recording.pause()
     }
 
     /** 화면을 떠나면 카메라가 풀리므로, 돌던 타이머가 끝나도 찍을 수 없다. 그 전에 멈춘다. */
@@ -186,13 +206,19 @@ class CameraViewModel @Inject constructor(
     fun onPinch(scale: Float) {
         val range = _uiState.value.zoomRange ?: return
         zoomAnimation?.cancel()
-        applyZoom(range.clamp(_uiState.value.zoomRatio * scale))
+        applyZoom(range.clamp(_zoomRatio.value * scale))
+    }
+
+    /** 배율 다이얼을 [dragPx]만큼 끈다. 왼쪽(음수)으로 끌면 큰 배율이 가운데로 와 확대된다. */
+    fun onZoomDrag(dragPx: Float, pxPerLn: Float) {
+        zoomAnimation?.cancel()
+        applyZoom(dragZoom(_zoomRatio.value, dragPx, pxPerLn))
     }
 
     /** 배율 버튼용. 한 번에 바꾸면 프리뷰가 튀므로 몇 프레임에 걸쳐 옮긴다. */
     fun animateZoomTo(ratio: Float) {
         val range = _uiState.value.zoomRange ?: return
-        val from = _uiState.value.zoomRatio
+        val from = _zoomRatio.value
         val to = range.clamp(ratio)
         zoomAnimation?.cancel()
         zoomAnimation = viewModelScope.launch {
@@ -211,7 +237,7 @@ class CameraViewModel @Inject constructor(
         val clamped = range.clamp(ratio)
         // 적용은 비동기다. zoomState를 기다리면 핀치 도중 이전 값에 곱해져 튀므로 요청한 값을 바로 상태로 삼는다.
         camera.cameraControl.setZoomRatio(clamped)
-        _uiState.update { it.copy(zoomRatio = clamped) }
+        _zoomRatio.value = clamped
     }
 
     /**
@@ -266,7 +292,13 @@ class CameraViewModel @Inject constructor(
             .start(ContextCompat.getMainExecutor(context)) { event ->
                 when (event) {
                     is VideoRecordEvent.Start ->
-                        _uiState.update { it.copy(isRecording = true) }
+                        _uiState.update { it.copy(isRecording = true, isPaused = false) }
+
+                    is VideoRecordEvent.Pause ->
+                        _uiState.update { it.copy(isPaused = true) }
+
+                    is VideoRecordEvent.Resume ->
+                        _uiState.update { it.copy(isPaused = false) }
 
                     is VideoRecordEvent.Status ->
                         _uiState.update {
@@ -276,7 +308,7 @@ class CameraViewModel @Inject constructor(
                     is VideoRecordEvent.Finalize -> {
                         recording = null
                         if (rawFile != null) {
-                            _uiState.update { it.copy(isRecording = false, elapsed = Duration.ZERO) }
+                            _uiState.update { it.copy(isRecording = false, isPaused = false, elapsed = Duration.ZERO) }
                             val recorded = event.recordingStats.recordedDurationNanos.nanosToDuration()
                             if (event.hasError()) rawFile.delete() else encodeTimelapse(rawFile, timelapse, startedAt, recorded)
                             return@start
@@ -285,7 +317,7 @@ class CameraViewModel @Inject constructor(
                         val saved = if (event.hasError()) latestClip else event.outputResults.outputUri
                         latestClip = saved
                         _uiState.update {
-                            it.copy(isRecording = false, elapsed = Duration.ZERO, latestClip = saved)
+                            it.copy(isRecording = false, isPaused = false, elapsed = Duration.ZERO, latestClip = saved)
                         }
                     }
                 }
@@ -336,9 +368,8 @@ class CameraViewModel @Inject constructor(
         camera = bound
         // 다시 바인딩하면 배율이 1x로 돌아온다. 화면도 카메라가 알려주는 값에서 새로 시작한다.
         bound.cameraInfo.zoomState.value?.let { zoom ->
-            _uiState.update {
-                it.copy(zoomRange = ZoomRange(zoom.minZoomRatio, zoom.maxZoomRatio), zoomRatio = zoom.zoomRatio)
-            }
+            _zoomRatio.value = zoom.zoomRatio
+            _uiState.update { it.copy(zoomRange = ZoomRange(zoom.minZoomRatio, zoom.maxZoomRatio)) }
         }
         try {
             awaitCancellation()

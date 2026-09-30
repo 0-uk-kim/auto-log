@@ -59,4 +59,31 @@ class CameraZoomTest {
         assertTrue(mid > 1f && mid < 2f)
         assertTrue(interpolateZoom(2f, 0.5f, 0.5f) < 1f)
     }
+
+    @Test
+    fun `선택되지 않은 버튼은 x와 앞자리 0을 뗀다`() {
+        assertEquals(".6", formatZoomShort(0.6f))
+        assertEquals("2", formatZoomShort(2f))
+    }
+
+    @Test
+    fun `다이얼을 왼쪽으로 끌면 확대 오른쪽이면 축소다`() {
+        assertTrue(dragZoom(1f, -50f, 100f) > 1f)
+        assertTrue(dragZoom(1f, 50f, 100f) < 1f)
+        // 로그 간격이라 같은 거리를 오가면 제자리다.
+        assertEquals(1f, dragZoom(dragZoom(1f, -80f, 100f), 80f, 100f), 1e-4f)
+    }
+
+    @Test
+    fun `다이얼 숫자는 넓은 쪽 끝과 1 2 3 5 10에만 단다`() {
+        val labels = ZoomRange(0.6f, 10f).ticks().mapNotNull { it.label }
+        assertEquals(listOf(".6", "1", "2", "3", "5", "10"), labels)
+    }
+
+    @Test
+    fun `다이얼 눈금은 범위 양 끝을 넘지 않는다`() {
+        val ticks = ZoomRange(0.6f, 10f).ticks()
+        assertEquals(0.6f, ticks.first().ratio, 1e-4f)
+        assertEquals(10f, ticks.last().ratio, 1e-4f)
+    }
 }

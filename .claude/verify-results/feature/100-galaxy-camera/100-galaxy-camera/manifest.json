@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slug": "100-galaxy-camera",
+  "service": "autolog",
+  "feature": "camera",
+  "created": "2026-09-30T11:39:11+09:00",
+  "device": "emulator-5554",
+  "branch": "feature/100-galaxy-camera",
+  "commit": "dec7c64",
+  "items": [
+    {
+      "kind": "video",
+      "file": "galaxy-camera.mp4",
+      "caption": "배율 버튼 줄을 왼쪽으로 끌면 곡선 다이얼이 펼쳐지며 확대(→3x), 오른쪽으로 되돌리면 축소, 손을 떼면 버튼으로 접힘\n상단 타이머(끔·2·5·10초)·하이퍼랩스 배속(4·8·16·32x) 선택지, 프리뷰 좌우 스와이프로 모드 전환\n2초 카운트다운 → ● 경과 시간 → 일시정지(깜빡임)·이어 찍기 → 정지 후 원형 썸네일",
+      "compare": false,
+      "duration": 46.0,
+      "gif": "galaxy-camera.gif",
+      "gif_width": 360,
+      "gif_height": 800,
+      "gif_duration": 46.0
+    }
+  ]
+}
