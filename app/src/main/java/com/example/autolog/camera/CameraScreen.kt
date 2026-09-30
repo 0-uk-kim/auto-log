@@ -6,10 +6,17 @@ import androidx.camera.compose.CameraXViewfinder
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.dp
+import kotlin.math.abs
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,7 +25,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -40,7 +46,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.autolog.R
 import com.example.autolog.camera.permission.CameraPermissionGate
 import com.example.autolog.ui.theme.CameraBackground
-import com.example.autolog.ui.theme.CameraDimens
 import com.example.autolog.ui.theme.Spacing
 
 const val TAG_VIEWFINDER = "camera-viewfinder"
@@ -63,6 +68,9 @@ fun CameraScreen(
         val surfaceRequest by viewModel.surfaceRequest.collectAsStateWithLifecycle()
         val uiState by viewModel.uiState.collectAsStateWithLifecycle()
         val isPreviewStreaming by viewModel.isPreviewStreaming.collectAsStateWithLifecycle()
+        // 위임하지 않고 State째 넘긴다 — 배율을 읽는 줌 줄만 다시 그려지게 한다.
+        val zoomRatio = viewModel.zoomRatio.collectAsStateWithLifecycle()
+        val zoomDial = rememberZoomDialState()
         // 화면 복귀·렌즈 전환 때 검은 프리뷰가 갑자기 켜지지 않게 첫 프레임부터 서서히 띄운다.
         val previewAlpha by animateFloatAsState(
             targetValue = if (isPreviewStreaming) 1f else 0f,
@@ -113,9 +121,14 @@ fun CameraScreen(
                             drawContent()
                             drawRect(CameraBackground, alpha = 1f - previewAlpha)
                         }
-                        .pointerInput(Unit) {
-                            detectTransformGestures { _, _, zoom, _ -> viewModel.onPinch(zoom) }
-                        }
+                        .viewfinderGestures(
+                            onPinch = { scale ->
+                                zoomDial.touch()
+                                viewModel.onPinch(scale)
+                            },
+                            // 갤럭시처럼 프리뷰를 좌우로 쓸면 옆 모드로 넘어간다.
+                            onSwipe = { towardEnd -> viewModel.selectMode(uiState.mode.neighbor(towardEnd)) },
+                        )
                         // 화면을 보며 말하다가 버튼을 찾지 않고 바로 뒤집을 수 있게 한다.
                         .pointerInput(Unit) {
                             detectTapGestures(onDoubleTap = { viewModel.toggleLens() })
@@ -124,36 +137,44 @@ fun CameraScreen(
                 )
             }
 
-            AnimatedVisibility(
-                visible = uiState.isRecording,
+            Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .safeDrawingPadding()
-                    .padding(top = Spacing.md),
+                    .safeDrawingPadding(),
+                contentAlignment = Alignment.Center,
             ) {
-                // 타임랩스는 찍은 시간과 완성본 길이가 다르다. 얼마나 더 찍어야 할지 가늠하도록 둘 다 보인다.
-                val elapsed = uiState.elapsed.formatElapsed()
-                ElapsedIndicator(
-                    elapsed = if (uiState.timelapse.isOn) {
-                        stringResource(
-                            R.string.camera_timelapse_elapsed,
-                            elapsed,
-                            uiState.timelapse.outputOf(uiState.elapsed).formatElapsed(),
-                        )
-                    } else {
-                        elapsed
-                    },
+                CameraTopBar(
+                    state = uiState,
+                    onOpenClipList = onOpenClipList,
+                    onSelectTimer = viewModel::selectTimer,
+                    onSelectSpeed = viewModel::selectHyperlapseSpeed,
+                    onToggleMute = viewModel::toggleMute,
                 )
-            }
 
-            uiState.timelapseProgress?.let { percent ->
-                ElapsedIndicator(
-                    elapsed = stringResource(R.string.camera_timelapse_encoding, percent),
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .safeDrawingPadding()
-                        .padding(top = Spacing.md),
-                )
+                // 촬영 중에는 비워 둔 상단 가운데에 경과 시간이 온다.
+                AnimatedVisibility(visible = uiState.isRecording, enter = fadeIn(), exit = fadeOut()) {
+                    // 하이퍼랩스는 찍은 시간과 완성본 길이가 다르다. 얼마나 더 찍어야 할지 가늠하도록 둘 다 보인다.
+                    val elapsed = uiState.elapsed.formatElapsed()
+                    ElapsedIndicator(
+                        elapsed = if (uiState.timelapse.isOn) {
+                            stringResource(
+                                R.string.camera_timelapse_elapsed,
+                                elapsed,
+                                uiState.timelapse.outputOf(uiState.elapsed).formatElapsed(),
+                            )
+                        } else {
+                            elapsed
+                        },
+                        isPaused = uiState.isPaused,
+                    )
+                }
+
+                uiState.timelapseProgress?.let { percent ->
+                    ElapsedIndicator(
+                        elapsed = stringResource(R.string.camera_timelapse_encoding, percent),
+                        isRecording = false,
+                    )
+                }
             }
 
             uiState.countdown?.let { CountdownNumber(secondsLeft = it, deviceRotation = uiState.deviceRotation) }
@@ -163,72 +184,42 @@ fun CameraScreen(
                     .align(Alignment.BottomCenter)
                     .safeDrawingPadding()
                     .fillMaxWidth()
-                    .padding(Spacing.md),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                    .padding(bottom = Spacing.lg),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                // 음소거와 같은 세로줄에 쌓는다. 줌 줄에 넣으면 줌 버튼이 위아래로 밀린다.
-                // 촬영 중에는 자리를 비우지 않고 흐리게만 숨긴다 — 빠지면 아래 줄이 통째로 내려앉는다.
-                val timerAlpha by animateFloatAsState(if (uiState.isCapturing) 0f else 1f, label = "timerAlpha")
-                Box(
+                uiState.zoomRange?.takeIf { it.isZoomable }?.let { range ->
+                    ZoomControl(
+                        range = range,
+                        ratio = zoomRatio,
+                        dialState = zoomDial,
+                        onSelect = viewModel::animateZoomTo,
+                        onDrag = viewModel::onZoomDrag,
+                    )
+                }
+
+                // 촬영 중에는 모드를 바꿀 수 없다. 자리는 남겨 셔터 줄이 움직이지 않게 한다.
+                val modeAlpha by animateFloatAsState(if (uiState.isCapturing) 0f else 1f, label = "modeAlpha")
+                CameraModeBar(
+                    selected = uiState.mode,
+                    onSelect = viewModel::selectMode,
                     modifier = Modifier
-                        .align(Alignment.Start)
-                        .width(CameraDimens.cornerAction)
-                        .alpha(timerAlpha),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    TimelapseToggle(speed = uiState.timelapse, onClick = viewModel::cycleTimelapse)
-                }
-
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .width(CameraDimens.cornerAction)
-                        .alpha(timerAlpha),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    RecordTimerToggle(timer = uiState.timer, onClick = viewModel::cycleTimer)
-                }
-
-                // 줌과 한 줄에 두어 하단 영역 높이를 늘리지 않는다. 음소거는 썸네일 폭 안 가운데, 렌즈 전환은 목록 버튼 바로 위에 맞춘다.
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .width(CameraDimens.cornerAction),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        MuteToggle(
-                            isMuted = uiState.isMuted,
-                            onClick = viewModel::toggleMute,
-                            modifier = Modifier.alpha(if (uiState.canToggleMute) 1f else DISABLED_ALPHA),
-                        )
-                    }
-
-                    uiState.zoomRange?.takeIf { it.isZoomable }?.let { range ->
-                        ZoomControl(range = range, ratio = uiState.zoomRatio, onSelect = viewModel::animateZoomTo)
-                    }
-
-                    // 녹화 중에는 바꿀 수 없으니 숨긴다.
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .width(CameraDimens.cornerAction),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        androidx.compose.animation.AnimatedVisibility(visible = uiState.canSwitchLens && !uiState.isCapturing) {
-                            LensToggle(lens = uiState.lens, onClick = viewModel::toggleLens)
-                        }
-                    }
-                }
+                        .padding(vertical = Spacing.sm)
+                        .alpha(modeAlpha),
+                )
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = Spacing.sm),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                        uiState.latestClip?.let { clip ->
-                            LatestClipThumbnail(uri = clip, onClick = onOpenLatestClip)
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        if (uiState.isRecording) {
+                            PauseButton(isPaused = uiState.isPaused, onClick = viewModel::togglePause)
+                        } else if (!uiState.isCountingDown) {
+                            uiState.latestClip?.let { clip ->
+                                LatestClipThumbnail(uri = clip, onClick = onOpenLatestClip)
+                            }
                         }
                     }
 
@@ -239,14 +230,57 @@ fun CameraScreen(
                         modifier = Modifier.alpha(if (uiState.isEncodingTimelapse) DISABLED_ALPHA else 1f),
                     )
 
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-                        ClipListButton(onClick = onOpenClipList)
+                    // 녹화 중에는 바꿀 수 없으니 숨긴다.
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = uiState.canSwitchLens && !uiState.isCapturing,
+                            enter = fadeIn(),
+                            exit = fadeOut(),
+                        ) {
+                            LensToggle(lens = uiState.lens, onClick = viewModel::toggleLens)
+                        }
                     }
                 }
             }
         }
     }
 }
+
+/**
+ * 두 손가락은 핀치 배율, 한 손가락 가로 쓸기는 모드 전환. 한 손가락으로 시작해 두 번째 손가락이
+ * 내려오면 그 제스처는 끝까지 핀치로만 본다 — 핀치를 풀며 손가락이 옆으로 흘러도 모드가 바뀌지 않는다.
+ */
+private fun Modifier.viewfinderGestures(
+    onPinch: (Float) -> Unit,
+    onSwipe: (towardEnd: Boolean) -> Unit,
+): Modifier = pointerInput(Unit) {
+    val swipeThreshold = SWIPE_THRESHOLD_DP.dp.toPx()
+    awaitEachGesture {
+        awaitFirstDown(requireUnconsumed = false)
+        var pinched = false
+        var swiped = false
+        var pan = Offset.Zero
+        do {
+            val event = awaitPointerEvent()
+            if (event.changes.count { it.pressed } > 1) {
+                pinched = true
+                val zoom = event.calculateZoom()
+                if (zoom != 1f) onPinch(zoom)
+                event.changes.forEach { it.consume() }
+            } else if (!pinched && !swiped) {
+                pan += event.calculatePan()
+                if (abs(pan.x) > swipeThreshold && abs(pan.x) > abs(pan.y) * 2) {
+                    swiped = true
+                    onSwipe(pan.x < 0)
+                    // 소비해 두어야 두 번 쓸었을 때 더블 탭으로 렌즈가 뒤집히지 않는다.
+                    event.changes.forEach { it.consume() }
+                }
+            }
+        } while (event.changes.any { it.pressed })
+    }
+}
+
+private const val SWIPE_THRESHOLD_DP = 48
 
 private const val PREVIEW_FADE_MS = 200
 

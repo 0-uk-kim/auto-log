@@ -34,3 +34,5 @@ val RecordRed = Color(0xFFE5342B)
 val CameraBackground = Color(0xFF000000)
 val CameraScrim = Color(0x99000000)
 val CameraControlTint = Color(0xFFFFFFFF)
+/** 고른 배율·옵션처럼 지금 켜진 것을 짚는 색. 갤럭시 카메라의 노란 강조를 따른다. */
+val CameraHighlight = Color(0xFFFFD60A)

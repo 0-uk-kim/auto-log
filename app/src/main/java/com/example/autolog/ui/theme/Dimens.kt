@@ -11,9 +11,9 @@ object Spacing {
 }
 
 object CameraDimens {
-    val recordButton = 72.dp
-    val controlBar = 120.dp
-    val cornerAction = 56.dp
+    val recordButton = 76.dp
+    /** 셔터 양옆 썸네일·렌즈 전환 원. */
+    val sideAction = 52.dp
 }
 
 object ListDimens {

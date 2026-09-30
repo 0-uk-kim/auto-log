@@ -10,11 +10,15 @@ import kotlin.time.Duration.Companion.seconds
 
 data class CameraUiState(
     val isRecording: Boolean = false,
+    /** 녹화를 잠시 멈춘 상태. 파일은 이어지고 경과 시간도 멈춘다 (#100). */
+    val isPaused: Boolean = false,
     val timer: RecordTimer = RecordTimer.Off,
     /** 타이머가 도는 동안 남은 초. 돌지 않으면 null이다 (#61). */
     val countdown: Int? = null,
     val elapsed: Duration = Duration.ZERO,
     val timelapse: TimelapseSpeed = TimelapseSpeed.Off,
+    /** 하이퍼랩스 모드로 가면 쓸 배속. 동영상 모드에서도 기억해 둔다. */
+    val hyperlapseSpeed: TimelapseSpeed = TimelapseSpeed.Default,
     /** 타임랩스 완성본을 만드는 동안의 진행률. 만들고 있지 않으면 null이다 (#65). */
     val timelapseProgress: Int? = null,
     /** 직전 촬영본. 있을 때만 좌측 하단 썸네일을 노출한다 (planning 3-1). */
@@ -27,8 +31,10 @@ data class CameraUiState(
     val canSwitchLens: Boolean = false,
     /** 카메라가 바인딩되기 전에는 모른다. 그동안은 배율 조작을 받지 않는다. */
     val zoomRange: ZoomRange? = null,
-    val zoomRatio: Float = 1f,
 ) {
+    val mode: CameraMode
+        get() = if (timelapse.isOn) CameraMode.Hyperlapse else CameraMode.Video
+
     val isCountingDown: Boolean
         get() = countdown != null
 
